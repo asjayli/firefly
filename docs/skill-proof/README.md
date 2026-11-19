@@ -49,7 +49,8 @@ docs/skill-proof/
 应用层（`assets/app.js` 为打包产物，集合清单是硬编码的，共 3 类）：
 
 6. 集合数组字面量 `["addy","matt","pstack"]`（firefly 接入时 7 处）与 `Cu=["matt","addy","pstack",...]`（默认可见集，顺序即栏序）全部加新 id。这些数组分别是：Nl（全部集）、Qt（每列状态循环源）、Nv（侧栏定位点）、Ov（spine 定位点）、空状态提示、索引过滤按钮、info-ledger
-7. 每列状态初始对象加键：`{matt:{ref:null,doc:null},...}`（active doc 状态，缺键会在 `va[I].ref` 崩溃）、`{matt:[],...}`（每列批注）
+7. 每列状态初始对象加键：`{matt:{ref:null,doc:null},...}`（active doc 状态，缺键会在 `va[I].ref` 崩溃）、`{matt:[],...}`（每列批注）、
+   滚动同步共 5 处（`{matt:null,...}`/`{matt:0,...}`×2/`{matt:I?.matt??0,...}`/`{matt:I,...}`，缺键则新栏不参与滚动记录/恢复/同步）
 8. `Ml` 函数（每列默认选中技能）已动态化为遍历 `l.columns`，新增集合无需再改
 
 样式层（`assets/style.css`，注意选择器**带前缀**，不能裸写 `.set-<id>{background}`，否则整栏刷底色）：
