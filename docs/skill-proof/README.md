@@ -59,7 +59,8 @@ docs/skill-proof/
 
 坑位提示：
 
-- localStorage `skill-proof:prefs:v1` 缓存旧 visibleSets 会隐藏新栏，验证前先清
+- localStorage 偏好键为 `skill-proof:prefs:v2`（v1 是三套时代的键，存有旧 visibleSets 会隐藏第四栏；
+  四套接入时已升版本作废，读者无感知）
 - 注入脚本 `/tmp/slim-index/build-firefly.py` 非幂等，重跑需先重放三套基线（git show → slim.py → make-static.py）
 
 ## 验证
