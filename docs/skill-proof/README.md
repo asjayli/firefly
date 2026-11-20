@@ -1,6 +1,7 @@
 # Skill Proof / 技能校样台（项目化源）
 
-根目录 `index.html` 的源工程：四套 agent skills（Matt / Addy / Pstack / Firefly）的定位对照与人工阅读页面。
+根目录 `index.html` 的源工程：四套 agent skills（Matt / Addy / Pstack / Firefly）的定位对照与人工阅读页面，
+外加第五列 `firefly-next`——firefly 下一版的目标态设计稿（尚未实施，见 `firefly-next/DESIGN.md`）。
 
 ## 目录结构
 
@@ -17,6 +18,7 @@ docs/skill-proof/
       addy.js                  window.__SP_SETS__.addy   = {"addy:<id>": skill, ...}
       pstack.js                window.__SP_SETS__.pstack = {"pstack:<id>": skill, ...}
       firefly.js               window.__SP_SETS__.firefly = {"firefly:<id>": skill, ...}
+      firefly-next.js          window.__SP_SETS__["firefly-next"] = {"firefly-next:<id>": design card, ...}
     loader.js                  合并 base + sets（skills 按前缀键直接 Object.assign）→ __SKILL_PROOF_DATA__
 ```
 
@@ -60,11 +62,12 @@ docs/skill-proof/
 
 坑位提示：
 
-- localStorage 偏好键为 `skill-proof:prefs:v2`（v1 是三套时代的键，存有旧 visibleSets 会隐藏第四栏；
-  四套接入时已升版本作废，读者无感知）
+- localStorage 偏好键为 `skill-proof:prefs:v3`（每次集合扩容升一版：v1 三套、v2 四套、v3 五套，
+  防旧 visibleSets 隐藏新栏，读者无感知）
 - 注入脚本 `/tmp/slim-index/build-firefly.py` 非幂等，重跑需先重放三套基线（git show → slim.py → make-static.py）
 
 ## 验证
 
 - 双击 `index.html`（file://）或 `python3 -m http.server` 后访问
-- 数据加载后控制台可查：`__SKILL_PROOF_DATA__`（应含 4 套 sets、73 个 skills、26 点 × 4 列）
+- 数据加载后控制台可查：`__SKILL_PROOF_DATA__`（应含 5 套 sets、96 个 skills、26 点 × 5 列；
+  第五列 firefly-next 为设计稿投影：23 张目标态技能卡 + 3 张并入决策卡）
