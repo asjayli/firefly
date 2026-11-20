@@ -2,6 +2,7 @@
 
 > 状态：**设计稿，待用户正式确认**。确认前不实施任何技能改动。
 > 方法：26 个维度逐点吸收 Matt / Addy / Pstack 三套的优点，叠加 2025-2026 互联网最新实践，为 firefly 设计下一版理想形态。
+> **v1.1 修订（2026-11-20）**：吸收 mar 五维审查的设计层发现 + 裁定——①「不分叉」= 资产单套化布局（见 §0.5）；② mar/nextup 机制提炼吸收（16 独立性协议、01 `firefly next`）；③ doubt/guard 合并经用户裁定**回退**（23 技能）；④ 裁定复述条款确认纳入（02④）。裁定详情见文末「裁定结果」。
 > 互联网依据：Anthropic Agent Skills 与 context engineering 官方实践、GitHub Spec Kit / OpenSpec / BMAD / Kiro 的 spec-driven 浪潮、AI 评审的生成/评审分离范式、agent 安全（secrets 注入/最小权限/approval gates）、OTel GenAI 可观测约定、RCA-first 调试纪律、a11y 自动化边界等（详见各点「依据」）。
 
 ## 0. 设计立场：五条元原则
@@ -49,8 +50,8 @@ scripts/install / doctor / repair       单套适配：路径差异在安装器�
 
 ## 1. 技能总览：新增 / 演进 / 合并
 
-firefly-next 目标态共 **21 个技能**：11 个演进 + 10 个新建（11+10=21）。
-五个维度并入相邻技能：**17 简化→review 维度、21 CI→bounds、22 废弃→archive、09 反证→review 的 `--doubt` 档、18 安全门禁→bounds**——后两项经 mar 审查裁定合并（判据与 17 的 YAGNI 先例一致：同一流程点不设两套机制、一条质量线不拆两个家）。
+firefly-next 目标态共 **23 个技能**：11 个演进 + 12 个新建。
+三个维度并入相邻技能：**17 简化→review 维度、21 CI→guard、22 废弃→archive**（判据：独立技能的维护成本大于收益，YAGNI）。doubt/guard 曾按 mar 建议合并，经用户裁定回退为独立技能。
 
 | 组 | 技能 | 动作 | 一句话定位 |
 |---|---|---|---|
@@ -68,7 +69,8 @@ firefly-next 目标态共 **21 个技能**：11 个演进 + 10 个新建（11+10
 | verify | firefly-tdd | 演进（吸收 test-driven-development） | 测试先行：锁测试防自通过 |
 | verify | firefly-verify-web | 演进 | 运行时验证：沙箱浏览器取证 |
 | verify | firefly-debug | **新增** | 调试：RCA-first 证据链 |
-|（09 反证与 18 安全门禁并入 review 档位与 bounds，见合并说明） | | | |
+| build | firefly-doubt | **新增** | 反证轮：红队自己的方案 |
+| review | firefly-guard | **新增**（吸收 CI） | 安全与门禁：secrets/权限/供应链/CI |
 | review | firefly-review | 演进 | 评审裁决：独立子代理 + 并行多维 + `--doubt`/`--deep`/spec 档 |
 | review | firefly-perf | **新增** | 性能：基准先行，数字说话 |
 | ship | firefly-pr | **新增** | 交付：为评审者而写的 PR |
@@ -77,7 +79,7 @@ firefly-next 目标态共 **21 个技能**：11 个演进 + 10 个新建（11+10
 | ship | firefly-archive | 演进（吸收 deprecation/shipping） | 收尾：definition-of-done + 废弃迁移 |
 | extra | firefly-retro | **新增** | 复盘：教训入库成触发器 |
 
-合并说明：`simplification` 并入 review 的常设维度 + `--deep` 档；`doubt` 并入 review 的 `--doubt`/spec 前置档（杀人清单/反例测试/存活判定，与 thermo 档同构）；`security/CI` 并入 bounds（约束的定义、安全清单与 CI 门禁执行归一条质量线）；`deprecation` 并入 archive。判据统一：独立技能的维护成本大于收益（YAGNI）。
+合并说明：`simplification` 并入 review 的常设维度 + `--deep` 档；`ci` 并入 guard 的门禁挂载；`deprecation` 并入 archive。判据统一：独立技能的维护成本大于收益（YAGNI）。
 
 ---
 
@@ -134,7 +136,7 @@ firefly-next 目标态共 **21 个技能**：11 个演进 + 10 个新建（11+10
 - Pstack：无对应（本点 Pstack 缺位，其哲学是 spec 即任务列表）。
 **依据**：GitHub Spec Kit / OpenSpec / BMAD / Kiro 在 2025 共同验证的 spec-first 范式：constitution → spec → plan → tasks 分层；争议点「spec 放哪」的社区答案趋向 **spec 入仓库**（与代码同生命周期、可评审、可回滚）——firefly 的 OpenSpec 资产结构正是这个答案。反面教训：spec 质量不受控时产出 689 行可疑代码（Nov 2025 实测报告）——所以 spec 必须带验收标准，且验收标准必须可转测试。
 **目标态（firefly-propose 演进）**：
-- 机制：①**三层分离**：constitution（项目原则，长期）/ delta spec（本次变更，短命）/ tasks（执行清单）；②**验收标准即测试草案**：每条 Requirement 映射为 Scenario（Given/When/Then），语言可直接抄进测试文件；③**spec 完整性检查**：无验收标准的 spec 不许进入 tasks 阶段；**定稿的两个强制输入**（v1.1）——03 的方案对垒表 + 16 review `--doubt` 档的反证报告，缺一不放行（定稿验收由 review 的 spec 档执行）。
+- 机制：①**三层分离**：constitution（项目原则，长期）/ delta spec（本次变更，短命）/ tasks（执行清单）；②**验收标准即测试草案**：每条 Requirement 映射为 Scenario（Given/When/Then），语言可直接抄进测试文件；③**spec 完整性检查**：无验收标准的 spec 不许进入 tasks 阶段；**定稿的两个强制输入**（v1.1）——03 的方案对垒表 + 09 doubt 的反证报告，缺一不放行（定稿验收由 review 的 spec 档执行）。
 - 产出：`openspec/changes/<id>/`：proposal.md / specs/*.md / design.md（可选）。
 - 验收：spec 评审通过；每条 Scenario 有 Given/When/Then；定稿必附对垒表与反证报告。
 
@@ -145,11 +147,11 @@ firefly-next 目标态共 **21 个技能**：11 个演进 + 10 个新建（11+10
 - Addy `constraint-driven-development`（本点唯一对应）：**非功能约束先行**——性能/安全/兼容性预算在写第一行业务代码前定死，违反即停。
 - Pstack 的四原则（结构编码领域/边界校验/非法状态不可表示/幂等）作为约束模板的候选条目。
 **依据**：agent 安全实践的一致结论——约束写在 prompt 里会被长上下文稀释（context rot），必须落成**可执行检查**（lint 规则/CI 门禁/测试）才能常驻；「写下来」不等于「被遵守」。
-**目标态（firefly-bounds，新增，吸收 security+CI）**：
-- 触发：`firefly bounds`；spec 阶段；依赖变更时；发布前。
-- 职责：①**约束清单**（性能预算/内存上限/兼容矩阵/安全红线/数据边界/测试分层与速度预算——**清单开放式**，retro 回流可扩展），每条绑定可执行验证；**无数字时走 Ratchet 棘轮**（v1.1，吸收 addy：记录当前实测值，只许变好不许变差——「编出来的数字会被忽略，测出来的数字会被守住」）+ 合理默认值表；②约束与任务挂钩——完成声明必须引用检查结果；③项目级 `bounds.md`（constitution 的一部分）；④**安全清单**（并入原 guard）：参数化查询/输入校验/权限最小化/密钥不落盘，逐条通过/不通过；⑤**secrets 注入**：密钥经注入进入进程，不落上下文/日志/文件；⑥**供应链单列**：依赖变更独立评审（版本差异/CVE/维护状态）；⑦**不可逆动作门禁**：以可逆性判据为主规则（不可逆即停待批），外发/删除/发布为示例枚举；⑧**CI 门禁挂载**（并入原 CI 点）：约束检查、tdd 测试、a11y 扫描全部挂 CI，门禁红=不许合。
-- 产出：约束清单 + 每条验证命令 + 安全检查报告 + CI 门禁配置。
-- 验收：抽任一约束/门禁可重跑；secrets 在全部产物中零出现。
+**目标态（firefly-bounds，新增）**：
+- 触发：`firefly bounds`；spec 阶段。
+- 职责：①**约束清单**（性能预算/内存上限/兼容矩阵/安全红线/数据边界/测试分层与速度预算——**清单开放式**，retro 回流可扩展），每条绑定可执行验证；**无数字时走 Ratchet 棘轮**（v1.1，吸收 addy：记录当前实测值，只许变好不许变差——「编出来的数字会被忽略，测出来的数字会被守住」）+ 合理默认值表；②约束与任务挂钩——完成声明必须引用检查结果；③项目级 `bounds.md`（constitution 的一部分）；④安全红线类约束的**执行**由 firefly-guard 承接（见 18），bounds 管定义。
+- 产出：约束清单 + 每条验证命令 + CI 侧的检查挂载点。
+- 验收：抽检任意一条约束，能立即运行其验证命令并得到通过/失败。
 
 ### 06 任务拆解 / Tickets
 
@@ -190,7 +192,7 @@ firefly-next 目标态共 **21 个技能**：11 个演进 + 10 个新建（11+10
 - 产出：结论 + 证据引用清单；重要发现回写 spec/ADR。
 - 验收：评审时抽断言查引用，引用缺失即打回。
 
-### 09 反证与压力测试 / Doubt（并入 16 review 的 --doubt 档）
+### 09 反证与压力测试 / Doubt（新增 firefly-doubt）
 
 **现状**：gap——验证只有正向（测试过=好），无系统性反证。
 **吸收**：
@@ -198,10 +200,11 @@ firefly-next 目标态共 **21 个技能**：11 个演进 + 10 个新建（11+10
 - Addy `doubt-driven-development`：把「什么会让我错」变成显式清单。
 - Pstack `interrogate`：审讯式检查——假设逐条过堂。
 **依据**：AI 测试实践的头号失败模式是 **self-passing but incorrect tests**（agent 写出自我满足的错误测试）；对策是独立红队视角——生成者不能自己验证自己（与 16 评审分离同源）。
-**目标态（并入 16 review 的 `--doubt` 档，经审查裁定合并）**：
-- 档位定义：spec 定稿前、方案对垒后强制走 review 的 `--doubt` 档——①**杀人清单**：列出「如果这个方案是错的，最可能错在哪」Top 5，每条附可执行的检验；②**反例测试**：为最可能的两条写实际的反向测试并运行；③**结论分级**：反证存活 / 带伤存活（列伤）/ 阵亡。
-- 产出：反证报告作为 review spec 档的输入（spec 定稿门必附）。
-- 验收：spec 定稿无反证报告不放行（P0 流程点，由 review spec 档执行）。
+**目标态（firefly-doubt，新增；曾按 mar 建议并入 review 档，经用户裁定回退独立）**：
+- 触发：spec 定稿前、方案对垒后、重要实现完成时。
+- 职责：①**杀人清单**：列出「如果这个方案是错的，最可能错在哪」Top 5，每条附可执行的检验（写反例测试/查边界输入/读上游代码）；②**反例测试**：为最可能的两条写实际的反向测试并运行；③**结论分级**：反证存活 / 带伤存活（列伤）/ 阵亡。
+- 产出：反证报告（攻击点/检验/结果/存活判定），作为 review spec 档的必附输入。
+- 验收：spec 定稿无反证报告不放行（P0 流程点，放行检查由 review 的 spec 档执行）。
 
 ### 10 上下文工程 / Context（新增 firefly-context）
 
@@ -291,9 +294,9 @@ firefly-next 目标态共 **21 个技能**：11 个演进 + 10 个新建（11+10
 - Matt `code-review`：评审是裁决不是聊天——每条意见给裁决（必须改/建议/可接受）。
 **依据**：2025 评审实践的核心共识——**生成与评审分离**：AI 写得越多，评审越要独立；范式是独立评审子代理（与执行代理不同上下文、不同人格设定）+ 并行多维检查（安全/性能/可测性/简化各一个检查点）+ 反馈环（主代理修复→评审子代理复审直到清零）；structured disagreement 研究证明子代理对抗能落地「最小协作开销的高质量评审」。
 **目标态（firefly-review 演进，v1.1 吸收 mar 技能为独立性协议）**：
-- 机制：①**独立评审代理**：评审者不持有执行历史，只看 diff+spec+任务书（防锚定）；②**并行维度**：正确性（对 spec）/ 简化（吸收 17 点）/ 风险（边界与异常）/ 测试（覆盖与质量）+ **标准一致性**（v1.1 新增：审查设计/实现宣称的判据是否被一致应用，专抓「判据不对称」）；③**裁决式意见**：每条 = [必须改|建议|可接受] + 理由 + 位置；④**清零环**：必须改项不归零不通过，复审由同一评审代理增量做；⑤**thermo 档位**：`--deep` 整模块深度简化审查；⑥**`--doubt` 档**（吸收 09 点）：spec 定稿前强制反证轮——杀人清单 Top 5 / 反例测试 / 存活判定，反证报告是 spec 档必附输入；⑦**spec 档**：输入=spec+对垒表+反证报告（无 diff），维度=Scenario 完整性 / 验收可测性 / 与 constitution 冲突，04 的定稿验收由本档执行。
+- 机制：①**独立评审代理**：评审者不持有执行历史，只看 diff+spec+任务书（防锚定）；②**并行维度**：正确性（对 spec）/ 简化（吸收 17 点）/ 风险（边界与异常）/ 测试（覆盖与质量）+ **标准一致性**（v1.1 新增：审查设计/实现宣称的判据是否被一致应用，专抓「判据不对称」）；③**裁决式意见**：每条 = [必须改|建议|可接受] + 理由 + 位置；④**清零环**：必须改项不归零不通过，复审由同一评审代理增量做；⑤**thermo 档位**：`--deep` 整模块深度简化审查；⑥**spec 档**：输入=spec+对垒表+反证报告（无 diff），维度=Scenario 完整性 / 验收可测性 / 与 constitution 冲突，04 的定稿验收由本档执行。
 - **独立性协议**（吸收 mar，v1.1）：一 agent 一维度（单维深挖胜过全面浅扫）；reviewer 互不见彼此结论；同一问题 ≥2 维度独立命中才高置信，单维度无旁证降置信；冲突结论保留双方证据标「待人工」不和稀泥；汇总者必须去重/裁决/定级复核，禁止粘贴拼盘。
-- **档位谱**（v1.1）：轻量档（小 diff 只跑正确性+测试，阈值进 bounds）← 常规四维+标准一致性 → `--deep` / `--doubt` / spec 档。
+- **档位谱**（v1.1）：轻量档（小 diff 只跑正确性+测试，阈值进 bounds）← 常规四维+标准一致性 → `--deep` / spec 档（spec 档的必附输入含 09 doubt 的反证报告）。
 - 产出：评审报告（分维度裁决清单）；spec 档产出定稿裁决 + 反证报告归档。
 - 验收：无未裁决的必须改项；评审/执行上下文隔离可查；spec 定稿必附反证报告（P0 流程点）。
 
@@ -308,15 +311,18 @@ firefly-next 目标态共 **21 个技能**：11 个演进 + 10 个新建（11+10
 - 机制：①review 的常设维度「简化」：每 diff 问三题——能删吗？能并吗？这层抽象有第二个使用者吗（YAGNI）？②**thermo 档位**：`firefly review --deep` 触发深度简化审查（整模块视角，吸收 Pstack 重炮语义），作为可选档而非常驻。
 - 验收：常规 review 必含简化维度结论；thermo 档位产出独立的简化清单。
 
-### 18 安全加固 / Security（并入 05 bounds）
+### 18 安全加固 / Security（新增 firefly-guard，吸收 CI）
 
 **现状**：gap——安全靠通用常识，无专门防线。
 **吸收**：
 - Addy `security-and-hardening`：**参数化/最小权限/输入不信任**三件套，清单化。
 - Pstack `thermo-nuclear-review`：安全作为重炮审查档。
 **依据**：2025 agent 安全实践的一致清单：①**secrets 注入而非环境**——密钥经注入进入进程，不落上下文/日志/文件；②**最小权限 token**——过度授权（over-scoped token）是泄密主通道；③**approval gates**——不可逆动作（外发/删除/force push/发布）必须人工门禁；④**供应链**——依赖变更（新增/升级）单列审查；⑤提示注入与数据外泄的常规化防御（对齐 08 的文档投毒防御）。
-**目标态（并入 05 bounds，经审查裁定合并：一条质量线不拆两个家）**：
-- 05 承接安全与门禁全部职责（见 05 目标态的④-⑧）；本点不再单独成技能。
+**目标态（firefly-guard，新增，吸收 CI/CD 门禁；曾并入 bounds，经用户裁定回退独立）**：
+- 触发：`firefly guard`；依赖变更时；发布前；review 的安全维度自动挂载（契约内挂载，经 01 路由表登记）。
+- 职责：①**安全清单执行**：参数化查询/输入校验/权限最小化/密钥不落盘，逐条通过/不通过（bounds 安全红线的执行视图）；②**secrets 注入**：密钥经注入进入进程，不落上下文/日志/文件；③**供应链单列**：依赖变更独立评审（版本差异/已知 CVE/维护状态）；④**不可逆动作门禁**（v1.1 改判据式）：以可逆性判据为主规则（不可逆即停待批），外发/删除/发布为示例枚举而非穷举；⑤**CI 门禁挂载**（并入原 CI 点）：bounds 的约束检查、tdd 测试、a11y 扫描全部挂 CI，门禁红=不许合。
+- 产出：安全检查报告 + CI 门禁配置。
+- 验收：抽任一门禁可重跑；secrets 在全部产物中零出现。
 
 ### 19 性能优化 / Performance（新增 firefly-perf）
 
@@ -345,12 +351,12 @@ firefly-next 目标态共 **21 个技能**：11 个演进 + 10 个新建（11+10
 - 产出：合规 PR（描述/证据/尺寸达标）。
 - 验收：PR 清单全过；评审代理对 PR 的首次理解不需要额外提问。
 
-### 21 CI/CD 门禁（并入 05 bounds）
+### 21 CI/CD 门禁（并入 18 firefly-guard）
 
 **现状**：gap。
 **吸收**：Addy `ci-cd-and-automation`（本点唯一对应）：自动化门禁是约束的执行者。
 **依据**：约束驱动（05）的结论——约束必须可执行才常驻；CI 是约束的自动执行处；agent 时代新增：CI 里跑的不只是测试，还有 a11y 扫描、安全扫描、基准回归（bounds 统一挂载）。
-**目标态**：并入 bounds 的「CI 门禁挂载」职责（见 05⑧），不再单列技能——门禁的「定义」在 bounds，门禁的「执行」在 CI，中间不需要一个独立技能。
+**目标态**：并入 firefly-guard 的「CI 门禁挂载」职责（见 18⑤），不再单列技能——门禁的「定义」在 bounds，门禁的「执行」在 CI，guard 负责挂载与红绿裁决。
 
 ### 22 废弃与迁移 / Deprecation（并入 firefly-archive）
 
@@ -425,14 +431,14 @@ firefly-next 目标态共 **21 个技能**：11 个演进 + 10 个新建（11+10
 | openspec-sync-specs | 更名演进 firefly-docs | 23 |
 | firefly-archive | 演进（吸收 deprecation/DoD） | 22/25 |
 | test-driven-development | 更名演进 firefly-tdd | 13 |
-| firefly-bounds（含安全与 CI）/ firefly-source / firefly-context / firefly-ui / firefly-arch / firefly-debug / firefly-perf / firefly-pr / firefly-trace / firefly-retro | **新建** | 05(+18+21)/08/10/11/12/15/19/20/24/26 |
+| firefly-bounds / firefly-doubt / firefly-source / firefly-context / firefly-ui / firefly-arch / firefly-debug / firefly-guard（含 CI）/ firefly-perf / firefly-pr / firefly-trace / firefly-retro | **新建** | 05/09/08/10/11/12/15/18(+21)/19/20/24/26 |
 
 （以上为仓库内资产路径，均在本仓库 `assets/claude/` 下；实施时逐项走 OpenSpec 变更流程。）
 
 ## 4. 实施路线（建议，待批准）
 
-- **P0（流程闭环，v1.1 重排修依赖倒置）**：16 review 演进（含 `--doubt` 档与 spec 档）/ 15 debug / 25 archive 演进 + **03/04 最小演进**（对垒表产物 + spec 定稿挂反证点——doubt 闸门的两个挂点）+ **24 trace 最小运行记录**（archive 归档要附的载体）——「反证-调试-评审-完成定义」闭环补齐且不悬空。
-- **P1（工程纵深）**：05 bounds（含安全与 CI 门禁）/ 08 source / 10 context / 13 tdd 演进 / 14 verify-web 演进 / 01 firefly 演进（next 子命令 + 注册表静态化，承载契约内挂载）——约束、依据、上下文、验证四梁 + 总控。
+- **P0（流程闭环，v1.1 重排修依赖倒置）**：16 review 演进（含 spec 档）/ 09 doubt / 15 debug / 25 archive 演进 + **03/04 最小演进**（对垒表产物 + spec 定稿挂反证点——doubt 闸门的两个挂点）+ **24 trace 最小运行记录**（archive 归档要附的载体）——「反证-调试-评审-完成定义」闭环补齐且不悬空。
+- **P1（工程纵深）**：05 bounds / 08 source / 10 context / 13 tdd 演进 / 14 verify-web 演进 / 01 firefly 演进 / 18 guard（含 CI 门禁）（next 子命令 + 注册表静态化，承载契约内挂载）——约束、依据、上下文、验证四梁 + 总控。
 - **P2（领域扩展与收尾）**：11 ui / 12 arch / 19 perf / 20 pr / 23 docs 演进 / 26 retro / 02 演进收尾（裁定复述）/ 资产单套化重整（§0.5 布局迁移，建议此时机一并执行）。
 
 ### 4.5 横切公共约定与记录生命周期（v1.1 新增，修 mar P1 横切散定义与无限期追溯）
@@ -444,11 +450,11 @@ firefly-next 目标态共 **21 个技能**：11 个演进 + 10 个新建（11+10
 
 **记录生命周期**：运行记录/证据归档带 `schemaVersion` 字段；保留期限默认 90 天（bounds 可覆写）；过期迁移/清理由 01 注册表健康检查顺带报告；「任一历史任务」类追溯义务以保留期限为界。
 
-### 待用户裁定清单（v1.1）
+### 裁定结果（2026-11-20，用户逐项裁定）
 
-1. **doubt 并入 review、guard 并入 bounds 两项合并**：当前依据 = mar 审查 2 维度建议 + 主控裁决（曾误标为用户裁定，已修正）；保留（21 技能）或回退（23 技能）待确认。
-2. **mar / nextup 吸收方式**：当前设计为机制提炼（mar→16 独立性协议 + 标准一致性维度；nextup→01 `firefly next` 子命令）；是否改为原文收编（作为受管技能直接分发）待确认。
-3. **裁定复述条款**（02 think ④）：本条款即「不分叉」误解事故的修补，随设计整体确认。
+1. **doubt / guard 合并**：**回退**——firefly-doubt、firefly-guard 恢复独立技能（23 技能，本次修订已执行）。
+2. **mar / nextup 吸收**：**机制提炼**（mar→16 独立性协议 + 标准一致性维度；nextup→01 `firefly next` 子命令），不原文收编。
+3. **裁定复述条款**（02 think ④）：**确认纳入**。
 
 ## 5. 参考来源（主要）
 
