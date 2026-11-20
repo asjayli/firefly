@@ -31,9 +31,11 @@ docs/skill-proof/
   - `groups`：8 个分组名（meta/define/plan/build/verify/review/ship/extra）
   - `positions`：26 个抽象点，每点含 `columns.<setId>.skills[]` 的映射（key/role/note/children 等），
     无对应技能的点给 `columns.<setId>.gap`（缺口分析：title/nearest/kicker/content 双语）
+    - `gap.merged: true` 表示**并入决策**（该维度被有意并入相邻技能），与「设计缺口」区分：
+      页面覆盖点阵不把它算作缺口，`stats.gaps` 也不计入
   - `annotations`：内置批注（152 条）
-  - `index`：全量技能索引（151 条，`embedded` 标记正文是否嵌入）
-  - `stats`：统计（positions=26 / embeddedSkills=73 / indexEntries=151 / annotations=152 / gaps=38）
+  - `index`：全量技能索引（174 条，`embedded` 标记正文是否嵌入）
+  - `stats`：统计（positions=26 / embeddedSkills=95 / indexEntries=174 / annotations=152 / gaps=38）——`gaps` **不计入并入决策槽**（见下）
 - **sets/*.js**（技能集数据层，每套一个文件）
   - 键为 `"<setId>:<skillId>"`，与应用查询键一致，loader 直接合并
   - 每个技能：name/nameZh/type/role/description/note/children/lineage/source/content（content 为 {en, zh} 或 {markdown}）
@@ -46,7 +48,7 @@ docs/skill-proof/
 2. `data/sets/<id>.js`：新建，键为 `"<id>:<skillId>"`
 3. `index.html`：增加一行 `<script src="./docs/skill-proof/data/sets/<id>.js"></script>`（在 loader.js 之前）
 4. `positions`：26 点逐点增加 `columns.<id>`（有技能给 `skills[]`+`defaultSkillId`，无技能给 `gap`）
-5. `index`：追加索引条目；`stats` 计数同步更新
+5. `index`：追加索引条目；`stats` 计数同步更新（`embeddedSkills` / `indexEntries` / `gaps` 应为实测值，不要写死基数）
 
 应用层（`assets/app.js` 为打包产物，集合清单是硬编码的，共 3 类）：
 
@@ -64,10 +66,18 @@ docs/skill-proof/
 
 - localStorage 偏好键为 `skill-proof:prefs:v3`（每次集合扩容升一版：v1 三套、v2 四套、v3 五套，
   防旧 visibleSets 隐藏新栏，读者无感知）
-- 注入脚本 `/tmp/slim-index/build-firefly.py` 非幂等，重跑需先重放三套基线（git show → slim.py → make-static.py）
+- 第五列 `firefly-next` 的数据由 `tools/build-flynext.py` **从 `firefly-next/DESIGN.md` 派生**：
+  中文卡正文解析生成、英文摘要读 `tools/flynext-en.json`（digest，允许滞后但受禁用词校验）。
+  **不要手改 `data/sets/firefly-next.js`**——改 DESIGN.md 或 flynext-en.json 后重跑生成器。
+- 生成前必跑 `tools/verify-flynext.py`：校验卡数/机制条目数/禁用词/sha/26 点覆盖/索引与 stats 自洽，失败即非零退出。
+- `/tmp/slim-index/build-firefly.py`（前三套的历史注入脚本）非幂等，重跑需先重放基线（git show → slim.py → make-static.py）；
+  `build-flynext.py` 是幂等的，可反复运行。
+- 索引里的 `positionTitle.en` 沿用既有 26 点框架词汇，与 DESIGN.md 的小节英文名不同源（历史遗留），对照阅读时以中文标题为准
 
 ## 验证
 
 - 双击 `index.html`（file://）或 `python3 -m http.server` 后访问
 - 数据加载后控制台可查：`__SKILL_PROOF_DATA__`（应含 5 套 sets、96 个 skills、26 点 × 5 列；
-  第五列 firefly-next 为设计稿投影：23 张目标态技能卡 + 3 张并入决策卡）
+  第五列 firefly-next 为设计稿投影：**23 张技能卡 + 3 个并入决策槽**（17 简化 / 21 CI / 22 废弃，
+  落在 `positions[].columns["firefly-next"].gap`，带 `merged: true`，不是独立卡片））
+- 命令行校验：`python3 docs/skill-proof/tools/verify-flynext.py` 应输出「校验通过」
