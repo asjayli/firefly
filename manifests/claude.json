@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "fireflyVersion": "0.1.0",
+  "fireflyVersion": "0.2.0",
   "platform": "claude",
   "managedRoot": "~/.claude",
   "sources": {
@@ -10,16 +10,6 @@
       "version": "1.6.0",
       "install": "npm install -g @fission-ai/openspec@1.6.0",
       "overrideTargetVersion": "1.6.0"
-    },
-    "superpowers": {
-      "type": "claude-plugin-marketplace",
-      "marketplace": "obra/superpowers-marketplace",
-      "plugin": "superpowers@superpowers-marketplace",
-      "install": [
-        "/plugin marketplace add obra/superpowers-marketplace",
-        "/plugin install superpowers@superpowers-marketplace"
-      ],
-      "notes": "firefly relies on the upstream Claude superpowers plugin, then overlays managed customizations."
     }
   },
   "managedAssets": [
@@ -68,13 +58,6 @@
       "kind": "skill-directory"
     },
     {
-      "id": "openspec-sync-specs-skill",
-      "source": "assets/claude/skills/openspec-sync-specs",
-      "target": "~/.claude/skills/openspec-sync-specs",
-      "owner": "firefly",
-      "kind": "skill-directory"
-    },
-    {
       "id": "firefly-skill",
       "source": "assets/claude/skills/firefly",
       "target": "~/.claude/skills/firefly",
@@ -89,11 +72,12 @@
       "kind": "skill-directory"
     },
     {
-      "id": "firefly-doctor-skill",
-      "source": "assets/claude/skills/firefly-doctor",
-      "target": "~/.claude/skills/firefly-doctor",
+      "id": "firefly-context-skill",
+      "source": "assets/claude/skills/firefly-context",
+      "target": "~/.claude/skills/firefly-context",
       "owner": "firefly",
-      "kind": "skill-directory"
+      "kind": "skill-directory",
+      "origin": "firefly-original"
     },
     {
       "id": "firefly-draw-skill",
@@ -175,6 +159,110 @@
       "upstream": "vendored third-party: Apache-2.0, © Microsoft Corporation (LICENSE.txt/NOTICE.txt retained)"
     },
     {
+      "id": "firefly-bounds-skill",
+      "source": "assets/claude/skills/firefly-bounds",
+      "target": "~/.claude/skills/firefly-bounds",
+      "owner": "firefly",
+      "kind": "skill-directory",
+      "origin": "firefly-original"
+    },
+    {
+      "id": "firefly-source-skill",
+      "source": "assets/claude/skills/firefly-source",
+      "target": "~/.claude/skills/firefly-source",
+      "owner": "firefly",
+      "kind": "skill-directory",
+      "origin": "firefly-original"
+    },
+    {
+      "id": "firefly-doubt-skill",
+      "source": "assets/claude/skills/firefly-doubt",
+      "target": "~/.claude/skills/firefly-doubt",
+      "owner": "firefly",
+      "kind": "skill-directory",
+      "origin": "firefly-original"
+    },
+    {
+      "id": "firefly-arch-skill",
+      "source": "assets/claude/skills/firefly-arch",
+      "target": "~/.claude/skills/firefly-arch",
+      "owner": "firefly",
+      "kind": "skill-directory",
+      "origin": "firefly-original"
+    },
+    {
+      "id": "firefly-docs-skill",
+      "source": "assets/claude/skills/firefly-docs",
+      "target": "~/.claude/skills/firefly-docs",
+      "owner": "firefly",
+      "kind": "skill-directory",
+      "origin": "firefly-original"
+    },
+    {
+      "id": "firefly-ui-skill",
+      "source": "assets/claude/skills/firefly-ui",
+      "target": "~/.claude/skills/firefly-ui",
+      "owner": "firefly",
+      "kind": "skill-directory",
+      "origin": "firefly-original"
+    },
+    {
+      "id": "firefly-tdd-skill",
+      "source": "assets/claude/skills/firefly-tdd",
+      "target": "~/.claude/skills/firefly-tdd",
+      "owner": "firefly",
+      "kind": "skill-directory",
+      "origin": "firefly-original"
+    },
+    {
+      "id": "firefly-debug-skill",
+      "source": "assets/claude/skills/firefly-debug",
+      "target": "~/.claude/skills/firefly-debug",
+      "owner": "firefly",
+      "kind": "skill-directory",
+      "origin": "firefly-original"
+    },
+    {
+      "id": "firefly-guard-skill",
+      "source": "assets/claude/skills/firefly-guard",
+      "target": "~/.claude/skills/firefly-guard",
+      "owner": "firefly",
+      "kind": "skill-directory",
+      "origin": "firefly-original"
+    },
+    {
+      "id": "firefly-perf-skill",
+      "source": "assets/claude/skills/firefly-perf",
+      "target": "~/.claude/skills/firefly-perf",
+      "owner": "firefly",
+      "kind": "skill-directory",
+      "origin": "firefly-original"
+    },
+    {
+      "id": "firefly-trace-skill",
+      "source": "assets/claude/skills/firefly-trace",
+      "target": "~/.claude/skills/firefly-trace",
+      "owner": "firefly",
+      "kind": "skill-directory",
+      "origin": "firefly-original"
+    },
+    {
+      "id": "firefly-pr-skill",
+      "source": "assets/claude/skills/firefly-pr",
+      "target": "~/.claude/skills/firefly-pr",
+      "owner": "firefly",
+      "kind": "skill-directory",
+      "origin": "firefly-original"
+    },
+    {
+      "id": "firefly-retro-skill",
+      "source": "assets/claude/skills/firefly-retro",
+      "target": "~/.claude/skills/firefly-retro",
+      "owner": "firefly",
+      "kind": "skill-directory",
+      "origin": "firefly-original"
+    },
+    {
       "id": "opsx-commands",
       "source": "assets/claude/commands/opsx",
       "target": "~/.claude/commands/opsx",
@@ -182,52 +270,11 @@
       "kind": "command-directory"
     },
     {
-      "id": "claude-brainstorming-skill",
-      "source": "assets/claude/superpowers/skills/brainstorming/SKILL.md",
-      "target": "<claude-superpowers-root>/skills/brainstorming/SKILL.md",
+      "id": "firefly-references",
+      "source": "assets/claude/references",
+      "target": "~/.claude/firefly/references",
       "owner": "firefly",
-      "kind": "superpowers-plugin-override",
-      "upstream": "superpowers-claude-plugin"
-    },
-    {
-      "id": "claude-writing-plans-skill",
-      "source": "assets/claude/superpowers/skills/writing-plans/SKILL.md",
-      "target": "<claude-superpowers-root>/skills/writing-plans/SKILL.md",
-      "owner": "firefly",
-      "kind": "superpowers-plugin-override",
-      "upstream": "superpowers-claude-plugin"
-    },
-    {
-      "id": "claude-test-driven-development-skill",
-      "source": "assets/claude/superpowers/skills/test-driven-development/SKILL.md",
-      "target": "<claude-superpowers-root>/skills/test-driven-development/SKILL.md",
-      "owner": "firefly",
-      "kind": "superpowers-plugin-override",
-      "upstream": "superpowers-claude-plugin"
-    },
-    {
-      "id": "claude-subagent-driven-development-skill",
-      "source": "assets/claude/superpowers/skills/subagent-driven-development",
-      "target": "<claude-superpowers-root>/skills/subagent-driven-development",
-      "owner": "firefly",
-      "kind": "superpowers-plugin-override",
-      "upstream": "superpowers-claude-plugin"
-    },
-    {
-      "id": "claude-requesting-code-review-skill",
-      "source": "assets/claude/superpowers/skills/requesting-code-review",
-      "target": "<claude-superpowers-root>/skills/requesting-code-review",
-      "owner": "firefly",
-      "kind": "superpowers-plugin-override",
-      "upstream": "superpowers-claude-plugin"
-    },
-    {
-      "id": "claude-executing-plans-skill",
-      "source": "assets/claude/superpowers/skills/executing-plans/SKILL.md",
-      "target": "<claude-superpowers-root>/skills/executing-plans/SKILL.md",
-      "owner": "firefly",
-      "kind": "superpowers-plugin-override",
-      "upstream": "superpowers-claude-plugin"
+      "kind": "reference-directory"
     },
     {
       "id": "runtime-bootstrap-script",
@@ -244,9 +291,9 @@
       "kind": "runtime-script"
     },
     {
-      "id": "runtime-firefly-draw-script",
-      "source": "scripts/firefly-draw.sh",
-      "target": "~/.claude/firefly/bin/firefly-draw.sh",
+      "id": "runtime-firefly-diagram-script",
+      "source": "scripts/firefly-diagram.sh",
+      "target": "~/.claude/firefly/bin/firefly-diagram.sh",
       "owner": "firefly",
       "kind": "runtime-script"
     },
@@ -264,6 +311,57 @@
       "owner": "firefly",
       "kind": "runtime-script",
       "note": "Shared shell helpers sourced by runtime install/doctor scripts; provides portable SHA-256."
+    },
+    {
+      "id": "runtime-install-library",
+      "source": "scripts/firefly-install.sh",
+      "target": "~/.claude/firefly/bin/firefly-install.sh",
+      "owner": "firefly",
+      "kind": "runtime-script",
+      "note": "Shared installer steps sourced by the platform installers."
+    },
+    {
+      "id": "runtime-doctor-library",
+      "source": "scripts/firefly-doctor.sh",
+      "target": "~/.claude/firefly/bin/firefly-doctor.sh",
+      "owner": "firefly",
+      "kind": "runtime-script",
+      "note": "Shared doctor checks sourced by the platform doctors."
+    },
+    {
+      "id": "runtime-snapshot-script",
+      "source": "scripts/firefly-snapshot.sh",
+      "target": "~/.claude/firefly/bin/firefly-snapshot.sh",
+      "owner": "firefly",
+      "kind": "runtime-script"
+    },
+    {
+      "id": "runtime-record-script",
+      "source": "scripts/firefly-record.sh",
+      "target": "~/.claude/firefly/bin/firefly-record.sh",
+      "owner": "firefly",
+      "kind": "runtime-script"
+    },
+    {
+      "id": "runtime-review-package-script",
+      "source": "scripts/review-package",
+      "target": "~/.claude/firefly/bin/review-package",
+      "owner": "firefly",
+      "kind": "runtime-script"
+    },
+    {
+      "id": "runtime-task-brief-script",
+      "source": "scripts/task-brief",
+      "target": "~/.claude/firefly/bin/task-brief",
+      "owner": "firefly",
+      "kind": "runtime-script"
+    },
+    {
+      "id": "runtime-sdd-workspace-script",
+      "source": "scripts/sdd-workspace",
+      "target": "~/.claude/firefly/bin/sdd-workspace",
+      "owner": "firefly",
+      "kind": "runtime-script"
     },
     {
       "id": "runtime-chinese-openspec-validator",
@@ -290,11 +388,173 @@
     {
       "id": "firefly-home-mirror",
       "source": "repo root (assets, scripts, manifests)",
-      "paths": ["assets", "scripts", "manifests"],
+      "paths": [
+        "assets",
+        "scripts",
+        "manifests"
+      ],
       "target": "~/.claude/firefly",
       "owner": "firefly",
       "kind": "source-mirror",
       "note": "Source baseline mirrored by install so global doctor/repair can diff installed assets against firefly-owned copies from any directory."
+    },
+    {
+      "id": "firefly-upstream-script",
+      "source": "scripts/firefly-upstream.sh",
+      "target": "~/.claude/firefly/bin/firefly-upstream.sh",
+      "owner": "firefly",
+      "kind": "runtime-script"
+    },
+    {
+      "id": "firefly-retired-script",
+      "source": "scripts/firefly-retired.sh",
+      "target": "~/.claude/firefly/bin/firefly-retired.sh",
+      "owner": "firefly",
+      "kind": "runtime-script"
+    }
+  ],
+  "retiredAssets": [
+    {
+      "id": "firefly-doctor-dir",
+      "since": "0.2.0",
+      "handling": "remove-with-backup",
+      "target": "~/.claude/skills/firefly-doctor",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": [
+            "6c6f29d3bdf34f7aaeacf079c93dc4f459f4ce29064c0df6b9a1f5fbf2a944b4"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "openspec-sync-specs-dir",
+      "since": "0.2.0",
+      "handling": "remove-with-backup",
+      "target": "~/.claude/skills/openspec-sync-specs",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": [
+            "7f0f0071c7ab9021fe6485149674c0a040266c6ad27fa22664f568805f54a441"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "brainstorming-overlay",
+      "since": "0.2.0",
+      "handling": "overlay-leftover",
+      "target": "<claude-superpowers-root>/skills/brainstorming/SKILL.md",
+      "files": [
+        {
+          "path": "",
+          "sha256": [
+            "1a20ee4db5f4e13d371f8d075e0d5da594891f6eb7b68b143f44b7291bbd6248"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "writing-plans-overlay",
+      "since": "0.2.0",
+      "handling": "overlay-leftover",
+      "target": "<claude-superpowers-root>/skills/writing-plans/SKILL.md",
+      "files": [
+        {
+          "path": "",
+          "sha256": [
+            "cd24abb9864baa3b94920615277c617eb71ee9bfd46f9ad155da0d9753528f2b"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "executing-plans-overlay",
+      "since": "0.2.0",
+      "handling": "overlay-leftover",
+      "target": "<claude-superpowers-root>/skills/executing-plans/SKILL.md",
+      "files": [
+        {
+          "path": "",
+          "sha256": [
+            "7d53415356569fcb57b9f22758a4396a62b977f6086088a2ee9b3e023bce057e"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "test-driven-development-overlay",
+      "since": "0.2.0",
+      "handling": "overlay-leftover",
+      "target": "<claude-superpowers-root>/skills/test-driven-development/SKILL.md",
+      "files": [
+        {
+          "path": "",
+          "sha256": [
+            "7bfd0c3eee8b099193b70542f38c423ea69e097c6fe536814f6b30534e0a024b"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "subagent-driven-development-overlay",
+      "since": "0.2.0",
+      "handling": "overlay-leftover",
+      "target": "<claude-superpowers-root>/skills/subagent-driven-development",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": [
+            "9a90aedecd6869b9e45b7878526f7b5f682abad4ad7e2dec56c1db1abf8ef940"
+          ]
+        },
+        {
+          "path": "implementer-prompt.md",
+          "sha256": [
+            "336314304ef793e05ac6d32702b233744163287b6fb7919327f9ad389aa85f50"
+          ]
+        },
+        {
+          "path": "scripts/review-package",
+          "sha256": [
+            "1fae0e1d113c6d00f5d6b910a7d4f8227fb063ff15644af935d6caa308321277"
+          ]
+        },
+        {
+          "path": "scripts/sdd-workspace",
+          "sha256": [
+            "e14d515a56db55396c7b743217e57253f0c5ba155e3805044e04c79930482d08"
+          ]
+        },
+        {
+          "path": "scripts/task-brief",
+          "sha256": [
+            "93c834d6132c7ca07f04c998541073a999813d5a3db6ca7f684ce922c1c30f2d"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "requesting-code-review-overlay",
+      "since": "0.2.0",
+      "handling": "overlay-leftover",
+      "target": "<claude-superpowers-root>/skills/requesting-code-review",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": [
+            "86523a1444b335a5151a6a85b5796b6671f59f0ff25bb13ae4454fe49160c599"
+          ]
+        },
+        {
+          "path": "code-reviewer.md",
+          "sha256": [
+            "60dc14e38b8296ba2eefa55ff3f9bdbad9bd4105d37ea25b070290506a04e7e4"
+          ]
+        }
+      ]
     }
   ]
 }

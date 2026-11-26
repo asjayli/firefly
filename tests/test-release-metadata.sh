@@ -77,4 +77,39 @@ bash "$CHECK"
 restore_all
 trap - EXIT
 
+BACKUP2="$(mktemp -d)"
+
+# 7. retiredAssets structure damage is caught.
+tamper_retired_structure() {
+  python3 - "$1" <<'PY'
+import json, sys
+m = json.load(open(sys.argv[1]))
+m["retiredAssets"][0]["handling"] = "delete-forever"
+json.dump(m, open(sys.argv[1], "w"))
+PY
+}
+cp "$ROOT_DIR/manifests/claude.json" "$BACKUP2/claude.json"
+tamper_retired_structure "$ROOT_DIR/manifests/claude.json"
+if bash "$CHECK" >/dev/null 2>&1; then
+  echo "expected tampered retiredAssets handling to fail" >&2
+  exit 1
+fi
+cp "$BACKUP2/claude.json" "$ROOT_DIR/manifests/claude.json"
+echo "negative: blocked (retiredAssets structure)"
+
+# 8. retiredAssets entry ids that differ across manifests are caught.
+python3 - "$ROOT_DIR/manifests/claude.json" <<'PY'
+import json, sys
+m = json.load(open(sys.argv[1]))
+m["retiredAssets"][0]["id"] = "renamed-retired-entry"
+json.dump(m, open(sys.argv[1], "w"))
+PY
+if bash "$CHECK" >/dev/null 2>&1; then
+  echo "expected mismatched retiredAssets ids to fail" >&2
+  exit 1
+fi
+cp "$BACKUP2/claude.json" "$ROOT_DIR/manifests/claude.json"
+echo "negative: blocked (retiredAssets id mismatch)"
+
+
 echo "release metadata test passed"

@@ -1,0 +1,79 @@
+@design 18,21
+
+# Entry. Three entries share one set of criteria and differ in permissions:
+# a named read-only commission, the affected checks of a review's security
+# axis, and gate mounting through the host platform's gate mechanism.
++trigger: commissions this skill to check a named scope
++trigger: the change touches identity, data flow, dependencies or permissions
++trigger: wires them into the host platform's gate mechanism in the consuming project's CI
++trigger: An unrelated small change triggers no full audit
++trigger: Mounting takes write authority; a read-only mandate raises a configuration task pending authorization
+
+# Authorization boundary. Finding risk grants no write; the verdict is the
+# reviewer's; the review dispatch leaves one write only; a prohibited action
+# cannot be overridden; nothing irreversible is executed here.
++mandate: Finding a risk grants no edit to configuration, no external transmission, no deletion and no release
++mandate: differ in what they may write, never in the criteria they apply
++mandate: The verdict is the independent reviewer's
++mandate: Executing an irreversible disposition
++mandate: Overriding an action the project prohibits with an ad hoc approval
++mandate: Change nothing: not the candidate, not its spec, not its tasks
++mandate: The observation row and its evidence are the only write
++mandate: no write authority comes with them
++mandate: writes no project configuration
+
+# Inputs: the mandate record, the scenario-map rows, both test identities,
+# the control catalog, and for mounting a gate's owner and replay method.
++input: their rows of `## Scenario map` in `openspec/changes/<id>/tasks.md`
++input: one owner identity and one other authorized identity per boundary
++input: The control catalog the project keeps
++input: a mandate whose permitted effects cover writes to the consuming project's CI
+
+# Outputs: the observation row with its redacted evidence; a named entry's
+# conclusion lives in the reply; mounting under write authority or a task
+# pending authorization otherwise.
++output: --observer verifier:firefly-guard
++output: `--note` is never omitted
++output: The recorder fills in the candidate snapshot and the spec version; nobody reports them by hand
++output: The conclusion lives in the reply
++output: A mounted gate, or a configuration task pending authorization with its receiver
+
+# Verdicts and states: each side recorded separately, worst wins, isolation
+# unverified on owner success alone; pipeline skips are unverified even on a
+# green light; a promoted gate is a changed measurement method.
++verdict-or-state: normal function passed, isolation unverified
++verdict-or-state: The scenario conclusion takes the worst of the checks and branches
++verdict-or-state: still fail the privacy control
++verdict-or-state: Input that was not scanned, was unreadable or could not be reached is not clean
++verdict-or-state: A trial changes no existing verdict
++verdict-or-state: counts as a changed measurement method
++verdict-or-state: recorded `unverified` and returned to firefly-review
++verdict-or-state: even when the pipeline's overall light is green
++verdict-or-state: Not-run, non-applicable and passed never share one green mark
+
+# Handoffs: the security axis from review and per-check results back to it;
+# gates from bounds, from verify-web, from perf through bounds; the
+# requester receives coverage-stated conclusions and pending tasks.
++handoff: Only the affected checks of the security axis
++handoff: The independent reviewer issues the verdict
++handoff: the result (`pass`, `fail` or `unverified`) and the evidence pointer
++handoff: to be mounted as a regression check
++handoff: with its receiver
+
+# Stops and escalation: missing write authority, blocked irreversible
+# dispositions, no retroactive authorization from archive; a coverage-limited
+# conclusion is a result, not an escalation.
++stop: `ESCALATE` with the current conclusion, the missing evidence or authority, and the responsible owner
++stop: It stays blocked; this skill executes nothing
++stop: An approval record found at archive does not retroactively authorize
++stop: A conclusion limited by unexamined inputs is a result, not an escalation
++stop: Declare no whole-product safety
+
+# Forbidden. The last three are the overreaches this skill exists to prevent:
+# mounting without write authority, editing what it was only allowed to
+# inspect, and a whole-product safety claim.
+-: APPROVE
+-: requesting-code-review
+-: mounts gates without write authority
+-: edits the configuration it was only allowed to inspect
+-: declares the whole product safe

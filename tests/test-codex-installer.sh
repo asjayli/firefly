@@ -88,13 +88,15 @@ manifest_skill_sources="$(node -e 'const m=require(process.argv[1]); console.log
 scanned_skill_sources="$(find "$ROOT_DIR/assets/codex/skills" -mindepth 1 -maxdepth 1 -type d -printf 'assets/codex/skills/%f\n' | sort)"
 if [[ "$manifest_skill_sources" != "$scanned_skill_sources" ]]; then
   echo "Codex manifest skill assets do not match assets/codex/skills" >&2
+  diff <(printf '%s\n' "$manifest_skill_sources") <(printf '%s\n' "$scanned_skill_sources") | head -20 >&2
+  locale >&2 | head -5
   exit 1
 fi
 
 assert_contains "$(<"$MANIFEST")" '"version": "1.6.0"'
 assert_contains "$(<"$MANIFEST")" '"overrideTargetVersion": "1.6.0"'
 assert_contains "$(<"$MANIFEST")" '"source": "repo root (assets, scripts, manifests)"'
-assert_contains "$(<"$INSTALLER")" 'npm install -g @fission-ai/openspec@1.6.0'
+assert_contains "$(<"$ROOT_DIR/scripts/firefly-install.sh")" 'npm install -g @fission-ai/openspec@1.6.0'
 
 installer_help="$("$INSTALLER" --help)"
 doctor_help="$("$DOCTOR" --help)"
@@ -142,17 +144,9 @@ set -e
 assert_exit_code "$deprecated_flag_status" "1"
 assert_contains "$deprecated_flag_output" "unknown argument: --install-openspec"
 
-mkdir -p "$CODEX_HOME/superpowers/skills/brainstorming"
-mkdir -p "$CODEX_HOME/superpowers/skills/writing-plans"
-mkdir -p "$CODEX_HOME/superpowers/skills/executing-plans"
-mkdir -p "$CODEX_HOME/superpowers/skills/subagent-driven-development"
-mkdir -p "$CODEX_HOME/superpowers/skills/requesting-code-review"
-mkdir -p "$CODEX_HOME/superpowers/skills/test-driven-development"
 mkdir -p "$OPENSPEC_ROOT/dist/core"
 mkdir -p "$OPENSPEC_ROOT/dist/core/templates/workflows"
 printf '{"name":"@fission-ai/openspec","version":"1.6.0"}\n' > "$OPENSPEC_ROOT/package.json"
-printf 'user local brainstorming\n' > "$CODEX_HOME/superpowers/skills/brainstorming/SKILL.md"
-printf 'user local tdd\n' > "$CODEX_HOME/superpowers/skills/test-driven-development/SKILL.md"
 printf 'export function serializeConfig() { return \"wrong\"; }\n' > "$OPENSPEC_ROOT/dist/core/config-prompts.js"
 printf 'export const propose = \"wrong\";\n' > "$OPENSPEC_ROOT/dist/core/templates/workflows/propose.js"
 
@@ -168,6 +162,8 @@ assert_exit_code "$command_collision_status" "1"
 assert_contains "$command_collision_output" "refusing to replace existing command: $FIREFLY_BIN_DIR/firefly"
 rm "$FIREFLY_BIN_DIR/firefly"
 
+# No upstream superpowers directory exists in this fake HOME; the install
+# must still succeed and lay out the full managed asset set.
 installer_output="$("$INSTALLER")"
 assert_contains "$installer_output" "🧱 firefly Codex installer"
 assert_contains "$installer_output" "✅ Applied openspec override"
@@ -180,14 +176,11 @@ for mirror_path in assets scripts manifests; do
   assert_paths_equal "$ROOT_DIR/$mirror_path" "$CODEX_HOME/firefly/$mirror_path"
 done
 
-test_path_not_exists "$CODEX_HOME/superpowers/skills/brainstorming/SKILL.md.firefly.bak"
-test_path_not_exists "$CODEX_HOME/superpowers/skills/test-driven-development/SKILL.md.firefly.bak"
 test_path_not_exists "$OPENSPEC_ROOT/dist/core/config-prompts.js.firefly.bak"
 test_path_not_exists "$OPENSPEC_ROOT/dist/core/templates/workflows/propose.js.firefly.bak"
 test_file_exists "$CODEX_HOME/skills/mermaid-diagram-specialist/SKILL.md"
 test_file_exists "$CODEX_HOME/skills/firefly/SKILL.md"
 test_file_exists "$CODEX_HOME/skills/firefly-init/SKILL.md"
-test_file_exists "$CODEX_HOME/skills/firefly-doctor/SKILL.md"
 test_file_exists "$CODEX_HOME/skills/firefly-repair/SKILL.md"
 test_file_exists "$CODEX_HOME/skills/firefly-implement/SKILL.md"
 test_file_exists "$CODEX_HOME/skills/firefly-archive/SKILL.md"
@@ -201,35 +194,55 @@ test_file_exists "$CODEX_HOME/skills/openspec-propose/SKILL.md"
 test_file_exists "$CODEX_HOME/skills/openspec-apply-change/SKILL.md"
 test_file_exists "$CODEX_HOME/skills/openspec-archive-change/SKILL.md"
 test_file_exists "$CODEX_HOME/skills/openspec-explore/SKILL.md"
-test_file_exists "$CODEX_HOME/skills/openspec-sync-specs/SKILL.md"
 
-for skill_name in openspec-propose openspec-apply-change openspec-archive-change openspec-explore openspec-sync-specs; do
+for skill_name in openspec-propose openspec-apply-change openspec-archive-change openspec-explore; do
   cmp "$ROOT_DIR/assets/codex/skills/$skill_name/SKILL.md" "$CODEX_HOME/skills/$skill_name/SKILL.md"
   assert_contains "$(<"$CODEX_HOME/skills/$skill_name/SKILL.md")" 'generatedBy: "1.6.0"'
 done
 
-assert_contains "$(<"$MANIFEST")" '"id": "openspec-sync-specs-skill"'
+# The handoff contract is installed from the rendered references directory.
+test_file_exists "$CODEX_HOME/firefly/references/handoff-contract.md"
+cmp "$ROOT_DIR/assets/codex/references/handoff-contract.md" "$CODEX_HOME/firefly/references/handoff-contract.md"
 
-# Superpowers overrides: whole-directory overlays (subagent-driven-development,
-# requesting-code-review) must land their extra files alongside SKILL.md, and
-# the SDD runtime scripts must keep their exec bit through the cp -R overlay.
-codex_sp_root="$CODEX_HOME/superpowers/skills"
-test_file_exists "$codex_sp_root/brainstorming/SKILL.md"
-test_file_exists "$codex_sp_root/writing-plans/SKILL.md"
-test_file_exists "$codex_sp_root/executing-plans/SKILL.md"
-test_file_exists "$codex_sp_root/test-driven-development/SKILL.md"
-test_file_exists "$codex_sp_root/subagent-driven-development/SKILL.md"
-test_file_exists "$codex_sp_root/subagent-driven-development/implementer-prompt.md"
-test_file_executable "$codex_sp_root/subagent-driven-development/scripts/task-brief"
-test_file_executable "$codex_sp_root/subagent-driven-development/scripts/review-package"
-test_file_executable "$codex_sp_root/subagent-driven-development/scripts/sdd-workspace"
-test_file_exists "$codex_sp_root/requesting-code-review/SKILL.md"
-test_file_exists "$codex_sp_root/requesting-code-review/code-reviewer.md"
 
 # Runtime scripts are installed to ~/.codex/firefly/bin and must stay executable.
 test_file_executable "$CODEX_HOME/firefly/bin/bootstrap-project.sh"
 test_file_executable "$CODEX_HOME/firefly/bin/list-change-tasks.sh"
-test_file_executable "$CODEX_HOME/firefly/bin/firefly-draw.sh"
+# Runtime scripts are installed to ~/.codex/firefly/bin and must stay executable,
+# the five added with the snapshot and record tools included; the renamed
+# diagram script replaces the old one; the shared install/doctor libraries
+# and their common helper ship alongside the platform scripts.
+for runtime_script in bootstrap-project.sh list-change-tasks.sh firefly-diagram.sh firefly-snapshot.sh firefly-record.sh review-package task-brief sdd-workspace doctor-codex.sh validate-openspec-cn.mjs firefly-common.sh firefly-install.sh firefly-doctor.sh; do
+  test_file_executable "$CODEX_HOME/firefly/bin/$runtime_script"
+done
+test_path_not_exists "$CODEX_HOME/firefly/bin/firefly-draw.sh"
+for runtime_script in review-package task-brief sdd-workspace firefly-snapshot.sh firefly-record.sh firefly-diagram.sh firefly-common.sh firefly-install.sh firefly-doctor.sh; do
+  cmp "$ROOT_DIR/scripts/$runtime_script" "$CODEX_HOME/firefly/bin/$runtime_script"
+done
+echo "ok codex installer: runtime scripts and shared libraries installed, executable and identical to the source"
+
+# The installed skill set equals the manifest's skill set, so a skill that is
+# registered is installed; firefly-context is checked by name as well.
+manifest_skill_names="$(node -e 'const m=require(process.argv[1]); console.log(m.managedAssets.filter(a => a.kind === "skill-directory" && a.source.startsWith("assets/codex/skills/")).map(a => a.target.split("/").pop()).sort().join("\n"))' "$MANIFEST")"
+installed_skill_names="$(find "$CODEX_HOME/skills" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort)"
+if [[ "$manifest_skill_names" != "$installed_skill_names" ]]; then
+  echo "installed skill set differs from the manifest" >&2
+  exit 1
+fi
+# Without any superpowers present the install still lays out exactly the 31
+# managed skill directories.
+installed_skill_count="$(find "$CODEX_HOME/skills" -mindepth 1 -maxdepth 1 -type d | wc -l)"
+if [[ "$installed_skill_count" -ne 31 ]]; then
+  echo "expected 31 installed skill directories but got $installed_skill_count" >&2
+  exit 1
+fi
+test_file_exists "$CODEX_HOME/skills/firefly-context/SKILL.md"
+for s in firefly-bounds firefly-source firefly-doubt firefly-arch firefly-docs \
+         firefly-ui firefly-tdd firefly-debug firefly-guard firefly-perf firefly-trace \
+         firefly-pr firefly-retro; do
+  test_file_exists "$CODEX_HOME/skills/$s/SKILL.md"
+done
+echo "ok codex installer: 31 skill directories installed without any superpowers present"
 test_file_executable "$CODEX_HOME/firefly/bin/doctor-codex.sh"
 test_file_executable "$CODEX_HOME/firefly/bin/validate-openspec-cn.mjs"
 cmp "$ROOT_DIR/scripts/validate-openspec-cn.mjs" "$CODEX_HOME/firefly/bin/validate-openspec-cn.mjs"
@@ -249,7 +262,7 @@ assert_contains "$doctor_output" "$OPENSPEC_ROOT/dist/core/config-prompts.js"
 assert_contains "$doctor_output" "$OPENSPEC_ROOT/dist/core/templates/workflows/propose.js"
 assert_contains "$doctor_output" "$CODEX_HOME/skills/openspec-propose"
 assert_contains "$doctor_output" "$CODEX_HOME/skills/openspec-apply-change"
-assert_contains "$doctor_output" "$CODEX_HOME/skills/openspec-sync-specs"
+assert_contains "$doctor_output" "$CODEX_HOME/firefly/references"
 
 rm "$FIREFLY_BIN_DIR/firefly"
 
@@ -290,7 +303,7 @@ assert_contains "$actual_openspec_propose_skill" "$expected_openspec_propose_ski
 assert_contains "$actual_openspec_propose_skill" 'Next command: `firefly implement <name>`'
 assert_contains "$actual_openspec_propose" 'Next command: \`firefly implement <name>\`'
 
-echo "drift" >> "$CODEX_HOME/superpowers/skills/brainstorming/SKILL.md"
+echo "drift" >> "$OPENSPEC_ROOT/dist/core/config-prompts.js"
 
 set +e
 drift_output="$("$DOCTOR" 2>&1)"
@@ -305,13 +318,12 @@ repair_output="$("$DOCTOR" --repair)"
 assert_contains "$repair_output" "🛠️ Repairing drifted or missing assets"
 assert_contains "$repair_output" "💾 Backed up"
 assert_contains "$repair_output" "✅ Repaired"
-test_path_not_exists "$CODEX_HOME/superpowers/skills/brainstorming/SKILL.md.firefly.bak"
 
 post_repair_output="$("$DOCTOR")"
 assert_contains "$post_repair_output" "✨ No drift detected"
 assert_contains "$post_repair_output" "firefly Codex doctor passed"
 
-chmod -x "$CODEX_HOME/firefly/bin/firefly-draw.sh"
+chmod -x "$CODEX_HOME/firefly/bin/firefly-diagram.sh"
 
 set +e
 mode_drift_output="$("$DOCTOR" 2>&1)"
@@ -320,11 +332,11 @@ set -e
 
 assert_exit_code "$mode_drift_status" "1"
 assert_contains "$mode_drift_output" "❌ DRIFT"
-assert_contains "$mode_drift_output" "$CODEX_HOME/firefly/bin/firefly-draw.sh"
+assert_contains "$mode_drift_output" "$CODEX_HOME/firefly/bin/firefly-diagram.sh"
 
 mode_repair_output="$("$DOCTOR" --repair)"
-assert_contains "$mode_repair_output" "$CODEX_HOME/firefly/bin/firefly-draw.sh"
-test_file_executable "$CODEX_HOME/firefly/bin/firefly-draw.sh"
+assert_contains "$mode_repair_output" "$CODEX_HOME/firefly/bin/firefly-diagram.sh"
+test_file_executable "$CODEX_HOME/firefly/bin/firefly-diagram.sh"
 
 rm "$CODEX_HOME/firefly/bin/validate-openspec-cn.mjs"
 
@@ -419,8 +431,32 @@ assert_contains "$invalid_openspec_install_output" "OpenSpec package metadata is
 test_path_not_exists "$invalid_openspec_root/dist/core/config-prompts.js"
 test_file_exists "$CODEX_HOME/skills/firefly/SKILL.md"
 
+# FIREFLY_MANIFEST overrides the default manifest path: a temporary manifest
+# without one skill-directory installs everything but that skill.
+manifest_override_dir="$(mktemp -d)"
+trap 'rm -rf "$tmp_dir" "$manifest_override_dir"' EXIT
+mkdir -p "$manifest_override_dir/fake-root/manifests" "$manifest_override_dir/home"
+ln -s "$ROOT_DIR/assets" "$manifest_override_dir/fake-root/assets"
+ln -s "$ROOT_DIR/scripts" "$manifest_override_dir/fake-root/scripts"
+node -e '
+  const fs = require("fs");
+  const m = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+  m.managedAssets = m.managedAssets.filter(
+    (a) => !(a.kind === "skill-directory" && a.source === "assets/codex/skills/firefly-doubt")
+  );
+  fs.writeFileSync(process.argv[2], JSON.stringify(m, null, 2) + "\n");
+' "$MANIFEST" "$manifest_override_dir/fake-root/manifests/codex.json"
+
+override_home="$manifest_override_dir/home/.codex"
+manifest_override_output="$(CODEX_HOME="$override_home" FIREFLY_BIN_DIR="$manifest_override_dir/home/.local/bin" OPENSPEC_ROOT="$tmp_dir/openspec" FIREFLY_MANIFEST="$manifest_override_dir/fake-root/manifests/codex.json" "$INSTALLER")"
+assert_contains "$manifest_override_output" "🎉 firefly Codex install complete"
+test_path_not_exists "$override_home/skills/firefly-doubt"
+test_file_exists "$override_home/skills/firefly/SKILL.md"
+test_file_exists "$override_home/firefly/references/handoff-contract.md"
+echo "ok codex installer: FIREFLY_MANIFEST drops the removed skill-directory entry"
+
 bad_root_dir="$(mktemp -d)"
-trap 'rm -rf "$tmp_dir" "$bad_root_dir"' EXIT
+trap 'rm -rf "$tmp_dir" "$manifest_override_dir" "$bad_root_dir"' EXIT
 
 set +e
 bad_root_output="$(CODEX_HOME="$bad_root_dir" "$INSTALLER" 2>&1)"
@@ -437,8 +473,7 @@ assert_exit_code "$bad_openspec_status" "1"
 assert_contains "$bad_openspec_output" "root path must not be /"
 
 missing_openspec_dir="$(mktemp -d)"
-trap 'rm -rf "$tmp_dir" "$bad_root_dir" "$missing_openspec_dir"' EXIT
-mkdir -p "$missing_openspec_dir/.codex/superpowers"
+trap 'rm -rf "$tmp_dir" "$manifest_override_dir" "$bad_root_dir" "$missing_openspec_dir"' EXIT
 
 set +e
 missing_openspec_install_output="$(env -u OPENSPEC_ROOT CODEX_HOME="$missing_openspec_dir/.codex" FIREFLY_BIN_DIR="$missing_openspec_dir/.local/bin" PATH="$bin_dir:$PATH" "$INSTALLER" 2>&1)"

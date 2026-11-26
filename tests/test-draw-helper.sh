@@ -3,13 +3,22 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-SCRIPT="$ROOT_DIR/scripts/firefly-draw.sh"
+SCRIPT="$ROOT_DIR/scripts/firefly-diagram.sh"
 
 assert_contains() {
   local haystack="$1"
   local needle="$2"
   if [[ "$haystack" != *"$needle"* ]]; then
     echo "expected output to contain: $needle" >&2
+    exit 1
+  fi
+}
+
+assert_not_contains() {
+  local haystack="$1"
+  local needle="$2"
+  if [[ "$haystack" == *"$needle"* ]]; then
+    echo "expected output not to contain: $needle" >&2
     exit 1
   fi
 }
@@ -106,10 +115,11 @@ if [[ "$invalid_timestamp_status" != "1" ]]; then
   echo "expected invalid timestamp exit code 1 but got $invalid_timestamp_status" >&2
   exit 1
 fi
-assert_contains "$invalid_timestamp_output" "invalid firefly draw timestamp"
+assert_contains "$invalid_timestamp_output" "invalid firefly diagram timestamp"
+assert_not_contains "$invalid_timestamp_output" "firefly draw"
 if [[ -e "$tmp_dir/outside-login-flow.mmd" ]]; then
   echo "timestamp override escaped the output directory" >&2
   exit 1
 fi
 
-echo "draw helper test passed"
+echo "diagram helper test passed"

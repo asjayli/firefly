@@ -1,0 +1,26 @@
+@design 15
+
+# Anchors — firefly-debug (design 15)
+
++trigger: does not reproduce reliably
++trigger: one repair round left the symptom unchanged
++trigger: competing explanations predict the same symptom and no existing check separates them
++trigger: asks only for the cause of a failure
++mandate: never releases its own repair
++mandate: does not authorize implementation
++mandate: retained long-term only as an intentional product signal reviewed under `firefly-trace`
++input: the failing scenario, the trigger input, the candidate snapshot and the evidence
++input: must cover the writes this skill makes
++output: Debug note (<YYYY-MM-DD>): trigger
++output: at the end of the task item list of the task group
++output: `## Debug notes`
++output: never on a task item line
++verdict-or-state: ready decision in force becomes `historical`
++handoff: returns to `firefly-propose` for the review of the task package alone
++handoff: not continued into `firefly-implement`
++stop: no recorded mandate covers its writes
++stop: No distinguishing feedback can be obtained
+-: APPROVE
+-: executing-plans
+-: accepts its own repair
+-: treats the mitigation as the root cause

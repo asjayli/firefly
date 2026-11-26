@@ -23,10 +23,15 @@ test_file_exists "$ROOT_DIR/assets/shared/skills/firefly-implement/SKILL.md"
 # 1. A clean tree must pass --check.
 node "$SYNC" --check
 
-# 2. Every shared entry must exist on both platforms (parity).
+# 2. Every shared entry must exist on both platforms (parity). The loop is
+#    driven by the manifest's `shared` array, so it covers skills and the
+#    `references` directory alike; every source file must have its rendered
+#    counterpart, including files below a skill (references/*.md).
 for platform in codex claude; do
   for rel in $(node -e 'for (const s of require(process.argv[1]).shared) console.log(s)' "$MANIFEST"); do
-    test_file_exists "$ROOT_DIR/assets/$platform/$rel/SKILL.md"
+    while IFS= read -r source_file; do
+      test_file_exists "$ROOT_DIR/assets/$platform/$rel/${source_file#"$ROOT_DIR/assets/shared/$rel/"}"
+    done < <(find "$ROOT_DIR/assets/shared/$rel" -type f | LC_ALL=C sort)
   done
 done
 

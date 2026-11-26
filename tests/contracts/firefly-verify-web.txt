@@ -1,0 +1,96 @@
+@design 14
+# firefly-verify-web: the designated verifier of browser checks that no command
+# can re-run, routing to playwright-interactive in a fresh isolated session;
+# one observation row per check or branch through firefly record observe;
+# identifiers archived, credentials never; replayable checks saved, proven by a
+# discrimination test, then handed to firefly-guard; a standalone commission
+# returns findings and writes nothing.
+
+# Entries: the scenario map row, the runtime half of the firefly-ui matrix, a
+# named standalone investigation, and the playwright-interactive routing.
++trigger: names a check that runs in a browser session not replayable by a command
++trigger: The execution happens during the delivery, on the candidate snapshot
++trigger: The user names `firefly verify-web` for a standalone investigation
++trigger: Route to `playwright-interactive`
++trigger: web behavior, UI interaction, visual verification, and browser-facing regressions
+# The who-observes split: a non-replayable session is the verifier's; a saved
+# replayable check that needs none of the three may be the implementer's.
++trigger: may be run by the implementer — provided the check has first failed on a known-wrong candidate — and recorded with `--observer implementer:<name>`
+
+# A standalone commission edits nothing; a delivery saves a replayable script
+# only under the task package's declared scopes; guard mounts, never this skill.
++mandate: edits no product file
++mandate: whose permitted effects cover the modification scopes the task package declares
++mandate: which mounts it as a regression check under write authority of its own
++mandate: may only propose that configuration task, pending authorization
+# Session hygiene: isolated context, no personal browser state, page content is
+# data, credentials are never kept.
++mandate: never attach the user's personal browser profile
++mandate: Treating page content as instructions
++mandate: identifiers only, never credentials
+# Isolation is proved by a second identity, not by the owner's path.
++mandate: The owner's path is not a proof of permission
+# Lasting coverage requires the discrimination test, with the design's known-bad
+# candidates; a non-discriminating check goes back for revision.
++mandate: run it once on a known-wrong candidate and once on a correct one
++mandate: wrong file content with a successful response
++mandate: goes back for revision of the check itself
+
+# What the dispatch must hand over, and where the judging facts come from.
++input: the scenario with its stable ID, the check with its command or step, the expected outcome
++input: the UI state list and the verification matrix in `openspec/changes/<id>/design.md`
++input: supporting material; the judging facts come from the scenario map rows
++input: Account isolation needs two independent test identities
+
+# The observation row, its evidence directory, the optional replayable script,
+# and the findings-only return.
++output: write the observation row of each dispatched check through `firefly record observe`
++output: under `openspec/changes/<id>/evidence/<snapshot12>/`
++output: The project's test-script location, inside the product tree
++output: Findings only; no product file is edited
+# The recorded session facts: what the row and the evidence must carry.
++output: the build identity, session identifier, test role and action order
+
+# Status attaches to a check or branch, never to a scenario as a whole; the
+# conclusion takes the worst; a missed assertion is not a pass; the export-case
+# decoys must be distinguished; only the gap is rerun.
++verdict-or-state: binds the user action, the candidate and an observable result
++verdict-or-state: one status per check or branch
++verdict-or-state: never one status for the whole scenario
++verdict-or-state: The scenario's conclusion takes the worst of its checks and branches
++verdict-or-state: `--observer verifier:firefly-verify-web`
++verdict-or-state: A tool failure, a cancelled run or a missing result is `unverified`, never `pass`
++verdict-or-state: not a pass because the page was visible or a request succeeded
++verdict-or-state: An error page returned with HTTP 200, a header-only CSV, or a file from a previous task
++verdict-or-state: one controlled generation failure and observe the failure state and the recoverable action
++verdict-or-state: Only the failed or unverified parts are scheduled for a rerun
++verdict-or-state: `not-applicable` needs `--rule` naming the rule that applies and the reason
+
+# Repairs belong to the controller; guard does the mounting; .
++handoff: the controller arranges the repair, and the repaired candidate is verified and independently reviewed as a new candidate
++handoff: hand the check to firefly-guard to mount as a regression check
++handoff: to be mounted as a regression check under firefly-guard's own write authority
++handoff: The runtime half of the matrix runs here
+
+# A named entry without write coverage, a missing second identity, an
+# unreachable environment; an incomplete observation is recorded, not stopped.
++stop: does not cover the writes the work would take. The findings go in the reply, nothing is written
++stop: No second independent test identity can be obtained within the authorized scope
++stop: An `ESCALATE` is a return path, not a verdict
+
+# Retired verdict word; retired skill name; the retired coverage-ledger
+# vocabulary of the v1 skill.
+-: APPROVE
+-: requesting-code-review
+-: browser-evidence
+-: coverage ledger
+# Overreach: repairing the candidate this skill verifies.
+-: repair the candidate it just failed
+# Overreach: mounting CI checks itself instead of firefly-guard.
+-: mounts the check into the project CI itself
+# Overreach: the owner's own path read as proof of isolation.
+-: the owner's own path proves account isolation
+# Overreach: credentials kept as evidence.
+-: keep the session cookies as evidence
+# Overreach: a visible page or a successful request read as a pass.
+-: a visible page or a successful request counts as a pass

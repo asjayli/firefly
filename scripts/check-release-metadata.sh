@@ -92,14 +92,21 @@ for component in "playwright-interactive" "OpenSpec" "superpowers" "Microsoft"; 
   require_contains "$ROOT_DIR/THIRD_PARTY_NOTICES.md" "$component" "THIRD_PARTY_NOTICES.md"
 done
 
-# 8. The vendored playwright-interactive license files are retained on both platforms.
-for platform in codex claude; do
+# 8. The vendored playwright-interactive license files are retained on every
+#    platform. Platforms are whatever <name>.json lives in manifests/ besides
+#    the asset-sync manifest, so a new platform joins without editing this
+#    loop.
+for manifest_path in "$ROOT_DIR"/manifests/*.json; do
+  platform="$(basename "$manifest_path" .json)"
+  [[ "$platform" == "platform-assets" ]] && continue
   require_file "$ROOT_DIR/assets/$platform/skills/playwright-interactive/LICENSE.txt"
   require_file "$ROOT_DIR/assets/$platform/skills/playwright-interactive/NOTICE.txt"
 done
 
 # 9. OpenSpec override target version still matches the pinned OpenSpec version.
-for platform in codex claude; do
+for manifest_path in "$ROOT_DIR"/manifests/*.json; do
+  platform="$(basename "$manifest_path" .json)"
+  [[ "$platform" == "platform-assets" ]] && continue
   manifest="$ROOT_DIR/manifests/$platform.json"
   pinned="$(json_string_field "$manifest" version)"
   override="$(json_string_field "$manifest" overrideTargetVersion)"
@@ -108,6 +115,36 @@ for platform in codex claude; do
   [[ "$pinned" == "$override" ]] \
     || fail "manifests/$platform.json OpenSpec override targets '$override' but pins '$pinned'"
 done
+
+# 10. retiredAssets structure is valid and the entry ids match across manifests.
+for manifest_path in "$ROOT_DIR"/manifests/*.json; do
+  platform="$(basename "$manifest_path" .json)"
+  [[ "$platform" == "platform-assets" ]] && continue
+  node -e '
+    const fs = require("fs");
+    const m = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+    const retired = m.retiredAssets || [];
+    for (const e of retired) {
+      const w = "retiredAssets entry " + JSON.stringify(e && e.id) + " in " + process.argv[1];
+      if (!e || typeof e.id !== "string" || typeof e.since !== "string" || typeof e.handling !== "string" || typeof e.target !== "string") {
+        console.error(w + " is missing a string id/since/handling/target"); process.exit(1); }
+      if (e.handling !== "remove-with-backup" && e.handling !== "overlay-leftover") {
+        console.error(w + " has an unknown handling: " + e.handling); process.exit(1); }
+      if (!Array.isArray(e.files) || e.files.length === 0) {
+        console.error(w + " needs a non-empty files array"); process.exit(1); }
+      for (const f of e.files) {
+        if (!f || typeof f.path !== "string" || !Array.isArray(f.sha256) || f.sha256.length === 0) {
+          console.error(w + " has a file entry without a string path or a non-empty sha256 array"); process.exit(1); }
+        for (const h of f.sha256) if (!/^[0-9a-f]{64}$/.test(h)) {
+          console.error(w + " has a malformed sha256: " + h); process.exit(1); }
+      }
+    }
+  ' "$manifest_path" || fail "manifests/$platform.json retiredAssets structure is invalid"
+done
+
+claude_ids="$(node -e 'const m=require(process.argv[1]); process.stdout.write((m.retiredAssets||[]).map(e=>e.id).sort().join(" "))' "$ROOT_DIR/manifests/claude.json")"
+codex_ids="$(node -e 'const m=require(process.argv[1]); process.stdout.write((m.retiredAssets||[]).map(e=>e.id).sort().join(" "))' "$ROOT_DIR/manifests/codex.json")"
+[[ "$claude_ids" == "$codex_ids" ]] || fail "retiredAssets entry ids differ between manifests/claude.json and manifests/codex.json"
 
 if [[ "$failures" -gt 0 ]]; then
   echo "release metadata check failed: $failures problem(s)" >&2

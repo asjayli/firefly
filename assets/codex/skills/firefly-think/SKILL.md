@@ -1,95 +1,137 @@
 ---
 name: firefly-think
-description: Use when the user explicitly asks firefly to think through a requirement before proposal or implementation, especially when the request is still vague, evolving, or backed by diagrams or requirement documents.
+description: Clarifies a requirement before any proposal. Investigates first what the existing specs, source, decision records and reproducible behavior already answer, then asks the user one question at a time for the trade-offs that only the owner who carries their consequences may settle, and writes the minutes under openspec/think/. Use when the user names firefly think, when a request is still vague or evolving or backed by a diagram or a requirement document, or when work in progress needs the user to choose between behaviors with different consequences. Not for facts a system can establish without the user (a probe goes to firefly-draw, a dependency question to firefly-source), and not when the user has already decided.
 license: MIT
-compatibility: Works best in repositories that use firefly-style change artifacts under openspec/.
 metadata:
   author: firefly
-  version: "1.0"
+  version: "2.0"
+  design: "02"
 ---
 
-Use this skill when the user explicitly wants firefly to think through a requirement before proposal or implementation.
+# firefly Think
 
-**IMPORTANT: Think is for clarification, not implementation.** You may read files, inspect the repository, and write think artifacts, but you must NOT implement product code as part of this step.
+The agent the user names, or the controller dispatches, runs this skill. It asks the questions and writes the minutes; every trade-off stays with the owner who carries its consequences. The shared rules are in `${CODEX_HOME:-$HOME/.codex}/firefly/references/handoff-contract.md`: they are referenced here and restated nowhere.
 
-## Accepted Input
+**Think is for clarification, not implementation.** You may read files, inspect the repository and write think artifacts. You must not implement product code.
 
-- A vague idea, problem statement, feature, flow, or interface description
-- A more detailed written request
-- A `.mmd` diagram generated from firefly draw
-- A full requirement document
+## When to use
 
-More detailed input usually produces a more precise think result.
+- **Named.** The user names `firefly think`, with a vague idea, a more detailed request, a `.mmd` diagram or a full requirement document.
+- **An open goal.** The request is still vague or evolving: no behavior is selected yet, or the user is still choosing between behaviors with different consequences.
+- **From work in progress.** The controller hands a decision over when it needs the user to choose between behaviors with different consequences. What comes back is the minutes: the user's verbatim words, the selected behavior and its source, and the open blockers.
 
-## Behavior
+## When not to use
 
-**Independent review contract:** Every reviewer receives one review package containing:
+- **The facts can be established without the user.** Behavior or feasibility of a system under your control goes to `firefly-draw` as a single-question probe; a third party's promise under the version and configuration in use goes to `firefly-source`. Such facts are not guessed in an interview.
+- **The user has already given the decision.** The minutes hold it, or the request states it: ask nothing again, and do not re-open a settled trade-off.
+- **Questions cannot settle it.** A decision that needs a comparison of options, a sequence diagram or an operable prototype goes to `firefly-draw`.
+- **The behavior is already agreed.** That is `firefly-propose`; this skill does not re-interview for decisions a record already holds.
 
-- Objective: the authorized outcome.
-- Scope: the allowed repositories, changes, files, and systems.
-- Constraints: the binding process, architecture, safety, and platform rules.
-- Authorized effects: the writes and side effects allowed to the controller.
-- Terminal condition: the state at which this workflow must stop.
-- The candidate producer identity, candidate artifacts, action, or diff, verification evidence, assumptions and risks.
+## Mandate
 
-If a reviewer fails to start, times out, crashes, or returns an invalid verdict, reuse the unchanged review package with at most two new independent review agents. If both retries fail, return `ESCALATE` with the collected infrastructure evidence; never infer `APPROVE`. The controller validates only reviewer identity, verdict structure, and supporting evidence; it does not recursively review the verdict.
+**Fixed end.**
 
-1. **Treat the user's input as raw source material**
-   - Use the requirement text, attached notes, `.mmd` design flow, and supporting documents when available.
+- A clarification-only objective ends with the minutes written under `openspec/think/` and the reply returning them with a next-step recommendation. The flow stops there; nothing follows on its own.
+- A mandate whose terminal condition includes later stages continues into `firefly-propose` once behavior is agreed. Whether it does is read from the terminal condition of the mandate record, never assumed: a mandate that ends at clarification is not widened here to cover a proposal (contract, Mandate record).
+- The skill also ends by `ESCALATE` (see "Stop and escalate").
 
-2. **Check requirement completeness (greenfield only)**
-   - For a greenfield requirement, walk these categories and surface a question only when an answer is missing AND it changes the design:
+Asking the user a question is this skill's own work, not an escalation. An `ESCALATE` is reserved for the cases "Stop and escalate" lists.
 
-     | Category | Ask only when missing and design-affecting |
-     |---|---|
-     | Target platform | web, mobile, desktop, CLI, multi-platform |
-     | Tech stack | framework, language, runtime |
-     | Design direction | visual style, interaction constraints |
-     | External integrations | identity, data, payments, storage, deployment |
-     | Scope boundaries | this phase, deferred, explicitly excluded |
-     | Users and scenarios | primary users, key flows |
-     | Performance constraints | traffic, latency, offline, real-time |
-     | Data model | core entities and relationships |
+**Permitted effects.**
 
-   - Do not re-ask anything the prompt, project files, or memory already answer.
-   - For existing projects, answer from code and existing specs first; ask at most the forks that truly affect the plan.
-   - Leave micro implementation details to design/tasks; do not confirm them at the requirement stage.
-   - Request at most one decision per round for a material ambiguity.
+- Read the repository: the existing specs, the source code, the decision records, the Git history, reproducible behavior.
+- Read project memory read-only (see step 2).
+- Ask the user, one question at a time.
+- Write the minutes under `openspec/think/`: a new file named `YYYY-MM-DD-<description>.md`, a later iteration of the same requirement `-v2`, then `-v3`.
+- Recommend a handoff to `firefly-draw` or `firefly-source` for a fact this skill cannot settle by reading.
 
-3. **Read project memory (read-only)**
-   - Discover and read only: `<project>/.codex/memory/`, `<project>/.claude/memory/`, and memory indices the host already exposes publicly.
-   - Do not create these directories when absent; do not scan global unrelated memory.
-   - Do not write memory back during think or propose.
-   - For each adopted fact, record its source, why it applies, and the decision it affects (see Context Provenance in the output template).
-   - A conflicting older memory must not silently override explicit user input.
+**Not granted.**
 
-4. **Create the think artifact directory when missing**
-   - Ensure `openspec/think/` exists before writing any artifact.
+- Implementing anything or editing product code.
+- Dispatching any review of its own minutes.
+- Deciding a trade-off in the owner's place, or writing "use your judgment" down as agreement to anything the words did not explicitly delegate.
+- Writing a decision record (`docs/adr/`): that carrier belongs to `firefly-docs` and takes a mandate that permits it.
+- Recording the mandate row, or the `Minutes: <path>` line that links a mandate to the minutes: the controller writes both (contract, Carriers).
+- Editing a file the user named as the requirement: it is itself the requirement record.
+- Writing project memory back.
 
-5. **Restate the requirement first**
-   - Rewrite the user's request in clearer terms.
-   - Explain your current understanding.
-   - Surface scope boundaries, assumptions, risks, and open questions.
+## Inputs
 
-6. **Run an independent review**
-   - Give a reviewer that did not produce the restatement the original request, repository evidence, proposed scope, assumptions, risks, and terminal condition.
-   - Require an evidence-backed `APPROVE`, `REVISE`, or `ESCALATE` verdict.
-   - On `APPROVE`, write the think artifact without waiting for user confirmation.
-   - On `REVISE`, update the restatement and request another independent review.
-   - On `ESCALATE`, ask once for the critical decision that cannot be inferred, including evidence, a recommendation, and option impacts.
+- **Requirement source.** Four kinds, all accepted: a vague idea; a more detailed written request; a `.mmd` diagram generated by `firefly diagram`; a full requirement document. More detailed input usually produces a more precise result.
+- **A file the user named**, when there is one. It is itself the requirement record: read it, never edit it.
+- **The mandate, when one is on record.** Its terminal condition decides whether the flow continues into a proposal after clarification.
+- **On resumption,** the minutes already written under `openspec/think/`, read before any question is asked again.
 
-7. **Write the reviewed think artifact**
-   - Save the independently approved result as Markdown under `openspec/think/`.
-   - Use the file name format `YYYY-MM-DD-<requirement-description>.md`.
-   - If the same dated requirement already exists, create the next version as `YYYY-MM-DD-<requirement-description>-v2.md`, then `-v3.md`, and so on.
-   - Do not overwrite an earlier iteration of the same requirement.
+## Procedure
 
-8. **Recommend the next step**
-   - If the objective ends at think, return the reviewed artifact and stop.
-   - If the original objective includes later firefly phases, continue to proposal after `APPROVE` without a stage confirmation.
-   - If the user is still exploring, keep thinking instead of forcing structure too early.
+### 1. Restate the requirement first
 
-## Think Output Template
+Rewrite the user's request in clearer terms. Explain the current understanding. Surface scope boundaries, assumptions, risks and open questions, and write them into the minutes as they form. Use the requirement text, attached notes, the `.mmd` flow and supporting documents as raw source material.
+
+### 2. Investigate before asking
+
+Facts go to whoever can verify them; trade-offs go to whoever carries the consequences. Before listing the disagreements that would still change the design, look for their answers in the existing specs, the source code, the decision records, the Git history, reproducible behavior and project memory. An answer the records already hold is never asked again.
+
+- **Read project memory read-only.** Discover and read only the memory directories the host keeps under the project root and the memory indices the host already exposes publicly. Do not create these directories when absent; do not scan global unrelated memory. **Do not write memory back.** A conflicting older memory never silently overrides explicit user input.
+- For each fact adopted from memory, record its source, why it applies and the decision it affects, in the Context Provenance table of the minutes.
+
+### 3. Sort what remains
+
+After the investigation, every remaining disagreement falls into one of four bins:
+
+1. **Already answered** by the prompt, the project files, the memory or an earlier answer: not asked again.
+2. **A fact that needs an experiment.** Behavior or feasibility of a system under your control goes to `firefly-draw` as a single-question probe; a third party's promise under the version and configuration in use goes to `firefly-source`. Neither is guessed in the interview.
+3. **A decision questions cannot settle.** It needs a comparison of options, a sequence diagram or an operable prototype: it goes to `firefly-draw`.
+4. **A trade-off the requirement owner must make.** Only these are asked, and only of the owner who carries the consequences.
+
+### 4. The export example
+
+"After refresh, the export starts over." Two explanations: a background job is still running and the page lost the job id, or the computation ends with the disconnected request. Establish which is true from existing material first — logs, source, a reproduction. If nothing settles it, hand the single question to `firefly-draw` as a probe; do not ask the user to choose between explanations the system can answer. Only then ask finance the question that changes the objective: "If generation time stays the same, but the same result is still retrievable after a refresh, can month-end work continue?" A yes limits the first delivery to recovery; a no adds a completion-time objective and a load to measure it under. Asking the user to pick a queue product is not the decision they face at this point.
+
+### 5. Ask one question at a time
+
+- Each round asks one question: the one whose answer rules out the most wasted work.
+- Before interrupting, write one acceptance condition per plausible answer. If two conditions do not differ materially, the question is unnecessary: do not ask it.
+- Do not re-ask anything the prompt, the project files, the memory or an earlier answer already settles.
+- Record each answer into the minutes as it is given.
+
+### 6. Check requirement completeness (greenfield only)
+
+For a greenfield requirement, walk these categories and surface a question only when an answer is missing AND it changes the design:
+
+| Category | Ask only when missing and design-affecting |
+|---|---|
+| Target platform | web, mobile, desktop, CLI, multi-platform |
+| Tech stack | framework, language, runtime |
+| Design direction | visual style, interaction constraints |
+| External integrations | identity, data, payments, storage, deployment |
+| Scope boundaries | this phase, deferred, explicitly excluded |
+| Users and scenarios | primary users, key flows |
+| Performance constraints | traffic, latency, offline, real-time |
+| Data model | core entities and relationships |
+
+- For an existing project, answer from code and existing specs first; ask at most the forks that truly affect the plan.
+- Leave micro implementation details to design and tasks; do not confirm them at the requirement stage.
+
+### 7. Write the minutes
+
+- Save the result as Markdown under `openspec/think/`, named `YYYY-MM-DD-<description>.md`. If the same dated requirement already exists, create the next version as `YYYY-MM-DD-<description>-v2.md`, then `-v3.md`, and so on. An earlier iteration of the same requirement is never overwritten.
+- Every decision entry keeps four things: the user's verbatim words, the selected behavior, the rejected interpretations, and the blockers still unresolved. The spec later cites these entries by pointer instead of reinterpreting "faster" (the `- **Source:**` line of `firefly-propose`); write each entry so it can be pointed at.
+- **External promises, data retention or transferred risk.** Each entry says which of three kinds it is: `user-words`, `owner-confirmed` or `agent-inference`. An inferred behavior keeps its inference mark until the requirement owner confirms it. When the user named a file as the requirement, a later entry goes into a minutes file under `openspec/think/`, and the named file stays as it is.
+
+### 8. A missing decision maker
+
+- When the requirement owner is not there to answer, deliver both consequences and a recommendation. Do not commit on their behalf.
+- "Use your judgment" is not agreement to anything the words did not explicitly delegate — not to indefinite retention, not to an external promise. Present the two consequences to whoever holds the decision.
+- With no answer, that decision stays blocked while every independent investigation continues. Write it into the minutes as an open blocker, with the two consequences, the recommendation and the owner it waits for.
+
+### 9. Deliver
+
+- Return the minutes and a next-step recommendation.
+- A clarification-only objective: return the artifact and stop. If the user is still exploring, keep thinking instead of forcing structure too early.
+- The mandate includes later stages, read from its terminal condition: continue into `firefly-propose` once behavior is agreed, without a stage confirmation.
+
+### Think output template
 
 ```markdown
 # YYYY-MM-DD <Requirement Title>
@@ -107,6 +149,15 @@ If a reviewer fails to start, times out, crashes, or returns an invalid verdict,
 | Fact | Source | Why Applicable | Decision Impact |
 |------|--------|----------------|-----------------|
 
+## Selected Behavior
+
+[Each entry: the behavior, its kind — user-words, owner-confirmed or
+agent-inference — and the words or evidence behind it]
+
+## Rejected Interpretations
+
+[Each entry: the interpretation, and where it was settled or ruled out]
+
 ## Scope And Boundaries
 
 - [What is in scope]
@@ -114,17 +165,39 @@ If a reviewer fails to start, times out, crashes, or returns an invalid verdict,
 
 ## Risks And Open Questions
 
-- [Risk, dependency, assumption, or unresolved question]
+- [Risk, dependency, or assumption]
+- [A blocked decision: the two consequences, the recommendation, the owner
+  it waits for]
 
 ## Next Step Recommendation
 
-[Recommended next action after independent review]
+[Recommended next action]
 ```
 
-## Guardrails
+## Outputs
 
-- Do not implement application code during think
-- Do not use a user confirmation as a stage gate
-- Only `ESCALATE` may request user input, and only for a critical ambiguity, scope or authorization expansion, rule conflict, or unavailable required capability
-- Do not overwrite an earlier think artifact for the same requirement
-- Do use `.mmd` diagrams and requirement documents as supporting context when provided
+| Fact | Carrier | Written |
+|---|---|---|
+| Requirement minutes | `openspec/think/YYYY-MM-DD-<description>.md`, a later iteration `-v2`, `-v3`; an earlier one is never overwritten | In steps 1, 5, 7 and 8, as the restatement, each answer, each decision entry and each open blocker forms |
+| Next-step recommendation | The reply | In step 9, with the minutes |
+
+The mandate row and the `Minutes: <path>` line that links it to the minutes are not outputs of this skill: the controller writes both (contract, Carriers).
+
+## Handoffs
+
+- **In.** The user names `firefly think`; the controller hands a decision over when it needs the user to choose between behaviors with different consequences.
+- **Out, a fact.** A fact that needs an experiment on a system under your control goes to `firefly-draw` as a single-question probe; a third party's promise under the version and configuration in use goes to `firefly-source`. The controller dispatches what this skill recommends.
+- **Out, a decision questions cannot settle.** A comparison of options, a sequence diagram or a prototype goes to `firefly-draw`.
+- **Out, to proposal.** Through the controller: under a mandate that includes later stages, agreed behavior goes to `firefly-propose` with the minutes.
+- **End.** Under a clarification-only objective the artifact returns and the flow stops.
+
+## Stop and escalate
+
+Stop and `ESCALATE` when:
+
+- **The requirement source cannot be recovered** from the input, the referenced files, the conversation or repository evidence. Owner: the requester.
+- **The next step needs an effect the mandate does not permit.** Owner: the requester.
+
+An `ESCALATE` carries three things: the current conclusion, the missing evidence or authority, and the responsible owner. It is a return path.
+
+An unanswered trade-off is not an `ESCALATE`: the decision stays blocked in the minutes and the independent investigation continues. A clarification-only objective that returns its artifact is a normal end: report it as such, not as an interruption or as missing authorization.

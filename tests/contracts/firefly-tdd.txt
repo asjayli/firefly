@@ -1,0 +1,72 @@
+@design 13
+
+# Entry. The discipline runs under firefly-implement for task groups whose
+# checks are tests, is named directly, and does not run for behavior-neutral
+# changes or one-off probes.
++trigger: The controller dispatches a task group whose checks are tests
++trigger: the user names `firefly tdd`
++trigger: The change alters no observable behavior
++trigger: A probe is disposable and never enters the product tree
+
+# Authorization boundary. Test scripts are candidate; the declaration is the
+# planner's; the assertion is never weakened; the promise is never reworded.
++mandate: a test script in the product tree is part of the candidate snapshot
++mandate: Weakening an assertion, or narrowing a test, to turn a run green
++mandate: it is never recorded as the red the cycle wants
++mandate: Recording a check `pass` from a run that was not made
++mandate: this skill reads it and enforces it
++mandate: Writing it is the planner's, under `firefly-tasks`
++mandate: the promise is never reworded in this skill
+
+# Inputs: the scenario map rows, the promise each test serves, the unchanged
+# baseline, and the declaration the task package carries.
++input: its rows of `## Scenario map` in `openspec/changes/<id>/tasks.md`
++input: the behavior promise each test serves
++input: the task group baseline `<N>: <sha>`
++input: the alternative observation, its owner and the risk that stays uncovered
+
+# Outputs: the runs and their evidence reach the recorder, with the two
+# observer forms the who-observes split allows.
++output: through `firefly record observe`
++output: openspec/changes/<id>/evidence/<snapshot12>/
++output: openspec/changes/<id>/verification.md
++output: --observer verifier:firefly-tdd
++output: --observer implementer:<name>
++output: --implemented-by-observer
++output: `--note` is never omitted
++output: The recorder fills in the candidate snapshot and the spec version; nobody reports them by hand
++output: a rerun gets a new location and never overwrites an earlier one
+
+# Verdicts and states: the watched failing run, the weak assertion, the
+# alternative check that cannot separate, the skipped check.
++verdict-or-state: the failure comes from the expected assertion
++verdict-or-state: --result fail
++verdict-or-state: starts no repair round
++verdict-or-state: the assertion is too weak to separate
++verdict-or-state: its result is `unverified`, never `pass`
++verdict-or-state: is recorded `unverified` (contract, Observation record)
+
+# Handoffs: the dispatch carries the terminal condition and effects; the
+# verdict is the reviewer's; gaps return to planning, never filled here.
++handoff: The original terminal condition and permitted effects travel with the dispatch
++handoff: The verdict is the independent reviewer's
++handoff: judged against the same behavior promise
++handoff: through `firefly-propose`
++handoff: never filled in here
+
+# Stops and escalation.
++stop: `ESCALATE` with the current conclusion, the missing evidence or authority, and the responsible owner
++stop: Owner: the planner, through `firefly-propose`.
++stop: Owner: the requirement owner.
++stop: the mandate record does not cover the writes the work takes
++stop: An `ESCALATE` is a return path, not a verdict.
+
+# Forbidden. The last four are the overreaches this skill exists to prevent:
+# code before test, a weakened assertion, a pass recorded from a run not made,
+# and a green run counted without the failing run that proves the test works.
+-: APPROVE
+-: subagent-driven-development
+-: implemented before its test
+-: the assertion is relaxed until it passes
+-: a skipped check is recorded `pass`
+-: counts without the failing run

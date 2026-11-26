@@ -16,7 +16,7 @@ I'll create a change with artifacts:
 - design.md (how)
 - tasks.md (implementation steps)
 
-When ready to implement, use firefly Implement
+After the ready decision, implementation runs through firefly Implement.
 
 ---
 
@@ -24,27 +24,9 @@ When ready to implement, use firefly Implement
 
 **Input**: The user's request should include a change name (kebab-case) OR a description of what they want to build.
 
-**Independent review contract:** Use `Task` for an independent reviewer different from the candidate producer. Every review package contains:
+## Review ownership
 
-- Objective: the authorized outcome.
-- Scope: the allowed repositories, changes, files, and systems.
-- Constraints: the binding process, architecture, safety, and platform rules.
-- Authorized effects: the writes and side effects allowed to the controller.
-- Terminal condition: the state at which this workflow must stop.
-- The source requirements, repository evidence, candidate producer identity, candidate artifacts, action, or diff, verification evidence, assumptions and risks.
-
-Require an evidence-backed `APPROVE`, `REVISE`, or `ESCALATE`. On `APPROVE`, continue automatically to the next dependency-ready artifact. On `REVISE`, repair the planning artifact, revalidate it, and request another independent review. Only `ESCALATE` pauses for user input, and only for a consequential ambiguity that cannot be reasonably inferred, a required scope or authorization expansion, a conflicting rule, or an unavailable required capability.
-
-If a reviewer fails to start, times out, crashes, or returns an invalid verdict, reuse the unchanged review package with at most two new independent review agents. If both retries fail, return `ESCALATE` with the collected infrastructure evidence; never infer `APPROVE`. The controller validates only reviewer identity, verdict structure, and supporting evidence; it does not recursively review the verdict.
-
-**Reviewer lifecycle:**
-
-- An active reviewer is not a terminal state. A reviewer remains active while queued, running, or awaiting collection of its verdict for the current candidate.
-- After dispatching a reviewer, retain control and poll internally; do not emit a final response, completion summary, or user-facing wait request while an active reviewer remains.
-- `APPROVE` is valid only when every required reviewer has returned a valid verdict for the same candidate.
-- On the first valid `REVISE`, invalidate reviews of that candidate, collect findings that have already returned, and do not wait for stale reviews. An invalidated reviewer is obsolete and non-blocking. Cancel it when the platform supports cancellation; otherwise ignore any late verdict, which cannot apply to a later candidate.
-- A final-state check counts only reviewers that remain required for the current candidate. Before any final response, confirm that no active reviewer remains and that the command has reached its explicit terminal state.
-- Repair the candidate, revalidate it, and dispatch a fresh independent review.
+Planning artifacts are judged by the joint ready decision in firefly propose (design position 04). This skill creates the change and validates it; it does not review planning packages and does not report a change as ready to implement. Invoked outside firefly, report the created change as unreviewed.
 
 **Steps**
 
@@ -93,9 +75,8 @@ If a reviewer fails to start, times out, crashes, or returns an invalid verdict,
       - Read any completed dependency files for context
       - Create the artifact file using `template` as the structure and write it to `resolvedOutputPath`
       - Apply `context` and `rules` as constraints - but do NOT copy them into the file
-      - Validate the current planning package before dispatching its reviewer. If validation fails, repair only the matching planning artifact type and rerun the same validation. Dispatch an independent review only after that planning validation passes.
-      - Run the producer self-critique on the current planning package before dispatching its reviewer: (1) every acceptance criterion is falsifiable; (2) no task group bundles two distinct delivery units; (3) dependency edges are acyclic; (4) every requirement has a test or verification path; (5) no undeclared external side effects; (6) nothing exceeds the user-authorized scope; (7) no `TBD`, `TODO`, vague placeholders, or undefined interfaces. Repair the findings inline against the matching artifact. This self-critique only reduces obvious problems; it does not replace the independent reviewer.
-      - Independently review the proposal/design/specs package before tasks, and independently review the tasks package before declaring the change apply-ready
+      - Validate the current planning package. If validation fails, repair only the matching planning artifact type and rerun the same validation. Continue only after that planning validation passes.
+      - Run the producer self-critique on the current planning package: (1) every acceptance criterion is falsifiable; (2) no task group bundles two distinct delivery units; (3) dependency edges are acyclic; (4) every requirement has a test or verification path; (5) no undeclared external side effects; (6) nothing exceeds the user-authorized scope; (7) no `TBD`, `TODO`, vague placeholders, or undefined interfaces. Repair the findings inline against the matching artifact. This self-critique only reduces obvious problems; it does not replace the joint ready decision in firefly propose.
       - Show brief progress: "Created <artifact-id>"
 
    b. **Continue until all `applyRequires` artifacts are complete**
@@ -105,11 +86,11 @@ If a reviewer fails to start, times out, crashes, or returns an invalid verdict,
 
    c. **If an artifact requires user input** (unclear context):
       - Infer reasonable details from the objective, dependencies, and repository evidence
-      - If multiple materially different outcomes remain, return `ESCALATE` through the review protocol with evidence and a recommended default
+      - If multiple materially different outcomes remain, return to the user with evidence and a recommended default
 
 5. **Run final strict validation**
 
-   After all apply-required artifacts are complete, run `openspec validate "<name>" --strict --no-interactive` for the complete change, preserving `--store <id>` when applicable. If strict validation fails, repair the indicated proposal, design, specs, or tasks and rerun strict validation. Independently review every package changed by strict-validation repair before reporting the proposal apply-ready.
+   After all apply-required artifacts are complete, run `openspec validate "<name>" --strict --no-interactive` for the complete change, preserving `--store <id>` when applicable. If strict validation fails, repair the indicated proposal, design, specs, or tasks and rerun strict validation.
 
 6. **Show final status**
    ```bash
@@ -140,7 +121,7 @@ When invoked as a phase of an already-authorized complete firefly delivery, retu
 **Guardrails**
 - Create ALL artifacts needed for implementation (as defined by schema's `apply.requires`)
 - Always read dependency artifacts before creating a new one
-- If context is critically unclear, use `ESCALATE`; ordinary assumptions go through independent review instead of a confirmation gate
-- If a change with that name already exists, inspect its objective and status; continue it when it is the unique match, otherwise use `ESCALATE` for the substantive identity conflict
+- If context is critically unclear, return to the user; ordinary assumptions are not a confirmation gate
+- If a change with that name already exists, inspect its objective and status; continue it when it is the unique match, otherwise return to the user for the substantive identity conflict
 - Verify each artifact file exists after writing before proceeding to next
 - Proposal completion does not authorize implementation, commit, sync, archive, push, merge, or release

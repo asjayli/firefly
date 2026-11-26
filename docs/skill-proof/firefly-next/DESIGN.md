@@ -1,671 +1,722 @@
-# firefly-next 设计稿：26 维度的目标态（v1.2）
+# Firefly Next 工作流设计提案
 
-> 状态：**设计稿，待用户正式确认**。确认前不实施任何技能改动。
-> 方法：26 个维度逐点吸收 Matt / Addy / Pstack 三套的优点，叠加 2025-2026 互联网最新实践，为 firefly 设计下一版理想形态。
-> **v1.2 修订（2026-11-20，第二轮 mar 六维复审，17 主题全修）**：①§0.5 改为「扩展现有 shared 渲染」而非「取消 shared」——仓库已有单源 + token 管线，实测 16 项有差异、8 项超 2 处、2 处能力性差异；②§3 实施清单改为「资产面 × 动作 × 路径」全表，覆盖 codex/manifests/scripts/tests/shared/commands；③回退 doubt/guard 的残留清除（01 契约、§1 表、bounds 定位）；④依据失真 12 处逐条修正（08 改 docs-first、16/09 换真实裁决机制、04 constitution 归 spec-kit、01 模式宣告标 own design）；⑤强制门闭环 6 处补齐（16 输入含红绿证据、14 四元组、18 审批条目、§4.5 产物路径契约）；⑥P0 路线去外部依赖（DoD 门禁改用仓库 `tests/`）；⑦机制补收（07 前沿派发 + 指针通信、26 换 reflect 骨架、23 的 why 归位、三个并入统一 references 落点）；⑧合并判据换成三条可判定条件。
-> **v1.1 修订（2026-11-20）**：吸收首轮 mar 五维审查的设计层发现 + 裁定——①「不分叉」= 资产单套化；② mar/nextup 机制提炼吸收（16 独立性协议、01 `firefly next`）；③ doubt/guard 合并经用户裁定**回退**（23 技能）；④ 裁定复述条款确认纳入（02④）。
-> 互联网依据：Anthropic Agent Skills 与 context engineering 官方实践、GitHub Spec Kit / OpenSpec / BMAD / Kiro 的 spec-driven 浪潮、AI 评审的生成/评审分离范式、agent 安全（secrets 注入/最小权限/approval gates）、OTel GenAI 可观测约定、RCA-first 调试纪律、a11y 自动化边界等（详见各点「依据」）。
+**评审对象是 FN 在具体委托中如何作决定。** 26 个问题对应 26 种工程判断，不是要求执行 26 个步骤。第五列给出 FN 自身的设计；Matt、Addy、Pstack、Firefly 是同等地位的参考，不构成兼容要求。本稿规定的行为已在 firefly 0.2.0 实现，并经过桌面重放与一次端到端试点；标 `trial` 的位置，其收益对照验证尚未进行。
 
-## 0. 设计立场：五条元原则
+**01 先给出 Firefly Next 的工作流概览，再说明如何路由一次委托。** 02–26 展开各项工程判断，不是后续必须依次执行的步骤。
 
-从三套的分化与最新实践中，firefly-next 的所有技能设计服从以下元原则：
+**案例约定。** 各节用同一个假设项目说明判断过程：财务人员月末导出报表，刷新页面后又要重来。E1 表示同一次意图重试不会产生第二个任务；E2 表示本人刷新后可恢复、其他账户不可读取；E3 表示文件实际可下载才算完成，生成失败必须可辨认。这些是示例产品的验收条件，不是 FN 的通用产品需求，也不是已运行的测试结果。
 
-1. **显式授权（Explicit mandate）**——继承 firefly 现状的最大优点：用户点名才进入，子命令即授权边界。三套中 Pstack 的「常驻触发器」与 Addy 的「按需技能」之间，firefly 取 Addy 的按需 + 自己的契约路由，拒绝隐式扩权。
-2. **证据优先于断言（Evidence over claim）**——吸收 Addy source-driven / doubt-driven 的内核：任何结论（源码行为、测试通过、评审通过）必须挂在可复核的证据上；agent 的自我报告不是证据。
-3. **生成与评审分离（Separation of duties）**——**原则 2 的组织化执行形态**（评审独立是取证手段，不是独立目标）：2025 评审实践的共识：写得越多，评审越要独立。执行代理与评审代理必须分离，评审以独立子代理 + 并行多维检查点运行。
-4. **上下文最小充分（Minimal sufficiency）**——Anthropic context engineering 的核心：上下文是有限注意力预算，只装「达成目标的最小高信号 token 集」；用 JIT 检索、compaction、结构化笔记、子代理摘要四板斧管理。
-5. **产物即流程（Artifacts as process）**——spec-driven 浪潮的共识：流程不靠自觉，靠仓库里的持久产物（spec / tasks / ADR / NOTES / 复盘记录）驱动；每个技能必须定义它的产出物与验收标准，否则不许存在。
+## 全量开发范围与完成标准
 
-## 0.5 资产单套化（「不分叉」裁定的落地设计，v1.2 重写）
+开发对象是下述 23 项技能及三个并入职责。`trial` 标识需要用对照实验判断收益的设计，不表示可以不开发；按需能力必须同时验收触发与跳过。下表是**开发依赖顺序**，不是使用者每次要走的流程。每个交付包都在独立消费项目中验证，不以编写了多少技能文件作为验收。
 
-**裁定**：firefly 的目标是「一份手工编辑源服务所有平台」。**仓库现状已具备该机制的雏形**——本设计不再新建布局，而是把已有机制扩展到位。
-
-**现状依据（2026-11-20 实测，v1.2 修正）**：
-
-- `manifests/platform-assets.json` 已声明：`shared/ is the single hand-edited source rendered to assets/codex and assets/claude by scripts/sync-platform-assets.mjs`；`{{PLATFORM_SPAWN}}` / `{{PLATFORM_HOME_ENV}}` token 在用；`node scripts/sync-platform-assets.mjs --check` 现为 exit 0；`tests/test-platform-asset-parity.sh` 与 CI 均调用该守卫。
-- `assets/shared/skills/` 已承载 10 个技能的单源，`assets/shared/superpowers/` 承载 4 个；两侧 `assets/{claude,codex}/skills/` 目录集合完全一致（各 19），4 个技能逐字节相同。
-- **实测差异口径**（`diff -U0` 逐 hunk）：**16 个 SKILL.md 有差异**（v1.1 写的「15 个」不准）；**8 个超过 2 处**（playwright-interactive 10 hunk / firefly 6 / subagent-driven-development 6 / openspec-explore 4 / doctor 3 / repair 3 / archive-change 3 / openspec-propose 3）；其中 **2 处是能力性差异**——`subagent-driven-development` 在 Codex 侧多一段「仅在子代理接口暴露 model selection 时适用」的降级分支、并把「Always specify the model」改为「When the platform supports model selection」；`playwright-interactive` 在 Codex 侧增 `config.toml`、`--sandbox danger-full-access`、`codex.emitImage()`。
-- `manifests/platform-assets.json` 已把 11 项登记为 `platformSpecific` 并给出功能性理由（`AskUserQuestion` 句级改写、`config.toml` + sandbox flag、`codex.emitImage()` 等）。
-
-**结论（v1.2 改判）**：差异不是「措辞可以一比一消除」，而是「**11 项受控的能力性/接口性差异 + 5 项纯措辞差异**」。单套化的目标是**把手工双份降到 11 项受控差异**，不是追求「零分支的单文件」。据此，`shared` 保留为唯一编辑源并扩展，`platformSpecific` 分类继续使用。
-
-**目标布局（在现有布局上扩展，不新建树）**：
-
-```
-assets/shared/skills/<skill-id>/SKILL.md      唯一手工编辑源（现 10 项 → 目标 18 项）
-assets/shared/superpowers/skills/...           受管覆盖同规则单套化（现 4 项 → 目标 6 项）
-assets/{claude,codex}/                         渲染产物，不手工编辑
-assets/claude/commands/opsx/                     claudeOnly（Codex 无 slash-command 机制），继续登记
-manifests/platform-assets.json                 shared / platformSpecific / claudeOnly 分类 + token 定义（保留）
-manifests/{claude,codex}.json                  既有两份 manifest 保留，新增/更名/删除技能时逐条同步
-scripts/sync-platform-assets.mjs               渲染器（保留并扩展 token）
-scripts/install-{claude,codex}.sh / doctor-*   平台后缀保留，公共逻辑下沉 firefly-common.sh
-```
-
-**11 项 platformSpecific 的逐条处置（实施时按此表执行）**：
-
-| 技能 | 差异性质 | 处置 |
+| 开发包（括号内为位置） | 输入与交付边界 | 包级验收 |
 |---|---|---|
-| firefly（6 hunk） | Codex 60 秒等待环 vs Claude 原生回调 | 新增 token `{{PLATFORM_WAIT_LOOP}}`，正文平台中立 |
-| subagent-driven-development（6 hunk） | Codex 侧 model selection 降级分支 | 新增 token `{{PLATFORM_MODEL_SELECTION}}` |
-| playwright-interactive（10 hunk） | `config.toml` + sandbox flag + `emitImage` | 保留 platformSpecific（工具接口差异，无法 token 化）+ 平台注记小节 |
-| openspec-explore（4 hunk） | `AskUserQuestion` 句级改写 | 新增 token `{{PLATFORM_ASK}}` |
-| firefly-doctor（3 hunk）/ repair（3 hunk） | 路径与命令名 | `{{PLATFORM_HOME_ENV}}` 已覆盖，余下并入 doctor→firefly 合并改造 |
-| archive-change（3 hunk）/ openspec-propose（3 hunk） | 命令名差异 | token 覆盖 |
-| 其余 4 项 | 纯措辞 | 直接并入 shared |
+| A 委托到独立裁决（01、04、06、07、10、16；含 17） | 用已有的项目测试作证据；交付委托、规格到任务映射、可重建候选、独立裁决及恢复路径。 | 同一坏候选分别走只审和交付；恢复中断，注入任务漏项、迟到裁决和评审超时。不得越权、误标集成或误放行。 |
+| B 决定如何形成（02、03、05、08、09、12、23） | 在 A 的规格入口接入澄清、概念验证、质量约束、来源调查、反证、接口与决策记录；每项发现回到原决定而非另开无主待办。 | 给有意图歧义、版本冲突和旧消费者的输入，以及同样形式但已解决的对照输入。仅阻断真实未决承诺；规格重命名不丢场景。 |
+| C 交付如何取证（11、13、14、15、18、19、24；含 21） | 复用 A 的候选与证据契约、B 的判据。网页交付同时需要构建侧与浏览器侧；CI 记录项目检查的实际执行结果，产品遥测负责运行中的观察。 | 相同夹具在已知正确与已知错误候选得到相反结论；另测证据不可用、窄屏、权限隔离、测量噪声和遥测中断。 |
+| D 交付后的决定（20、25、26；含 22） | 消费 A–C 的裁决、运行信号、消费者记录。分开 PR、归档、发布就绪及另行委托的上线操作；复盘只提出可撤回的改进。 | 模拟灰度异常、未迁完的消费者、归档语义丢失和无效新规则；能停止、指明责任人，并保留原证据。 |
 
-**写法约定**：
-- 正文平台中立：机制语义统一表述（如「经原生子代理机制派发」），平台特定工具名并列标注（`Task`/`spawn_agent`）
-- 平台路径（`~/.claude`、`~/.codex`）不出现在 SKILL.md 正文，归渲染 token
-- 差异不能 token 化的（Codex 等待环、playwright 的 sandbox flag），以「平台注记」小节集中并列，并在 `platform-assets.json` 登记为 platformSpecific
+**共同交付接口。** 不要求新数据库或固定 JSON 格式。主代理在现有规格、任务、Git 及验证记录中引用以下事实：`委托（标识、目标、允许效果、终点）→ 场景、决定来源与依赖 → 规格版本 → 基线及候选快照 → 每个场景每个检查的观察与证据位置 → 裁决（含保留项）与下一责任人`。各节所说的“记录”固定落在以下载体之一，只存在于会话里的结论不构成交接事实：
 
-**全量资产处置表（v1.2 补齐受管面，19 claude 技能 + 6 superpowers 覆盖 + 5 个 claudeOnly 命令 + 3 份 manifest + 14 个脚本 + 21 个测试）**：
-
-| 资产 | 处置 | 对应设计点 |
-|---|---|---|
-| firefly | 演进（next 子命令 + 静态注册表 + 契约内挂载） | 01 |
-| firefly-think / draw / propose / tasks / implement / verify-web / review / archive | 演进 | 02/03/04/06/07/14/16/25 |
-| **playwright-interactive** | 演进（保留 platformSpecific，挂 14） | 14 |
-| firefly-doctor | **并入 firefly**（01 注册表的承载，退役独立技能） | 01 |
-| firefly-init / firefly-repair | 保留为运维技能（安装/修复流程，不进 26 点） | — |
-| openspec-propose / explore / apply-change / archive-change | 保留为 openspec 底层路由目标（propose/archive 演进依赖） | 04/25 |
-| openspec-sync-specs | 更名演进 firefly-docs（过渡期保留旧名别名） | 23 |
-| mermaid-diagram-specialist + scripts/firefly-draw.sh | Mermaid 职责独立保留（`firefly diagram` 子命令，不再挂 draw） | 03 |
-| superpowers 六覆盖 | test-driven-development 更名演进 firefly-tdd（过渡别名）；其余五项按 03/06/07/16 并入对应技能后**删除目录** | 03/06/07/13/16 |
-| **assets/claude/commands/opsx（5 文件）** | **保留**为 claudeOnly；不要求迁入 shared（Codex 无对应机制） | — |
-| **assets/shared/（10 技能 + 4 superpowers）** | **保留并扩展**为唯一编辑源；不取消 | — |
-| **assets/{claude,codex}/** | 由 shared 渲染；迁移期后删除两侧手工副本，仅保留渲染产物 | — |
-| **manifests/platform-assets.json** | 保留；扩展 token 定义；新增条目与技能同批提交 | — |
-| **manifests/{claude,codex}.json** | 保留；51 条 source 指向 shared 或平台树，改名/删除时逐条同步 | — |
-| **scripts/install-{claude,codex}.sh** | 平台后缀保留，公共逻辑下沉 `firefly-common.sh`（diff 由 156 行收敛） | — |
-| **scripts/doctor-{claude,codex}.sh** | 同上（diff 由 116 行收敛）；`firefly doctor` 按平台名分发，取消 codex 优先探测 | 01 |
-| **scripts/firefly.sh** | 增 `next`、`diagram` 子命令分发 | 01/03 |
-| **scripts/check-release-metadata.sh** | 去掉 `for platform in codex claude` 硬循环，改读 platform-assets 分类 | — |
-| **scripts/sync-platform-assets.mjs** | 保留并扩展（新增 token + completeness 断言） | — |
-| **tests/*（21 个）** | 10 个绑定三树布局的改路径；新增 completeness 断言（`assets/shared/` 每个目录必须出现在 platform-assets.json） | — |
-
-## 1. 技能总览：新增 / 演进 / 合并
-
-firefly-next 目标态共 **23 个技能**：11 个演进 + 12 个新建。
-三个维度并入相邻技能：**17 简化→review 维度、21 CI→guard、22 废弃→archive**。doubt/guard 曾按 mar 建议合并，经用户裁定回退为独立技能。
-
-**合并判据（v1.2 改为三条可判定条件，替代原「维护成本大于收益」一句话）**——一个维度独立成技能，须同时满足：
-1. **独立触发时机**：不被其他技能的触发条件覆盖（有自己点名进入的场合）；
-2. **独立产物类型**：产出物不是其他技能报告中的一节，而是可被单独引用的文件；
-3. **产物被消费**：至少一个其他技能把它作为必附输入或必跑检查。
-
-三条缺一即并入相邻技能（缺哪条并到承接该条的技能）。按此判据复核现状 26 点：17/21/22 三条全缺 → 并入；09 doubt（独立触发 + 独立报告 + 被 04/16 消费）→ 独立；24 trace（独立 `firefly trace` 触发 + 运行记录与埋点规范 + 被 25 消费）→ 独立；10 context（独立触发 + NOTES/交接纪要 + 被 07/15/25 消费）→ 独立。
-
-| 组 | 技能 | 动作 | 一句话定位 |
-|---|---|---|---|
-| meta | firefly | 演进 | 总控路由 + 技能注册表健康检查 |
-| define | firefly-think | 演进 | 需求追问：可判定问题清单 |
-| define | firefly-draw | 演进 | 想法对垒：多方案强制竞争 |
-| define | firefly-propose | 演进 | 规格成形：constitution + delta spec |
-| define | firefly-bounds | **新增**（吸收 security 的定义面） | 质量契约：约束清单 + 安全红线定义 + 待挂载项提报 |
-| plan | firefly-tasks | 演进 | 任务拆解：验证附着于任务 |
-| build | firefly-implement | 演进 | 增量实现：小步 + 前沿派发 + 指针通信 |
-| build | firefly-source | **新增** | 证据化依据：官方文档优先 + 引用溯源 |
-| build | firefly-doubt | **新增** | 反证轮：独立子代理红队自己的方案 |
-| build | firefly-context | **新增** | 上下文工程：最小充分与会话续航 |
-| build | firefly-ui | **新增** | 前端工程：a11y 与组件质量门禁 |
-| build | firefly-arch | **新增** | 接口与架构：契约先行 |
-| verify | firefly-tdd | 演进（吸收 test-driven-development） | 测试先行：锁测试防自通过 |
-| verify | firefly-verify-web | 演进 | 运行时验证：沙箱浏览器取证 |
-| verify | firefly-debug | **新增** | 调试：RCA-first 证据链 |
-| review | firefly-review | 演进 | 评审裁决：独立子代理 + 并行多维 + `--deep`/spec 档 |
-| review | firefly-guard | **新增**（吸收 CI） | 安全与门禁：secrets/权限/供应链/CI |
-| review | firefly-perf | **新增** | 性能：基准先行，数字说话 |
-| ship | firefly-pr | **新增** | 交付：为评审者而写的 PR |
-| ship | firefly-docs | 演进（吸收 openspec-sync-specs） | 文档与 ADR：决策即记录 |
-| ship | firefly-trace | **新增** | 可观测：轻量运行记录 + 问题驱动埋点（OTel 仅作字段命名参考） |
-| ship | firefly-archive | 演进（吸收 deprecation/shipping） | 收尾：definition-of-done + 废弃迁移 |
-| extra | firefly-retro | **新增** | 复盘：transcript 取证 + 三透镜评审 + 结构化优先分流 |
-
-合并说明：`simplification` 并入 review 的常设维度 + `--deep` 档；`ci` 并入 guard 的门禁挂载；`deprecation` 并入 archive。三个并入统一采用**「原文迁入宿主技能的 `references/<topic>.md`，正文只留一行指针」**——不重写摘要，避免细节随目录消失（v1.2）。
-
----
-
-## 2. 逐点设计（26 维度）
-
-### 01 总控与路由 / Meta & Routing
-
-**现状**：firefly（显式编排、写死的子命令契约）——四套中唯一把「授权边界」写进路由层的。
-**吸收（v1.2 修正归因）**：
-- Addy `using-agent-skills`：**按开发阶段的固定决策树**（"什么阶段用什么技能"），不是检索/搜索式发现——本设计取其"单一入口 + 阶段路由"形态，不引入技能检索。
-- Pstack `poteto-mode`：**目标→playbook 总路由 + 非协商项强制路由**（任意代码改动、跨边界改动、争议设计、提交前，各自动路由到对应 playbook）；「模式宣告」是本设计在其上的外推，标 **own design**。
-- Matt `ask-matt`：单一入口——用户永远知道从哪个门进。
-**依据**：Anthropic Agent Skills 官方实践——progressive disclosure：SKILL.md 正文保持 <500 行高信号，重资料放 references/ 按需加载；技能元数据（name/description）是路由的依据，必须可被检索。
-**目标态（firefly 演进，吸收 doctor 并入 + nextup 技能）**：
-- 触发：用户点名 `firefly` 或其子命令；「存在编码任务」不是触发条件。
-- 职责：①**路由契约表**（v1.2 改为穷举登记，不是举例）：每条 =「子命令 → 技能 → 授权范围 → 阶段挂载 → 可用档」，**登记表见 §4.6**；契约内挂载不算隐式扩权，须模式宣告；②**技能注册表**（静态，firefly-doctor 并入后承载）：列出全部受管资产（23 设计技能 + 8 保留技能）、触发词与健康状态（description 是否漂移、references 是否在、SKILL.md 与注册表是否一致、**记录目录的过期/待迁移项**）——健康检查基于 baseline diff（复用 `doctor-claude.sh` 模型），不做使用频率追踪（静态资产无此数据源）；③**模式宣告**（own design）：进入/退出子命令时输出一行模式标记；④**`firefly next` 子命令**（吸收 nextup）：回答「下一步干啥」——盘点证据（git 状态 / TODO / 计划文档 / **NOTES.md 与 tasks.md 中未兑现的承诺**）→ 五类归类（风险排除/承诺兑现/断点续作/计划推进/债务清理）→ 优先级排序 → 3-5 项带证据、带完成标准、带第一步的提案，**只提案不执行**。
-- 产出：路由决策一行；`next` 产出带证据的优先级提案表。
-- 验收：触发不在 §4.6 登记表内的请求被拒绝并提示正确入口；登记表内的阶段挂载经模式宣告放行；注册表健康检查可对任一受管资产重跑。
-- v1.2 注记：原「拒绝任何非点名触发」与「契约内挂载」字面互斥已由 §4.6 登记表消解；「会话承诺」改为可落盘的 NOTES/tasks 引用；注册表检查项新增记录有效期一项，与 §4.5 对齐。
-
-### 02 需求追问 / Requirements
-
-**现状**：firefly-think（结构化提问，收集背景与目标）。
-**吸收（v1.2 修正归因）**：
-- Matt `grill-with-docs`：**它是 `grilling` + `domain-modeling` 的组合调度入口**（原文仅 50 字符），真正的价值在盘问过程中同时产出 **ADR 与术语表**；「不问自己能查到的」这条纪律来自 `grilling`（"派一个子代理去查；不要问用户任何你自己能查到的东西"），不是来自本技能。
-- Addy `interview-me`：一次只问一件事 + 每问附最佳猜测；本设计再补「2-4 个候选答案 + 都不是出口」，标 **own design**。
-- Pstack `sharpen`：把模糊诉求磨成可判定命题（先复述、能观察的不问人）。
-**依据**：context engineering 的「right altitude」——追问既不能碎成二十个Yes/No（脆），也不能泛泛「多告诉我一些」（空）；每轮追问应是「具体到能引导行为，开放到保留判断」。
-**目标态（firefly-think 演进）**：
-- 触发：`firefly think`；新任务进入 define 阶段时。
-- 机制：①**先读后问**：提问前列出已读文件清单，禁止问其中已有答案的问题；②**可判定问题清单**：每轮 ≤5 问，每问附 2-4 个候选答案 +「都不是」出口；③**停机条件**：剩余问题全部「不影响方案分叉」时停止；④**裁定复述**（v1.1 新增，防误解与扩大解释）：用户的自由文本回答被映射为决策时，必须先复述为具体动作（「『X』= 做 Y，对吗？」）确认后才落文档，文档保留原话 + 解释链；项目语境的歧义词（如「分叉」「合并」）触发澄清而非最近选项硬套。
-- 产出：需求纪要：目标 / 非目标 / 约束 / 已知未知，附「未决问题=空」显式声明。
-- 验收：纪要中每个需求可判定——能写出「满足/不满足」的检验式。
-
-### 03 想法打磨 / Idea
-
-**现状**：firefly-draw 是 Mermaid 出图技能（23 行，description 为「generate a Mermaid interaction sequence diagram」，路由 mermaid-diagram-specialist + `scripts/firefly-draw.sh`）+ brainstorming（方案发散）。
-**吸收（v1.2 修正归因）**：
-- Pstack `arena`：**强制多方案对垒**——真实机制是 Frame（3-6 条可评分 rubric）→ Fan out（每候选独立 worktree）→ Cross-judge（交叉打分）→ Pick → **Graft（把落选者的强项移植进胜者）** → Verify。本设计取其「多案竞争 + 交叉裁决 + 移植强项」，不保留 worktree 细节。
-- **「各自列出杀死自己的条件」出自 Addy `idea-refine`**（"什么可能杀死这个想法"），不是 arena——归因修正。
-- Matt `prototype`：可丢弃原型——用最便宜的方式验证最贵的假设。
-- Addy `idea-refine`：迭代收敛而非一次性定稿 + 杀死条件。
-**依据**：AI 生成成本低导致「第一方案偏差」——agent 倾向接受第一个成形方案；对垒机制是对这种偏差的制度化纠偏（structured disagreement 的设计思想同样用于 16 评审）。
-**目标态（firefly-draw 演进）**：
-- 机制：①**双案下限**：非平凡决策（影响 >3 文件或含架构选择）必须 ≥2 个竞争方案 + 各自反例条件 + 交叉裁决 + **graft 移植落选强项**；**平凡变更**（≤3 文件且无架构选择）不强制对垒，但须在 spec 里写一句「为何判为平凡」（由 04 与 16 spec 档复核，v1.2）；②**假设分级**：假设按「验证成本」排序，最贵的先用原型/检索杀；③用户裁决点：对垒结果交用户选，agent 只推荐不拍板；④**Mermaid 职责迁出**（v1.1）：现 draw 的出图职责（mermaid-diagram-specialist + firefly-draw.sh）独立为 `firefly diagram` 子命令，draw 专注意法对垒——修「演进实为职责替换」与 01「路由表现状保留」的矛盾。
-- 产出：方案对垒表（`changes/<id>/duel.md`）：方案 / 代价 / 风险 / 杀死条件 / 推荐理由 / graft 项。
-- 验收：无对垒表的非平凡方案进入 spec 时，propose 必须打回；平凡变更须附判定句。
-
-### 04 规格成形 / Spec
-
-**现状**：firefly-propose（OpenSpec delta spec 流程）。
-**吸收（v1.2 修正归因）**：
-- Addy `spec-driven-development`：**四阶段门 SPECIFY → PLAN → TASKS → IMPLEMENT**（每阶段有出口检查），**不含 constitution 层**；constitution 层来自 GitHub Spec Kit（见「依据」）。
-- Matt `to-spec`：把对话散落的决议收拢成结构文档的收束能力（不重新访谈，只综合已讨论内容）。
-- Pstack：无对应（本点 Pstack 缺位，其哲学是 spec 即任务列表）。
-**依据**：GitHub Spec Kit / OpenSpec / BMAD / Kiro 在 2025 共同验证的 spec-first 范式：constitution → spec → plan → tasks 分层；争议点「spec 放哪」的社区答案趋向 **spec 入仓库**（与代码同生命周期、可评审、可回滚）——firefly 的 OpenSpec 资产结构正是这个答案。反面教训（**定性描述，原始报告未核到，标【未验证】**）：spec 质量不受控时产出大段可疑代码——所以 spec 必须带验收标准，且验收标准必须可转测试。
-**目标态（firefly-propose 演进）**：
-- 机制：①**三层分离**：constitution（项目原则，长期，来自 spec-kit 范式）/ delta spec（本次变更，短命）/ tasks（执行清单）；②**验收标准即测试草案**：每条 Requirement 映射为 Scenario（Given/When/Then），语言可直接抄进测试文件；③**spec 完整性检查**：无验收标准的 spec 不许进入 tasks 阶段；**定稿的三个强制输入**（v1.2 由两个增为三个）——03 的方案对垒表 + 09 doubt 的反证报告 + 05 bounds 的约束清单，缺一不放行（定稿验收由 review 的 spec 档执行）；**平凡变更豁免**——改动 ≤3 文件且不含架构选择时对垒表可省，但 spec 里必须写一句「为何判为平凡」，由 review spec 档复核该判断。
-- 产出：`openspec/changes/<id>/`：proposal.md / specs/*.md / design.md（可选）/ **duel.md（对垒表）/ doubt.md（反证报告）/ trace.md（运行记录）**——后三项路径固定，供 16 spec 档按路径读取（见 §4.5）。
-- 验收：spec 评审通过；每条 Scenario 有 Given/When/Then；非平凡定稿必附对垒表与反证报告；平凡定稿附「为何平凡」判定句。
-
-### 05 质量底线 / Constraints（新增 firefly-bounds）
-
-**现状**：gap——约束散落在各技能的注意事项里，无一致执行。
-**吸收（v1.2 补收）**：
-- Addy `constraint-driven-development`（本点唯一对应）：**非功能约束先行**——性能/安全/兼容性预算在写第一行业务代码前定死，违反即停；其**执行核心是 diff 削弱检测**——盯住 diff 中质量线被下调的迹象（新增 `@ts-ignore`/`eslint-disable`/`# noqa`、被跳过或删除的测试、被剥掉的断言、未实现的 stub、被调低的阈值）。
-- Pstack 的四原则（结构编码领域 / 边界校验 / 非法状态不可表示 / 幂等）——**归属 poteto-mode 的架构原则段**，本点借用为约束模板候选条目（v1.2 修正归属）。
-**依据**：agent 安全实践的一致结论——约束写在 prompt 里会被长上下文稀释（context rot），必须落成**可执行检查**（lint 规则/CI 门禁/测试）才能常驻；「写下来」不等于「被遵守」。
-**目标态（firefly-bounds，新增）**：
-- 触发：`firefly bounds`；spec 阶段（契约内挂载，见 §4.6）。
-- 职责：①**约束清单**（性能预算/内存上限/兼容矩阵/安全红线/数据边界/测试分层与速度预算/**PR 尺寸阈值**——**清单开放式**，retro 回流可扩展），每条绑定可执行验证；**无数字时走 Ratchet 棘轮**（记录当前实测值，只许变好不许变差——「编出来的数字会被忽略，测出来的数字会被守住」）+ 合理默认值表；②**diff 削弱检测清单**（v1.2 补收）：新增抑制注释 / 跳过或删除的测试 / 被剥的断言 / 未实现 stub / 被调低的阈值，逐项挂检查命令，**执行由 18 guard 承接**；③约束与任务挂钩——完成声明必须引用检查结果；④项目级 `bounds.md`（constitution 的一部分）；⑤安全红线类约束的**执行**由 firefly-guard 承接（见 18），bounds 管**定义**。
-- 产出：约束清单 + 每条验证命令 + **待挂载项清单（供 guard 在 18⑤ 挂 CI；bounds 不直接写 CI 配置，避免与 guard 双主）**。
-- 验收：抽检任意一条约束，能立即运行其验证命令并得到通过/失败；diff 削弱检测项在任一 diff 上可重跑。
-
-### 06 任务拆解 / Tickets
-
-**现状**：firefly-tasks + writing-plans（tasks.md 流程）。
-**吸收（v1.2 补收）**：
-- Matt `to-tickets`：任务的**原子性**——每个任务一个可独立验证的交付物；**垂直切片（tracer bullet）**——第一刀打穿全链路而不是先把某一层做完（v1.2 补收）。
-- Addy `planning-and-task-breakdown`：依赖图——任务间阻塞关系显式化。
-- Pstack：任务即 spec 的执行投影，不另造体系。
-**依据**：sub-agent 架构实践——任务粒度决定可并行度与上下文隔离度；每个任务应能被一个「干净上下文」的子代理独立完成并返回摘要（1-2k token），这是任务拆解的客观标尺。
-**目标态（firefly-tasks 演进）**：
-- 机制：①**一任务一验证**：每个任务必须写「完成=什么测试/命令通过」，无验证的任务不许进列表；②**依赖显式**：tasks.md 中标注 blocked-by，**阻塞图即派发依据**（07 按前沿取任务，见下）；③**子代理标尺（v1.2 改写）**：任务描述必须做到「**指针足够**」——一个没有本次对话上下文的执行者，凭任务书里给出的路径（spec 节 / 任务书 / 相关文件 / 验收命令）就能接活；**不要求把 spec 抄进任务书**（那违反元原则 4 最小充分）；④进度即事实：勾选状态只能由验证结果驱动，不许手勾。
-- 产出：`tasks.md`（现有格式演进：任务/验证/依赖/状态/指针）。
-- 验收：任取一个完成任务，其验证命令可独立重跑通过；任取一个未开始任务，其指针足以让无上下文执行者开工。
-
-### 07 增量实现 / Implementation
-
-**现状**：firefly-implement + executing-plans + subagent-driven-development。
-**吸收（v1.2 修正归因 + 补收）**：
-- Addy `incremental-implementation`：小步提交——每步保持系统可运行（绿色台阶）。
-- Matt `implement`：**722 字符的存根技能**（原文无「按 spec 逐条销账」），本设计不引用其表述。
-- **Matt `implement-spec`（v1.2 补收，v1.1 整条遗漏）**：tasks 是**带阻塞关系的前沿图**而不是步骤列表；按前沿派发（可并行处并行）；**票级独立 worktree + merger 子代理**；子代理之间**只交换上下文指针**（spec 节 / 任务书 / commit / 笔记路径），不复制信息；探查子代理的笔记落仓库外目录。
-- Pstack：无直接对应（实现纪律藏在四原则里）。
-**依据**：上下文工程——执行代理上下文越短越准；长任务用 compaction + 结构化笔记续航，而不是无限堆历史。子代理执行范式：主代理持有计划，子代理持有任务，双方只交换任务书与结果摘要。任务粒度决定可并行度与上下文隔离度（与 06 的 blocked-by 图同源）。
-**目标态（firefly-implement 演进）**：
-- 机制：①**绿色台阶**：每完成一个任务，系统必须回到可运行状态（编译过/既有测试不红）；②**前沿派发（v1.2）**：按 tasks.md 的 blocked-by 图取「前沿」任务（无未完成前置者）派发，可并行处并行，写清每个子代理的 worktree 与合并责任；③**指针通信（v1.2）**：任务书只给指针（spec 节 / 任务文件 / 相关源码路径 / 验收命令），不复制正文；子代理回传摘要 + 证据链接；④**越界即停**：实现中发现 spec 未覆盖的分叉，停下走 think/propose，不许现场发挥；⑤**变更最小**：只动任务书声明的范围，顺手重构算越界（交 review 档位处理）。
-- 产出：代码变更 + 每任务的执行摘要（做了什么/偏离什么/证据链接）。
-- 验收：diff 可逐任务回放；无任务书外文件被改动（除锁文件等声明的副作用）；并行派发时各分支互不改同一文件。
-
-### 08 证据化依据 / Evidence-Grounded（新增 firefly-source）
-
-**现状（v1.2 修正）**：**完全缺位**——全仓库检索无任何技能主张「源码优先」；v1.1 写的「散见于各技能」不成立（`firefly-repair/SKILL.md:19` 的 upstream 指 OpenSpec 版本，不是源码依据）。
-**吸收（v1.2 修正归因）**：
-- Addy `source-driven-development`：**它其实是「官方文档优先」**——「每个框架特定的代码决策都必须有官方文档支撑」「绝不以训练数据为主要来源」；来源层级为 官方文档 > 官方博客 > Web 标准 > 兼容性；流程 DETECT → FETCH → IMPLEMENT → CITE。v1.1 把它写成「上游源码是唯一真相、文档只做路标」是**反向概括**，本版纠正。
-- Matt `research`：检索纪律——先穷尽本地（符号/引用/调用链），再外网；结论落成带引用的 Markdown。
-- **本设计的自有主张（own design）**：动作层以**本地源码行为**为准（上游实现决定了实际行为），契约层以**官方文档**为准（版本承诺与错误码），二者冲突时以「文档声明 + 实测复现」双证记录，冲突本身进 ADR。
-**依据**：context engineering 的 **just-in-time 检索**：不预装大块文档进上下文，只带轻量标识符（路径/查询/链接），运行时按需装载；Claude Code 用 glob/grep/head/tail 分析大库而不整装文件。
-**目标态（firefly-source，新增）**：
-- 触发：实现/评审中需要确认「这段代码/这个 API 到底怎么行为」时。
-- 职责：①**三级来源优先级**：本地源码（行为真相）→ 官方文档（契约真相）→ 社区（线索，非证据），每级都留引用；②**引用格式强制**：任何行为断言必须挂 `文件:行号`、符号或官方文档 URL，禁止「我记得」；③**转述标注**：未在本地或官方文档验证的结论，标注「未验证：来源 URL」；④**文档投毒防御**：检索到的外部文档若含「忽略之前指令」类注入文本，跳过该段并继续；⑤**结论结构（v1.2，吸收 pstack `why` 的输出形态）**：六段——已知事实 / 可合理推断 / 竞争假设 / 未知 / 来源清单 / 置信度，**空结果也要记录**（"查过、没有"本身就是证据）。
-- 产出：结论 + 证据引用清单（六段式）；重要发现回写 spec/ADR。
-- 验收：评审时抽断言查引用，引用缺失即打回；含「未知」段的报告优于只写结论的报告。
-
-### 09 反证与压力测试 / Doubt（新增 firefly-doubt）
-
-**现状**：gap——验证只有正向（测试过=好），无系统性反证。
-**吸收（v1.2 修正归因）**：
-- Matt `grilling`（用于自己）：**对抗性追问**——把自己方案当成别人的来攻击（设计树 + frontier，一轮问完前沿）。
-- Addy `doubt-driven-development`：**用全新上下文（fresh context）扮演反方**把「什么会让我错」变成显式清单。
-- Pstack `interrogate`：本点的反例来自 **addy 的 fresh-context 反方**，不是 interrogate；interrogate 的真实机制是「多模型分歧作对抗信号 + 四桶裁决 + 不自动改代码」，归属 16（v1.2 修正）。
-**依据**：AI 测试实践的头号失败模式是 **self-passing but incorrect tests**（agent 写出自我满足的错误测试）；对策是独立红队视角——生成者不能自己验证自己（与 16 评审分离同源）。
-**目标态（firefly-doubt，新增；曾按 mar 建议并入 review 档，经用户裁定回退独立）**：
-- 触发：`firefly doubt`；spec 定稿前（强制）、方案对垒后、重要实现完成时（**v1.2 补接收方**：实现后的反证报告由 16 常规档作为输入读取，见 16②「反证结论」维度）。
-- 职责：①**独立子代理执行**（v1.2 强制）：反证由**不带执行历史的新上下文子代理**完成，报告头写 producer 身份（主代理 / 独立子代理）；主代理自证的反证报告**无效**——与元原则 2「agent 的自我报告不是证据」、原则 3「生成与评审分离」一致；②**杀人清单**：列出「如果这个方案是错的，最可能错在哪」Top 5，每条附可执行的检验（写反例测试/查边界输入/读上游代码）；③**反例测试**：为最可能的两条写实际的反向测试并运行，贴运行输出；④**结论分级**：反证存活 / 带伤存活（列伤）/ 阵亡。
-- 产出：`changes/<id>/doubt.md`（攻击点 / 检验 / 结果 / 存活判定 / producer），作为 04 定稿门与 16 spec 档的必附输入。
-- 验收：spec 定稿无反证报告不放行（P0 流程点，放行检查由 review 的 spec 档执行）；review spec 档**复跑任一 killing test** 作为实证（v1.2，防格式检查化）。
-
-### 10 上下文工程 / Context（新增 firefly-context）
-
-**现状（v1.2 修正）**：**协议已有、技能缺位**——`superpowers/skills/subagent-driven-development/SKILL.md:302-311` 已有 Durable Progress 协议（"Track progress in a ledger file…after context compaction, rebuild the recovery view from tasks.md, Git history, .superpowers/sdd/progress.md"），`executing-plans/SKILL.md:94` 同源；缺的是**统一承载与验收**，不是从零发明。本技能是「合并既有两处协议 + 补齐交接物标准」。
-**吸收**：
-- Addy `context-engineering`（本点最强）：系统化的上下文观。
-- Matt `handoff`：会话/代理间交接的结构化（交接物是给人也是给下一个 agent 的）。
-**依据**：Anthropic context engineering 全文，四板斧落地：①**最小充分**——只装达成目标的最小高信号集；②**JIT 检索**——带标识符不带大块数据；③**compaction**——接近窗口上限时高保真压缩（保留架构决策/未解 bug/关键约束，清工具原始输出）；④**结构化笔记**——NOTES.md/todo 落盘，跨 compaction 续航；子代理只回传 1-2k token 摘要。
-**目标态（firefly-context，新增）**：
-- 触发：`firefly context`；长任务（预计 >30 分钟/多阶段）；会话交接；**接近上下文上限或收到压缩摘要时**（v1.2：compaction 事件对静态资产不可观测，改用可观测的前兆）。
-- 职责：①**任务开卷**：启动时产出最小上下文装载清单（要什么/为什么/去哪取）；②**续航协议**：每阶段末把「决策/未决/下一步」写入 `NOTES.md`（或 tasks.md），使 compaction/换会话可无损恢复；③**交接物标准**：跨代理交接必须含（目标/已完成/未完成/证据/风险），缺一项不算交接完成；④**上下文卫生**：提醒清理已完成工具输出、过期检索结果。
-- 产出：NOTES.md / 交接纪要。
-- 验收：compaction 后代理能仅凭 NOTES.md + tasks.md 恢复并继续，不问用户已答过的问题。
-
-### 11 前端工程 / Frontend（新增 firefly-ui）
-
-**现状**：gap——浏览器侧只有验证（verify-web），无构建侧前端工程。
-**吸收**：
-- Addy `frontend-ui-engineering`（本点唯一完整对应）：组件质量、可访问性、UI 产线规范三合一。
-- Pstack 的领域结构化思想移植：UI 状态也用「非法状态不可表示」约束。
-**依据**：2025 a11y 实践共识——自动化（axe/Lighthouse 类）只覆盖约 30-40% 的 WCAG 检查点，趋势是从静态规则检查走向 IDE/CI 内 agent 化解释，但**手动键盘走查不可替代**；另外 agent 自己也是 a11y 的消费者（正确标签帮 agent 浏览）。
-**目标态（firefly-ui，新增）**：
-- 触发：`firefly ui`；任务涉及 UI 组件/页面时自动挂载。
-- 职责：①**组件门禁**：新组件必须过（语义化标签/键盘可达/焦点管理/对比度/ARIA 正确使用）检查清单；②**状态约束**：UI 状态机显式化（loading/error/empty/success 全枚举，禁止非法组合）；③**双轨 a11y**：自动扫描 + 键盘手动走查（Tab 序/焦点陷阱/Esc 退出）；**工具基线（v1.2 补齐）**：自动轨用 `npx @axe-core/cli <url>` 或项目已有 axe/Lighthouse 配置，无扫描器时**只跑手动清单并在报告标注「自动轨未执行：无扫描器」**，不得以「无工具」为由跳过整轨；④**交给 verify-web 的接口（v1.2 双向）**：产出「视觉断言清单」（选择器 + 期望状态），由 14 在运行时验证中接收，14 的验证报告回填本清单的执行结果。
-- 产出：组件检查清单结果 + a11y 双轨报告 + 视觉断言清单。
-- 验收：新 UI 无「自动扫描通过但键盘不可达」的组件；视觉断言清单在 14 有对应执行记录。
-
-### 12 接口与架构 / Architecture（新增 firefly-arch）
-
-**现状**：gap——架构决策无技能承载，散在 think/implement 里。
-**吸收（v1.2 修正归因）**：
-- Matt `codebase-design` + `improve-codebase-architecture`：结构演进观——架构是持续重构出来的；其 **depth / interface / seam** 三个词汇是本点的主要借用（v1.2 补回，v1.1 丢失）。
-- Addy `api-and-interface-design`：**接口先行**——先定契约（签名/错误码/版本），再写实现；含 Hyrum's Law 与单版本规则。
-- Pstack `architect`：**空实现体 sketch（签名 + 类型 + 模块边界）→ 多模型 agree → implement → scrap**，这是本点「契约先行」最贴合的机制（v1.2 修正：v1.1 把四原则记在 architect 名下，实际四原则在 `poteto-mode` 的架构原则段）。
-**依据**：SDD 分层实践——接口契约是 spec 的一部分（可评审、可生成 mock、可写契约测试）；上下文工程的工具设计原则同样适用于 API：无重叠、自包含、语义清晰——「如果人不能一眼说出该用哪个接口，agent 也做不到」。
-**目标态（firefly-arch，新增）**：
-- 触发：新模块/新公共 API/跨模块数据流变更时。
-- 职责：①**契约先行**：公共接口先出 **sketch**（签名 + 类型 + 错误 + 版本策略 + 兼容承诺，实现体留空），挂进 spec，再填实现；②**结构决策记录**：架构选择走 ADR（与 firefly-docs 联动）；③**边界纪律**：模块间只经显式契约通信，禁止深层 import；④**演进式重构**：大改分台阶（每步可运行），拒绝一次推倒；⑤**四原则借用（v1.2 归位）**：结构编码领域 / 边界一次校验 / 非法状态不可表示 / 幂等，来自 `poteto-mode` 架构原则段，作为契约评审的检查项。
-- 产出：接口契约文档 + ADR。
-- 验收：契约测试存在且与实现同步；无未记录的跨边界依赖。
-
----
-
-### 13 测试驱动 / TDD
-
-**现状**：test-driven-development（受管覆盖）——红绿重构循环。
-**吸收（v1.2 修正归因）**：
-- matt `tdd` 与 addy `test-driven-development` 主张**先写失败测试**（matt 另限"只在预先约定的接缝处测试"）。
-- **Pstack `tdd` 有显式例外**（v1.2 补回，v1.1 的「三套罕见共识」把它抹平了）：「只在用户明确要求 TDD、存在失败测试/回归测试，或 bug 有便宜的本地测试目标时使用；测试路径不清楚、昂贵、集成很重或未被要求时**跳过**」「**不要为了满足流程而强行写测试**」。
-- **「基线先行」在 addy 版零命中**（其首步是"先发现技术栈"）；本设计的「基线先行」标 **own design**。
-**依据**：2025 AI-TDD 实践的两个硬结论：①**锁测试**——agent 不得修改已有测试来达成通过（改测试=改需求，须显式走 spec 流程）；②**防自通过**——agent 生成「自我满足的错误测试」是头号失败模式，对策是测试与实现分代理写、或测试先经人/独立代理评审。
-**目标态（firefly-tdd，演进吸收现有 test-driven-development）**：
-- 机制：①**基线先行**（own design）：动代码前跑全量测试，红的先修或显式记录豁免；②**红→绿→重构**，**红必须有证据**：新测试的失败输出贴进任务摘要（16 读取，见 16 输入清单）；③**锁测试条款**：需要改测试时停下走变更流程，禁止顺手改（改测试=改需求）；**批准主体（v1.2 补全）**——走 04 的 delta spec 变更，由 16 spec 档裁决；④**测试分层**：单元/集成比例与速度预算进 bounds；⑤**TDD 豁免（v1.2，pstack 条款）**：测试路径昂贵/集成过重/未被要求时可显式跳过 TDD，但须在任务摘要写「跳过理由 + 替代验证方式」；⑥**接缝纪律**（吸收 matt）：只在预先约定的接缝处测试——写测试前列出接缝并与用户确认（旧接缝优先、高杠杆接缝优先，实在没有才开新的），未经确认的接缝不写测试；⑦**更名迁移**：superpowers 的 test-driven-development 更名演进为本技能，过渡期保留旧名别名触发，按 22 点废弃纪律出显式迁移通知。
-- 产出：测试代码 + 每任务的「红证据→绿证据」对（写入 `changes/<id>/tasks.md` 的任务条目下）。
-- 验收：新增测试的首次失败输出可查；无「实现与测试同提交且测试从未红过」的可疑对。
-
-### 14 运行时验证 / Browser
-
-**现状**：firefly-verify-web + playwright-interactive（受管）——浏览器实证。
-**吸收**：
-- Addy `browser-testing-with-devtools`：**独立浏览器 profile**——默认 profile 带着登录态/邮箱/银行会话，agent 驱动浏览器等于把这些交给它；必须用隔离 profile。
-- Pstack `create-verification-skill`：**为项目生成一个本地 `verify` 技能**（一项目一份，供所有 playbook 复用）——v1.2 修正：v1.1 写成"每个功能一份"，与原文相反且与 23 技能上限冲突。
-**依据**：agent 安全实践（隔离执行环境）+ E2E 验证实践（人类可见工作区 vs 自动化环境的取舍）；「截图即证据」——验证结论必须挂可复核的产物（截图/trace/网络记录），口头「页面正常」不算。
-**目标态（firefly-verify-web 演进）**：
-- 机制：①**隔离 profile 强制**：任何浏览器验证必须在独立/一次性 profile 中进行（`--isolated`），**profile 标识（创建时间 / 临时目录）写入归档**；②**证据四元组（v1.2 由三元组扩充）**：验证结论 = 操作序列 + 截图/录屏 + 关键 DOM/网络断言 + **profile 标识**，四者齐才算验证；③**验证技能沉淀**：同一功能的验证脚本**第二次被重写时**（文件即状态，不依赖跨任务计数）提炼成可重放脚本（吸收 Pstack）；④**作用域声明**：验证前声明「将访问的域名/触发的动作」，超域即停；⑤**接收 11 的视觉断言清单**（v1.2 双向）：按清单逐条执行并在报告回填结果。
-- 产出：验证报告（四元组归档路径 + 视觉断言清单执行结果）。
-- 验收：任一「已验证」结论可打开其证据归档复核，且归档含 profile 标识。
-
-### 15 调试修复 / Debugging（新增 firefly-debug）
-
-**现状**：gap——调试靠通用能力，无纪律约束，易滑向试错式补丁。
-**吸收**：
-- Matt `diagnosing-bugs`：核心是「**构建一条会对这个 bug 变红的反馈循环**」（原文自称"这才是这个技能本身"）；「先诊断后动手」是本设计的提炼（v1.2 修正）。
-- Addy `debugging-and-error-recovery`：错误恢复的结构化（分类→策略→动作）。
-**依据**：2025 调试实践的聚合共识：①**RCA-first**——改代码前必须先给出根因假设及证据，防止 trial-and-error 式「vibe debugging」；②**证据链**——每步结论挂证据（日志/断点/最小复现）；③**二分隔离**——从 O(N²) 的怀疑面收缩到单变量（deterministic replay 是理想形态，最小复现是平替）；④ Debug2Fix 等研究证明「调试子代理 + 交互式调试工具」显著优于主代理顺带调试。
-**目标态（firefly-debug，新增）**：
-- 触发：`firefly debug`；同一测试的修复尝试**未生效**（v1.2：改为可观测事实，不依赖「两次」这类跨任务计数）/ 非预期行为 / 线上问题排查。
-- 职责：⓪**停线保存现场**（v1.1 第 0 步，吸收 addy Stop-the-line）：进入调试即停止叠加功能改动，先保存原始失败证据（错误输出/日志/复现步骤）；①**最小复现优先**：先造最小复现，复现不了先解决「为什么复现不了」；②**假设登记**：根因假设显式列出（≥1 条），每条绑一个检验实验；③**单变量改动**：每轮只动一个变量，改动前后都跑复现；④**根因≠症状**：修复必须能解释「为什么治的是根因」；⑤修完把根因与修法写入任务摘要（供 retro 沉淀）。
-- 产出：调试记录（复现 / 假设 / 实验 / 根因 / 修复 / 回归测试）。
-- 验收：回归测试锁死原 bug；无「改了三处不知道哪处治好」的合并。
-
-### 16 评审裁决 / Review
-
-**现状**：firefly-review + requesting-code-review（受管）。
-**吸收（v1.2 修正归因，三条全部改写）**：
-- Pstack `interrogate`：**每个已配置模型派一个评审者，对抗信号来自模型多样性而不是分配人设**；结论落**四桶**（Act on / Consider / Noted / Dismissed）；**不自动改代码**。（v1.1 写成"审讯式密度/假设逐条过堂"与原文不符。）
-- Addy `code-review-and-quality`：**五轴检查清单**（正确性 / 可读性 / 架构 / 安全 / 性能）。
-- Matt `code-review`：**规范 + 规格双轴**（仓库编码规范 / 是否忠实实现 issue 或 spec），两条线作为**并行子代理**运行、**互不污染上下文**、由本技能汇总。（原文无「必须改/建议/可接受」三档，该分档是本设计 own design。）
-**依据**：**生成与评审分离**：AI 写得越多，评审越要独立；范式是独立评审子代理（与执行代理不同上下文）+ 并行多维检查 + 反馈环（主代理修复→评审子代理复审直到清零）。子代理对抗的实证文献为 *Adversarial Review: Structured Disagreement for Grounded Agentic Code Review*（arXiv 2608.18167）。
-**目标态（firefly-review 演进，v1.1 吸收 mar 技能为独立性协议）**：
-- **输入清单（v1.2 明确，防"有写入无读取"）**：diff + spec + 任务书 + **13 的红证据→绿证据对** + **09 的反证报告（doubt.md）** + **18 的安全检查报告** + 11 的视觉断言清单（当次涉及 UI 时）。路径统一按 §4.5 的产物契约读取。
-- 机制：①**独立评审代理**：评审者不持有执行历史，只看输入清单（防锚定）；②**并行维度**：正确性（对 spec）/ 简化（17 点）/ 风险（边界与异常）/ 测试（覆盖与质量）/ **安全（v1.2 补，挂 18 的清单）** / **反证结论（v1.2 补：对 09 反证报告逐条裁决，实现后反证的唯一读取方）** / **标准一致性**（审查判据是否被一致应用，专抓「判据不对称」）；③**裁决式意见（own design，注明）**：每条 = [必须改|建议|可接受] + 理由 + 位置——该三档为本设计定义，不冠以 matt 出处；④**清零环**：必须改项不归零不通过，复审**由同一评审包 + 一个新评审代理**增量做（v1.2：平台子代理是一次性回调，"同一代理"不可保证）；⑤**thermo 档位**：`--deep` 整模块深度简化审查；⑥**spec 档**：输入=spec+对垒表+反证报告+bounds 约束清单（无 diff），维度=Scenario 完整性 / 验收可测性 / 与 constitution 冲突 / **复跑任一 killing test**，04 的定稿验收由本档执行。
-- **独立性协议**（吸收 mar）：一 agent 一维度（单维深挖胜过全面浅扫）；reviewer 互不见彼此结论；同一问题 ≥2 维度独立命中才高置信，单维度无旁证降置信；冲突结论保留双方证据标「待人工」不和稀泥；汇总者必须去重/裁决/定级复核，禁止粘贴拼盘。
-- **档位谱**：轻量档（小 diff 只跑正确性+测试，阈值进 bounds）← 常规维度 → `--deep` / spec 档。
-- 产出：评审报告（分维度裁决清单）；spec 档产出定稿裁决 + 反证报告归档。
-- 验收：无未裁决的必须改项；评审/执行上下文隔离可查；spec 定稿必附反证报告（P0 流程点）且 killing test 有复跑记录；输入清单中每一项都能在报告里找到对应的裁决行。
-
-### 17 代码简化 / Simplification（并入 16）
-
-**现状**：gap（独立技能缺位）。
-**吸收**：
-- Addy `code-simplification`：简化是独立工序，不是顺手做。
-- Pstack `thermo-nuclear-code-quality-review`：**深度清理档位**——极端简化审查作为可选重炮。
-**依据**：评审分离原则——简化判断交给独立评审维度比执行代理自查有效；「最小充分」原则同样适用于代码：能删的分支/抽象/防御都是认知负担。
-**目标态（16 的一个评审维度 + 一个档位）**：
-- 机制：①review 的常设维度「简化」：每 diff 问三题——能删吗？能并吗？这层抽象有第二个使用者吗（YAGNI）？②**thermo 档位**：`firefly review --deep` 触发深度简化审查（整模块视角，吸收 Pstack 重炮语义），作为可选档而非常驻；③**原文落点（v1.2）**：addy `code-simplification` 全文迁入 `assets/shared/skills/firefly-review/references/simplification.md`，正文只留一行指针——不重写摘要，避免细节丢失。
-- 产出：简化维度结论（常规档）/ 独立简化清单（`--deep` 档）。
-- 验收：常规 review 必含简化维度结论；thermo 档位产出独立的简化清单；references 文件存在且被 SKILL.md 引用。
-
-### 18 安全加固 / Security（新增 firefly-guard，吸收 CI）
-
-**现状**：gap——安全靠通用常识，无专门防线。
-**吸收**：
-- Addy `security-and-hardening`：**参数化/最小权限/输入不信任**三件套，清单化；**威胁建模优先**（trust boundary + STRIDE）——v1.2 补回，v1.1 丢失。
-- Pstack `thermo-nuclear-review`：安全作为重炮审查档。
-**依据**：2025 agent 安全实践的一致清单：①**secrets 注入而非环境**——密钥经注入进入进程，不落上下文/日志/文件；②**最小权限 token**——过度授权（over-scoped token）是泄密主通道；③**approval gates**——不可逆动作（外发/删除/force push/发布）必须人工门禁；④**供应链**——依赖变更（新增/升级）单列审查；⑤提示注入与数据外泄的常规化防御（对齐 08 的文档投毒防御）。
-**目标态（firefly-guard，新增，吸收 CI/CD 门禁；曾并入 bounds，经用户裁定回退独立）**：
-- 触发：`firefly guard`；依赖变更时；发布前；16 的安全维度自动挂载（契约内挂载，登记于 §4.6）。
-- 职责：①**安全清单执行**：参数化查询/输入校验/权限最小化/密钥不落盘 + **diff 削弱检测**（05② 的执行者），逐条通过/不通过（bounds 安全红线的执行视图）；②**secrets 注入**：密钥经注入进入进程，不落上下文/日志/文件；③**供应链单列**：依赖变更独立评审（版本差异/已知 CVE/维护状态）；④**不可逆动作门禁**：以可逆性判据为主规则（不可逆即停待批），外发/删除/发布为示例枚举而非穷举；**审批条目落盘（v1.2 补）**——每次"停待批"写一条 `{动作 / 可逆性判据 / 批准人 / 时间 / 决定}` 到 `changes/<id>/approvals.md`；⑤**CI 门禁挂载**（并入原 CI 点）：接收 05 的**待挂载项清单**、13 的测试、11 的 a11y 扫描，统一挂 CI，门禁红=不许合；**本技能是 CI 配置的唯一作者**（避免与 bounds 双主）。
-- 产出：安全检查报告 + `approvals.md` + CI 门禁配置。
-- 验收：抽任一门禁可重跑；**secrets 零出现**的扫描口径（v1.2 补齐）——命令 `git grep -nIE '(sk-[A-Za-z0-9]{16,}|AKIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{36}|-----BEGIN (RSA|EC|OPENSSH) PRIVATE KEY-----)'` 覆盖 `changes/`、报告目录与提交 diff，命中即失败；不可逆动作抽检其 `approvals.md` 条目存在。
-
-### 19 性能优化 / Performance（新增 firefly-perf）
-
-**现状**：gap。
-**吸收**：
-- Addy `performance-optimization`：先测量后优化，拒绝猜。
-- Pstack `benchmark-checklist`：**基准清单**——优化前后同基准对比，数字说话。
-**依据**：性能工程通识在 agent 时代的强化——agent 极易「顺手优化」制造复杂度而不解决瓶颈；对策是把「测量→定位→改动→复测」锁成流程，性能预算进 bounds（05）。
-**目标态（firefly-perf，新增）**：
-- 触发：`firefly perf`；bounds 声明性能预算且变更可能触碰时（契约内挂载，见 §4.6）；用户报性能问题。
-- 职责：①**基准先行**：无基准不优化——先建立可重复测量（脚本/命令+环境说明），**复测取中位数/趋势对比，先审测量方法本身再信数字**（v1.1，防单次抖动误报触发假收益/假回滚）；②**单点归因**：瓶颈定位挂 profile/计时证据，不接受「应该是这里」；③**改动对赌**：优化前预测收益，改后复测对照，不达标回滚；④复杂度代价申报：以复杂度换性能时显式记录（进 ADR）。
-- 产出：基准脚本 + 前后对比数据 + 优化记录。
-- 验收：每个性能声明的 PR 附带可重跑的基准对比。
-
-### 20 版本与 PR / Delivery（新增 firefly-pr）
-
-**现状**：gap——git/PR 操作散在全局规则里，无技能化。
-**吸收**：
-- Pstack `make-pr-easy-to-review`：**为评审者而写**——PR 的第一读者是评审者（人或代理），标题/描述/大小都服务评审效率。
-- Matt `pr`：PR 的结构与惯例。
-- Addy `git-workflow-and-versioning`：小步提交、消息即历史。
-**依据**：评审分离原则的延伸——PR 是评审的输入接口，接口质量直接决定评审质量；小 PR + 清晰消息 = 评审代理的上下文最小充分。
-**目标态（firefly-pr，新增）**：
-- 触发：`firefly pr`；任务组完成进入交付时。
-- 职责：①**PR 体检**：单 PR 单主题、diff 尺寸阈值（**阈值取自 05 的 bounds 清单**，超限拆分）、提交消息逐条能独立解释；②**评审者导语**：PR 描述必含（为什么/做了什么/怎么验证/风险），验证部分挂 14 的证据链接；③**拆分指引**：大变更按任务书自动建议拆分点；④与 16 联动：PR 就绪 = 评审报告清零。
-- 产出：合规 PR（描述/证据/尺寸达标）。
-- 验收：PR 清单全过；评审代理对 PR 的首次理解不需要额外提问。
-
-### 21 CI/CD 门禁（并入 18 firefly-guard）
-
-**现状**：gap。
-**吸收**：Addy `ci-cd-and-automation`（本点唯一对应）：自动化门禁是约束的执行者。
-**依据**：约束驱动（05）的结论——约束必须可执行才常驻；CI 是约束的自动执行处；agent 时代新增：CI 里跑的不只是测试，还有 a11y 扫描、安全扫描、基准回归（bounds 统一挂载）。
-**目标态**：并入 firefly-guard 的「CI 门禁挂载」职责（见 18⑤），不再单列技能——门禁的「定义」在 bounds，门禁的「执行」在 CI，guard 负责挂载与红绿裁决。**原文落点（v1.2）**：addy `ci-cd-and-automation` 全文迁入 `assets/shared/skills/firefly-guard/references/ci-cd.md`（门禁分层流水线 / CI 失败回流给 agent / Dependabot / Build Cop / CI 优化），正文只留一行指针。
-
-### 22 废弃与迁移 / Deprecation（并入 firefly-archive）
-
-**现状**：gap。
-**吸收**：Addy `deprecation-and-migration`（本点唯一对应）：废弃是显式流程——标记→通知→迁移路径→时间表→移除。
-**依据**：SDD 的产物观——废弃决策是需要记录的变更（影响使用者的契约变更），应走 delta spec 而非顺手删除；与「先读后改、先查后删」的全局纪律一致。
-**目标态（并入 firefly-archive 的「收尾」职责，v1.1 补全机制）**：
-- ①废弃清单（API/配置/文件），每项带迁移路径与时间表；②移除动作走 delta spec（破坏性变更显式化），**additive 先行、destructive 单独部署（expand-contract）**；③迁移脚本作为产物沉淀，**每个迁移必须有 down path**（没有回退路径的迁移就是不可逆部署）；④粒度=一次迁移一个消费者；⑤默认 advisory 建议弃用，强制移除须单独批准（审批条目写 `changes/<id>/approvals.md`，与 18④ 同格式）；**原文落点（v1.2）**：addy `deprecation-and-migration` 全文迁入 `assets/shared/skills/firefly-archive/references/deprecation.md`。
-- **产出（v1.2 补，原缺）**：废弃清单 + 迁移脚本（含 down path）+ `approvals.md` 条目。
-- **验收（v1.2 补，原缺）**：抽任一已废弃项，能执行其 down path 回到废弃前状态；强制移除项有批准条目。
-
-### 23 文档与 ADR / Docs
-
-**现状**：openspec-sync-specs（受管覆盖）——spec 与实现同步。
-**吸收**：
-- Addy `documentation-and-adrs`：**ADR 记录为什么**——决策的上下文（备选/理由/后果）比结论更值钱。
-- Pstack `why`：**带引用的证据化重建**——`git blame` / PR 元数据的代码锚点、七类证据并行查、**已知与推断分离**、**空结果也要记录**（"查过、没有"是结论）、置信度汇总；原文明确**不默认产出 ADR**，v1.1 写成"落成文档"与其立场相反（v1.2 修正）。本点只借其**取证形态**，ADR 的强制触发来自 addy。
-- Matt `domain-modeling`：领域模型是文档的核心章节。
-**依据**：产物即流程原则——文档不是事后补的装饰，是流程的承重结构；context engineering 的 structured note-taking 把文档当成 agent 的外部记忆：文档写给「下一个上下文」（人或 agent），可检索、可增量。
-**目标态（firefly-docs，演进吸收 openspec-sync-specs）**：
-- 触发：spec 变更、架构决策、任务完成归档时。
-- 职责：①**spec 同步**（现有职责保留）：实现与 spec 漂移即报；②**ADR 强制触发**：架构/接口/依赖/性能复杂度等不可逆选择时建 ADR（背景/备选/决定/后果四段式）；③**文档面向检索**：标题即查询词，章节自包含，不写「如前所述」；④**过期即删**：与代码矛盾的文档比没有文档更危险，发现矛盾当场修或删。
-- 产出：spec 同步报告 / ADR / 更新的模块文档。
-- 验收：抽任一 ADR，其「备选方案」段非空；任一 spec 条目能指到对应实现/测试。
-
-### 24 可观测性 / Observability（新增 firefly-trace）
-
-**现状**：gap。
-**吸收**：Addy `observability-and-instrumentation`（本点唯一对应）：结构化日志/指标/追踪三支柱。
-**依据**：2025 的标准化进展——**OpenTelemetry GenAI 语义约定**成为 agent 遥测的事实标准（LLM 调用/工具使用/子代理交接都有 span 约定）；实践共识是 **tracing + evals 结合**：不只记录做了什么，还要能回答「为什么这样行为」「失败在哪一步」；对 firefly 这种编排型工作流，可观测的首要对象是**工作流自身**（每个子命令的进出/授权/产物）。
-**目标态（firefly-trace，新增，v1.1 调整机制取向）**：
-- 触发：`firefly trace`；**归档时由 25 显式调用**（v1.2：P0 阶段 01 的契约挂载尚未落地，"自动生成"没有挂载者；改为显式调用，待 01 落地后再开自动）。
-- 职责：①**运行留痕**：每次任务产出结构化运行记录（时间线/进入的技能/关键决策/证据链接），字段用轻量 JSON/Markdown 约定，**OTel GenAI 语义约定仅作字段命名参考、不作合规要求**（v1.1 降级：本地落盘摘要无采集管线消费）；②**应用侧埋点**（问题驱动，v1.1 补收 addy）：添加任何埋点前先写下 on-call 工程师会问的 2-4 个问题，每个信号必须回答其一；日志结构化/级别语义/敏感字段脱敏/**标签基数控制**（标签只能来自小而固定的集合）；③**失败可回放**：记录足以让第三方理解「失败在哪一步、当时输入是什么」。
-- 产出：`changes/<id>/trace.md`（五字段运行记录，与 §4.5 的「任务运行记录」同构）+ 埋点规范。
-- 验收：任一历史任务的运行记录能独立回答「做了什么 / 依据什么 / 结果如何」——**保留期限内**（见 §4.5）。
-
-### 25 发布与完成 / Shipping
-
-**现状**：firefly-archive（归档收尾）。
-**吸收（v1.2 修正归因）**：
-- Addy `shipping-and-launch` + `definition-of-done`：**完成有定义**——发布不是「代码写完」，是清单销项。
-- Pstack：无直接对应——v1.1 的「完成定义藏在阻断关系里」是自造理由；`poteto-mode` 有 Shipping playbook，但其重点是部署控制面（见下「范围声明」）。
-**依据**：产物即流程——DoD 清单使「完成」可判定，杜绝「90% 完成度」的永远差一步；agent 场景特有：agent 声称完成 ≠ 完成，DoD 每项都要证据。
-**目标态（firefly-archive 演进，吸收 deprecation）**：
-- 机制：①**DoD 清单**：完成 = 清单逐项证据（测试绿 / **门禁绿** / 评审清零 / spec 同步 / 文档更新 / 临时产物清理），缺证据即未完成；**门禁载体（v1.2 去外部依赖）**——P0 阶段用仓库现成的 `tests/test-*.sh` 全绿 + `shellcheck` 通过作为「门禁绿」的判据，18 guard 在 P1 只补「新增检查如何写成 test 脚本 + 哪些进门禁」的规范；**spec 同步**在 23 落地前用「spec 与实现逐条比对」的手工记录顶替，并在销项表标注「23 未落地，手动核对」；②**归档**：任务资产进 openspec archive（现有流程），附 24 的 `trace.md`；③**废弃管理**（吸收 22）：废弃清单与迁移路径随归档维护。
-- **范围声明（v1.2 补，防"漏了还是不做"的歧义）**：发布控制面（feature flag / 分批灰度 / 错误预算 / 回滚预案）**不在本技能范围**，归项目自有发布流程；本技能只管「完成判定 + 归档 + 废弃」三件事。
-- 产出：DoD 清单（销项表）+ 归档记录。
-- 验收：无「声称完成但销项表有空洞」的任务进入归档；销项表每行的证据都能打开（命令输出/报告路径/commit）。
-
-### 26 复盘与学习 / Retro（新增 firefly-retro）
-
-**现状**：gap——教训不回流，同类错误重复出现。
-**吸收（v1.2 换骨架）**：
-- **Pstack `reflect`（本点主骨架）**：①**定位并摘录当前 transcript**（只记用户提示与纠正、工具调用与结果、改动的文件；**不含诊断、结论、成因**——防止复盘被既有判断锚定）；②**并行派三个评审者**（Judgment / Tooling / Divergent 三个透镜）；③裁决为 **Accepted / Rejected / Backlog** 三档；④**结构化优先检查**——凡是能被 lint 规则、脚本、元数据标记或运行时检查更可靠执行的条目，一律移入 Backlog 走自动化，不写成文档条款。
-- Matt `retro`（辅助）：其真实机制是「为编码 agent 的**环境**提改进」，7 类候选（导航 / 自动化检查 / 编码规范 / 全局 AGENTS.md / 工具经济性 / 空操作 / 信息访问）+ 按严重度呈报 + 机械性违规→lint/CI 分流。v1.1 写的「四问（什么成了/什么败了/学到什么/改什么）」在原文中**零命中**（v1.2 修正）。
-- Pstack `why`：调查工具，归属 08/23；v1.1 把它当"固化成常驻触发器"的来源是角色错位（v1.2 修正）。
-**依据**：context engineering 的外部记忆观——跨任务学习必须落盘成可检索产物；教训的可执行形态是技能 / 清单 / 门禁里的具体条款，不是一段感想文字。
-**目标态（firefly-retro，新增，v1.2 换骨架）**：
-- 触发：`firefly retro`；任务归档时（轻量）；**同一类返工在同一变更内出现第二次时**（强制，改为可观测事实，不依赖跨任务计数）。
-- 职责：①**transcript 摘要**：按 reflect 的四项摘录（提示与纠正 / 工具调用与结果 / 改动文件 / **不含判断**）；②**三透镜评审**：Judgment（判断类教训）/ Tooling（工具与流程）/ Divergent（偏离与意外）各一路，并行；③**三档裁决**：Accepted（写回条款）/ Rejected（记理由）/ Backlog（转自动化）；④**结构化优先**：能被 lint/脚本/门禁执行的，**不进文档**，进 05 的开放清单或 18 的门禁配置；⑤**回流三通道**：技能条款（改 SKILL.md 须**以提案形式走 OpenSpec 变更**）、约束（进 bounds）、门禁（进 18 的 CI 挂载清单）；**「已批准待同步」的状态载体（v1.2 补）**——写进受管资产之外的 `.firefly/retro-approved.json`（记录 change id、目标技能、批准时间），01 注册表健康检查读取该文件作为 baseline diff 的已知清单，不再依赖已退役的 doctor；⑥**条款自查**：每次 retro 复查既有条款清单的长度与相关性，逐条裁决删留。
-- 产出：复盘记录（`changes/<id>/retro.md`）+ 条款回流 diff 或 Backlog 条目。
-- 验收：任何复盘至少产生一条可执行条款、一条 Backlog 自动化项，或显式的「不采纳理由」。
-
-## 3. 实施对象清单（v1.2 重写：资产面 × 动作 × 路径）
-
-根目录：`/code/ai/asjayli/firefly`。下表全部为**仓内**对象；`/tmp/slim-index/*` 的生成器脚本为仓外，本轮只读，处理方式见 §4.7。
-
-### 3.1 技能面（31 项受管资产，逐行）
-
-**A. 11 个演进技能**
-
-| # | 技能 | 源路径 | 目标路径 | 动作 | 设计点 | manifest/脚本 |
-|---|---|---|---|---|---|---|
-| 1 | firefly | `assets/claude/skills/firefly/SKILL.md` | `assets/shared/skills/firefly/SKILL.md` | 演进 + 迁入 shared | 01 | 双 manifest source 改写 |
-| 2 | firefly-think | `assets/shared/skills/firefly-think/SKILL.md` | 同路径 | 演进 | 02 | 无 |
-| 3 | firefly-draw | `assets/shared/skills/firefly-draw/SKILL.md` | 同路径 | 演进（Mermaid 职责迁出） | 03 | 无 |
-| 4 | firefly-propose | `assets/shared/skills/firefly-propose/SKILL.md` | 同路径 | 演进 | 04 | 无 |
-| 5 | firefly-tasks | `assets/shared/skills/firefly-tasks/SKILL.md` | 同路径 | 演进 | 06 | 无 |
-| 6 | firefly-implement | `assets/shared/skills/firefly-implement/SKILL.md` | 同路径 | 演进 | 07 | 无 |
-| 7 | openspec-sync-specs → firefly-docs | `assets/shared/skills/openspec-sync-specs/SKILL.md` | `assets/shared/skills/firefly-docs/SKILL.md` | **更名**（旧名保留 alias 触发） | 23 | manifest id 改名 + 4 处引用同步 |
-| 8 | firefly-verify-web | `assets/shared/skills/firefly-verify-web/SKILL.md` | 同路径 | 演进 | 14 | 无 |
-| 9 | firefly-review | `assets/shared/skills/firefly-review/SKILL.md` | 同路径 + `references/simplification.md` | 演进（并入 17 原文） | 16/17 | references 需登记 |
-| 10 | firefly-archive | `assets/shared/skills/firefly-archive/SKILL.md` | 同路径 + `references/deprecation.md` | 演进（并入 22 原文） | 22/25 | references 需登记 |
-| 11 | test-driven-development → firefly-tdd | `assets/claude/superpowers/skills/test-driven-development/SKILL.md` | `assets/shared/skills/firefly-tdd/SKILL.md` | **更名 + 迁入 shared** | 13 | 旧名 alias + 双 platform-assets 登记 |
-
-**B. 12 个新建技能**
-
-| # | 技能 | 目标路径 | 设计点 | manifest 条目 |
-|---|---|---|---|---|
-| 12 | firefly-bounds | `assets/shared/skills/firefly-bounds/SKILL.md` | 05 | 新增 skill-directory |
-| 13 | firefly-source | `assets/shared/skills/firefly-source/SKILL.md` | 08 | 新增 |
-| 14 | firefly-doubt | `assets/shared/skills/firefly-doubt/SKILL.md` | 09 | 新增 |
-| 15 | firefly-context | `assets/shared/skills/firefly-context/SKILL.md` | 10 | 新增 |
-| 16 | firefly-ui | `assets/shared/skills/firefly-ui/SKILL.md` | 11 | 新增 |
-| 17 | firefly-arch | `assets/shared/skills/firefly-arch/SKILL.md` | 12 | 新增 |
-| 18 | firefly-debug | `assets/shared/skills/firefly-debug/SKILL.md` | 15 | 新增 |
-| 19 | firefly-guard | `assets/shared/skills/firefly-guard/SKILL.md` + `references/ci-cd.md` | 18/21 | 新增 |
-| 20 | firefly-perf | `assets/shared/skills/firefly-perf/SKILL.md` | 19 | 新增 |
-| 21 | firefly-pr | `assets/shared/skills/firefly-pr/SKILL.md` | 20 | 新增 |
-| 22 | firefly-trace | `assets/shared/skills/firefly-trace/SKILL.md` | 24 | 新增 |
-| 23 | firefly-retro | `assets/shared/skills/firefly-retro/SKILL.md` | 26 | 新增 |
-
-**C. 8 个保留资产（不改造，仅口径登记）**
-
-| 资产 | 路径 | 动作 | 说明 |
-|---|---|---|---|
-| mermaid-diagram-specialist | `assets/shared/skills/mermaid-diagram-specialist/SKILL.md` | 职责迁出到 `firefly diagram` | 03 |
-| playwright-interactive | `assets/claude/skills/playwright-interactive/SKILL.md` | 保留 platformSpecific | 14；双侧 10 hunk 差异按 §0.5 表处理 |
-| firefly-init | `assets/claude/skills/firefly-init/SKILL.md` | 保留 | 运维，不进 26 点 |
-| firefly-repair | `assets/claude/skills/firefly-repair/SKILL.md` | 保留 | 运维 |
-| openspec-propose | `assets/claude/skills/openspec-propose/SKILL.md` | 保留 | 04 的底层路由目标 |
-| openspec-explore | `assets/claude/skills/openspec-explore/SKILL.md` | 保留 | 04/25 的探查入口 |
-| openspec-apply-change | `assets/claude/skills/openspec-apply-change/SKILL.md` | 保留 | 07 的底层执行 |
-| openspec-archive-change | `assets/claude/skills/openspec-archive-change/SKILL.md` | 保留 | 25 的归档执行 |
-
-**D. 删除 / 退役（v1.2 补齐，原清单无删除动作）**
-
-| 对象 | 路径 | 动作 | 前置条件 |
-|---|---|---|---|
-| firefly-doctor | `assets/{claude,codex}/skills/firefly-doctor/` | **删除目录** + 双 manifest 移除条目 | 01 注册表承载其职责后 |
-| brainstorming | `assets/{claude,codex}/superpowers/skills/brainstorming/` | 并入 03 后**删除** | 03 落地 |
-| writing-plans | 同上路径 | 并入 06 后**删除** | 06 落地 |
-| executing-plans | 同上路径 | 并入 07 后**删除** | 07 落地 |
-| subagent-driven-development | 同上路径 | 并入 07 后**删除**（其 Durable Progress 协议并入 10） | 07/10 落地 |
-| requesting-code-review | 同上路径 | 并入 16 后**删除** | 16 落地 |
-| test-driven-development（旧目录） | `assets/{claude,codex}/superpowers/skills/test-driven-development/` | 更名迁移后**删除** | 13 落地 + 别名生效 |
-| 两侧手工副本 | `assets/{claude,codex}/skills/`（除 platformSpecific） | 渲染产物化，不再手工编辑；手工副本随迁移清除 | §0.5 token 扩展完成 |
-
-### 3.2 脚本面（v1.2 补齐，原清单零行）
-
-| 脚本 | 动作 | 设计点 |
-|---|---|---|
-| `scripts/install-claude.sh` / `install-codex.sh` | 公共逻辑下沉 `firefly-common.sh`，diff 由 156 行收敛；平台后缀保留 | — |
-| `scripts/doctor-claude.sh` / `doctor-codex.sh` | 同上（diff 116 行收敛）；`firefly doctor` 取消 codex 优先探测，改按平台名分发 | 01 |
-| `scripts/firefly.sh` | 增 `next`、`diagram` 子命令分发（现仅 validate/init/tasks/draw/doctor/repair） | 01/03 |
-| `scripts/check-release-metadata.sh` | 去掉 `for platform in codex claude` 硬循环（`:96-98`），改读 `platform-assets.json` 分类 | — |
-| `scripts/sync-platform-assets.mjs` | 保留并扩展：新增 `{{PLATFORM_WAIT_LOOP}}` / `{{PLATFORM_MODEL_SELECTION}}` / `{{PLATFORM_ASK}}` token；新增 completeness 断言（shared 下每个目录必须登记） | §0.5 |
-| `scripts/manifest-assets.mjs` | 跟随 manifest 结构变更（新增/改名条目） | — |
-| `scripts/firefly-draw.sh` | 随 Mermaid 职责迁到 `firefly diagram`，改名 `firefly-diagram.sh` | 03 |
-
-### 3.3 账本面（v1.2 补齐）
-
-| 文件 | 动作 |
+| 事实 | 载体 |
 |---|---|
-| `manifests/platform-assets.json` | 新增 token 定义；`shared` 由 14 项扩到 20 项；`platformSpecific` 由 11 项减到 3 项（playwright / subagent 的 model selection / firefly 的等待环按 §0.5 表裁定） |
-| `manifests/claude.json` | 19 → 27 条 skill-directory（+12 新建 −1 doctor −5 superpowers +1 tdd 更名 +1 docs 更名）；51 条 source 中指向 `assets/claude/` 的改指 `assets/shared/`（经渲染） |
-| `manifests/codex.json` | 同上，条目数与 claude 对齐 |
+| 委托标识、允许效果、终点、用户决定与纪要 | 委托记录（`tasks.md` 的委托段，或它指向的需求记录） |
+| 场景、决定来源、未决阻塞、规格版本 | 规格 |
+| 任务、依赖、场景映射、开工裁决、迁移观察窗口 | `tasks.md` 及任务记录 |
+| 候选快照 | Git 对象（提交、stash 或补丁文件）及其内容摘要 |
+| 观察与证据指针、门禁结果 | 验证记录 |
+| 评审包、裁决与保留项、修复预算、派发计数、演练记录、上线预案与其观察窗口 | 进度记录（`progress.md`） |
+| 具有长期约束力的取舍、被否决的备选、关闭后仍有长期约束力的反例裁决 | 决策记录（ADR，见 23） |
+| 迁移决定、移除回传、归档清单 | 归档记录 |
 
-### 3.4 测试面（v1.2 补齐，原清单零行）
+**身份与版本。** 委托带稳定标识；同一意图再次提出时先核对未结委托，按已有事实续作，不另开第二条流程。未提交的改动在产生第一条证据前固化为可定位的候选快照，证据与评审包只引用快照；工作树与快照不一致即视为新候选；候选快照固定的是实现，变更自身的规格、任务与记录（观察、证据、评审包、进度记录、归档记录）各有版本或只追加，写入或改动它们不算候选变化。每个必需场景带决定来源（指向纪要中的用户原话、负责人确认或代理推断）和内容摘要；来源为推断的必需场景经负责人确认后才能通过开工裁决；观察、任务映射、开工裁决与评审包都引用所对照的规格版本或场景内容摘要。场景内容、规格、判据或测法改变时，受影响的观察、开工裁决、评审包和演练记录一律失效并降为历史，复验或重审后才能再次引用；已上线的候选不追溯（21）；不得回写旧观察，也不得改写旧裁决。证据位置按候选隔离或带内容摘要，后续运行不得覆盖。
 
-| 测试 | 影响 |
+**观察记录。** 状态落在“场景 × 检查或分支”，不是整个场景一个值。每条记录写明场景与检查、候选快照、规格版本、观察者及其是否实现了该候选、观察条件（环境、输入、视口等）、状态和证据位置。状态只有四种：通过、失败、未验证、有依据的不适用；不适用必须注明适用规则和理由，不能充作通过。流水线的跳过、取消、无结果和工具故障一律记为未验证。场景的总体结论由评审者汇总各检查与分支并取最差状态，次序为失败 > 未验证 > 通过；有依据的不适用不参与比较，也不能用于必需场景：必需场景必须得到结论，豁免按 16 指明批准范围和替代证据；非必需的检查全部不适用时场景结论记为不适用并注明规则。
+
+**记录时机。** 委托、用户决定、开工裁决、观察、评审派发、裁决与预算轮次在产生时即写入对应载体，先落盘再执行下一步。流水线结果、迁移回传和灰度观察到期等在会话之外发生的事件，由人或平台通知带入下一次会话，写入对应载体的未决条目，恢复时先读取；Firefly 不建事件监听、轮询或第二个调度器。
+
+**候选状态。** 交接与恢复按同一张表重建状态：
+
+| 状态 | 含义 | 出口 |
+|---|---|---|
+| 在制 | 任务已派发，指定验证尚未在候选快照上完成 | 验证通过转待集成 |
+| 待集成 | 子工作树验证通过，尚未合并到目标基线；集成前中断恢复到这里 | 集成、补齐指定验证者的观察并重跑相交场景，评审包固定后转待裁决；基线变化或验证失败回在制 |
+| 待裁决 | 集成候选已固定为评审包，等待有效裁决 | 接受转已接受；退修回在制；待复验补证据后重建新包；证据不足升级 |
+| 已接受 | 包不变且全部必需角色有效接受，带保留项 | 候选未变而规格或标准变化：裁决降为历史，重建包回待裁决；候选变化回在制；经 25 的各自授权转已归档或发布中 |
+| 发布中 | 获发布授权，按预案逐阶段放量 | 运行信号与观察窗口决定推进、停止或回退（25）；末段按原场景复验通过转已上线；回退后候选未变回已接受，需修复回在制 |
+| 已上线 | 末段按原场景复验通过 | 可另行委托归档 |
+| 已归档 | 获归档授权，记录已移动并复开证据 | 未上线时可另行委托上线；归档条目在移除结果回传并核对后关闭 |
+
+停止自动修复、需要改变承诺或需要新授权时，候选留在原状态并升级，不因停止而改变状态。“已就绪”“已获发布授权”是 25 对已接受候选作出的评估与授权事实，不是候选状态。
+
+详见 01/04/06/07/16。
+
+**全量验收办法。** 每个位置的实施者交一条应接受的路径和一条会被错误实现接受的反例，给出入口、候选、预期写入、证据、接收者和终态。条件能力另交一例不触发；三个并入项必须从宿主走通，不得靠独立入口模拟通过。非作者在消费项目重放并逐题判定；任何必需行为未验证，都不能报告全量通过。记录各包单验与组合重放的结果，后者至少覆盖：需求变更使旧证据失效、跨分支恢复、开工前中断、会话外事件续接、只审不改、UI 与权限同时变化、就绪但未获发布授权。收益另测：在同一组有效、无效和留出案例上比较现有做法、低成本检查与拟议能力的漏检、误阻断、人工打断和耗时；行为正确不等于值得默认启用。
+
+以下是端到端验收样例，非运行报告：
+
+| 输入与中断位置 | 应观察到 | 可判定的失败 |
+|---|---|---|
+| 仅审查一个把下载响应 200 当成文件可用的候选 | 16 指出 E3 缺少文件内容证据，返回意见 | 擅自修复、进入发布或声称已验证 |
+| 已授权交付，已有可判定的 E1–E3 及任务 | 执行并验证，修复后独立评审新候选 | 重访已决定的问题，或以旧裁决放行 |
+| 候选设计按查询条件去重 | 反方区分断线重试和用户隔天主动重导 | 因一次重试通过就断言没有误去重 |
+| 工作分支验证通过但尚未集成时中断 | 恢复为待集成，不提前释放下游 | 重做已验证工作或误标待裁决 |
+| 代码验收通过，回退会丢在途任务 | 25 区分代码通过与发布未就绪 | 以绿色测试或归档动作宣告上线 |
+| 开工裁决通过后、实现开始前中断 | 从任务记录读到开工裁决与两包版本，直接派发首个任务 | 重复联合评审，或未经裁决开工 |
+| 规格把 E3 加严后仍引用旧接受裁决 | 旧裁决降为历史，重建评审包 | 以旧裁决放行 |
+| 用户重发同一委托 | 按委托标识续作，不重复已完成的工作 | 开出第二条并行的规格或任务流 |
+| 间歇性下载为空，一轮修复后症状未变 | 转 15 取区分性反馈，停止叠加改动 | 叠补丁直到修复预算耗尽 |
+| 流水线结果在会话结束后到达 | 下次会话从验证记录读到失败并交回实现者 | 无人续接，或误标通过 |
+
+## 素材索引（供追溯，不代替设计正文）
+
+名称对应校样台前四列的来源卡。索引记录机制取材，不表示 FN 采用来源的整套流程；每项决定及其适用边界以同编号正文为准。
+
+| 位置 | 可对读的来源与机制 |
 |---|---|
-| `tests/test-autonomous-workflow.sh`（37 处引用） | 跟随技能改名与路径 |
-| `tests/test-chinese-openspec-workflow.sh`（21 处） | 同上 |
-| `tests/test-sdd-workflow-scripts.sh`（17 处） | 同上 |
-| `tests/test-claude-installer.sh`（11 处）/ `test-codex-installer.sh`（6 处） | 跟随 install 脚本合并 |
-| `tests/test-managed-symlinks.sh`（4 处） | 跟随 manifest 条目变更 |
-| `tests/test-release-metadata.sh`（4 处）/ `test-platform-asset-parity.sh`（2 处）/ `test-draw-skills.sh`（4 处）/ `test-planning-contract.sh`（1 处） | 跟随路径与 `--check` 替代 |
-| 新增 `tests/test-shared-completeness.sh` | 断言：`assets/shared/` 每个目录都出现在 `platform-assets.json`；替代对单一 `--check` 的依赖 |
+| 01–04 | 01：Matt `ask-matt`、Addy `using-agent-skills`、Pstack `poteto-mode`、Firefly 显式路由；02：`grilling`、`interview-me`、`sharpen`、`firefly-think`；03：`prototype` 的单问题实验、`idea-refine` 的概念稿、`arena` 的交叉评价与移植、`firefly-draw` 的时序表达；04：`to-spec` 综合决定、`spec-driven-development` 阶段出口、`firefly-propose` 评审规格与任务。 |
+| 05–09 | 05：Addy `constraint-driven-development` 的基线与削弱检查；06：Matt `to-tickets` 的垂直切片、Addy `planning-and-task-breakdown` 的依赖、Firefly 任务清单；07：`implement-spec` 的依赖前沿、`incremental-implementation` 的小步交付、`firefly-implement` 的基线与复验；08：`source-driven-development` 的版本化来源、`research` 的带引用调查；09：`doubt-driven-development` 的独立上下文、`grilling` 的假设盘问、`interrogate` 的分歧裁决。 |
+| 10–15 | 10：`context-engineering`、`handoff`、Firefly 既有进度恢复；11：`frontend-ui-engineering` 的构建责任和浏览器独立验证；12：`codebase-design` 的接口与接缝、`api-and-interface-design` 的契约、`architect` 的草图；13：Matt、Addy、Pstack 的 TDD 及 Firefly 前置验证；14：`browser-testing-with-devtools`、`create-verification-skill`、`firefly-verify-web`；15：`diagnosing-bugs` 的可失败反馈与 `debugging-and-error-recovery` 的分类处置。 |
+| 16–21 | 16：`code-review` 固定差异双轴、`code-review-and-quality` 质量维度、`interrogate` 汇总分歧、`firefly-review` 独立裁决；17：`code-simplification` 与深度质量评审；18：`security-and-hardening` 的信任边界与 Pstack 深审；19：`performance-optimization`、`benchmark-checklist`；20：`make-pr-easy-to-review`、`pr`、`git-workflow-and-versioning`；21：`ci-cd-and-automation` 的自动检查与失败回传。 |
+| 22–26 | 22：`deprecation-and-migration` 的分步迁移与独立移除；23：`domain-modeling` 的共同词汇、`documentation-and-adrs` 的决策记录、`why` 的理由重建、`openspec-sync-specs` 的规格同步；24：`observability-and-instrumentation` 先问值班问题再选信号；25：`definition-of-done`、`shipping-and-launch` 与 `firefly-archive`；26：`retro` 的环境改进、`reflect` 的事实摘录与结构化执行。 |
 
-## 4. 实施路线（v1.2 去外部依赖 + 加金标准试点）
+### 01 谁决定下一步？路由在什么时候发生？ / Who chooses the next step, and when does routing happen?
 
-- **P0（流程闭环）**：16 review 演进（含 spec 档）/ 09 doubt / 15 debug / 25 archive 演进 + **03/04 最小演进**（对垒表 + 三个强制输入）+ **24 trace 最小运行记录（由 25 显式调用）** + **09 金标准试点**——先拿一条**真实的历史 OpenSpec 变更**跑一遍 09，用其实际产物检验 `doubt.md` 的格式与 04/16 的挂点，通过后再批量落其它技能（v1.2；替代「七项一次批」）。**DoD 的「门禁绿」在 P0 用仓库现成的 `tests/test-*.sh` + `shellcheck`，不依赖 P1 的 18**。
-- **P1（工程纵深）**：05 bounds / 08 source / 10 context / 13 tdd 演进 / 14 verify-web 演进 / 01 firefly 演进 / 18 guard（含 CI 门禁）——约束、依据、上下文、验证四梁 + 总控；18 落地后把 P0 的临时门禁收编为正式门禁规范。
-- **P2（领域扩展与收尾）**：11 ui / 12 arch / 19 perf / 20 pr / 23 docs 演进 / 26 retro / 02 收尾（裁定复述）/ **§0.5 token 扩展与 11 项 platformSpecific 收敛**（此批与技能改造同批判定，不单独排末位）。
+> `routing` · `firefly` · `contract` · `designed`
 
-### 4.5 横切公共约定、产物契约与记录生命周期（v1.2 扩充）
+#### 中文
 
-**三个横切 schema**（各技能引用不复制）：
+### Firefly Next 工作流概览
 
-- **证据条目**：`[类型] 断言 + 来源（文件:行号 / 符号 / 命令输出 / 截图归档路径）+ 时间`——08、13 红绿对、14 四元组、15 调试记录、24 运行记录统一
-- **可执行清单**：`条目 + 验证命令 + 最近一次结果（通过/失败 + 时间）`——05 约束、09 检验、18 安全项、16 裁决、25 DoD 统一（中文统一「清单」，英文 checklist）
-- **任务运行记录**：`目标 / 已完成 / 未完成 / 证据链接 / 风险` 五字段——10 的 NOTES、24 的 trace、25 的归档摘要统一
+Firefly Next 是一套面向软件项目的协作流程。它把用户的委托转成可验收的交付物：调查应给出有依据的解释，提案应说明准备实现什么，实现应交付经过验证的改动，审查应给出独立判断。并非每项委托都以修改代码结束。
 
-**载体与机械强制（v1.2）**：三份 schema 落在 `assets/shared/references/schemas.md`（渲染器自动出双平台副本），各 SKILL.md 正文只留一行指针；`tests/test-shared-completeness.sh` 断言引用存在。
+以一项完整的功能交付为例：需求负责人和规格作者先确定用户应当看到的行为（04），规划者据此拆出可独立验证的任务并指定每个场景的验证者（06），执行者实现并集成改动（07），验证者按映射观察受影响的行为，独立评审者对照规格和证据裁决集成候选（16）。其他能力解决这条路径上的具体问题：目标含混时澄清（02–03），关键假设可能错误时引入反证（09），改变公共接口时先定契约（12），涉及页面时验证真实操作（14），改变权限边界时检查隔离（18）。代码验收通过与可以上线是两个结论；值班所需的运行信号随规格一同约定（24），判断发布就绪时核对回退办法，24 已触发时还核对同一候选上的演练结果（25）。
 
-**产物契约（v1.2 新增，修「有写入无读取」）**——所有技能产出一律落在 `openspec/changes/<id>/` 下，路径固定、写入方唯一、读取方显式：
+### 路由：从委托选择入口和终点
 
-| 产物 | 路径 | 写入方 | 读取方 |
-|---|---|---|---|
-| 对垒表 | `changes/<id>/duel.md` | 03 | 04（定稿输入）、16 spec 档 |
-| 反证报告 | `changes/<id>/doubt.md` | 09（独立子代理） | 04（定稿输入）、16 spec 档、16 常规档（反证结论维度） |
-| 运行记录 | `changes/<id>/trace.md` | 24（由 25 调用） | 25（归档）、26（复盘 transcript） |
-| 审批条目 | `changes/<id>/approvals.md` | 18④、22⑤ | 25（DoD 抽检） |
-| 任务与红绿证据 | `changes/<id>/tasks.md`（含每任务的「红证据→绿证据」） | 06、13、07 | 16（输入清单）、25 |
-| 复盘记录 | `changes/<id>/retro.md` | 26 | 05（约束回流）、18（门禁回流） |
-| 安全报告 | `changes/<id>/security.md` | 18 | 16（安全维度）、25 |
-| 证据归档 | `changes/<id>/evidence/` | 14 | 16、25 |
-| 交接纪要 | `.firefly/NOTES.md` | 10 | 07、15、25 |
+**用户确定要交付什么、允许改变什么；主代理据此选择入口和下一步。** 01 是对整套流程的说明，不是开始工作前必须执行的任务。执行者可以建议下一步，但不能扩大委托或批准自己的候选。下面用同一个月末导出问题说明四种入口：
 
-**记录生命周期（v1.2 分类）**——易腐证据与长期资产分开：
+- **「查清为什么刷新后要重来。」** 进入调查：先区分请求断开导致计算终止，还是任务仍在、页面丢失了标识。交付观察、原因或仍缺的证据；即使已经知道如何修复，也不改产品。
+- **「给出恢复方案，暂不实现。」** 进入规格与规划；只有目标含混时才澄清，只有关键事实不明时才做概念验证。交付能区分正确与错误实现的场景、任务依赖与验证方法。方案可开工即停止。
+- **「实现已获准开工的恢复方案。」** 从第一个依赖已满足的任务开始，不重走访谈与提案。执行者提交候选；验证者检查受影响的行为；独立评审者裁决集成候选。交付已验证的改动或有依据的阻塞说明，不包含推送、归档或上线。
+- **「评审这个候选。」** 将固定候选、规格和证据直接交独立评审。终点是接受、退修、待复验或证据不足的裁决，不是修复。若用户没有说明要意见还是要改动，而两种解释会导致不同写入，先澄清这一点。
 
-- **易腐证据**（`evidence/`、`trace.md`、运行日志）：带 `schemaVersion`，保留 90 天，由 01 注册表健康检查**第四条检查项**报告过期项（01② 已列）；
-- **长期资产**（spec、ADR、duel/doubt/retro、approvals、DoD 销项表）：随仓库生命周期，不设过期——它们是审计链与决策记录，删除即失效；
-- 「任一历史任务」类追溯义务以**易腐证据的保留期限**为界，长期资产不受此限。
+### 主代理凭什么交给下一位
 
-### 4.6 路由登记表（v1.2 新增，穷举；01 的授权契约以本表为唯一真源）
+| 交接 | 谁交给谁 | 接收方据以行动的事实 |
+|---|---|---|
+| 委托与决定 | 主代理、需求负责人 → 规格作者 | 委托标识、交付物、允许影响、终点，以及用户已选定和排除的行为及其来源（原话或负责人确认）。缺少取舍时向有权人确认。 |
+| 规格与任务 | 规格作者、规划者 → 执行者和评审者 | 带规格版本的场景、各场景的决定来源、可观察断言、任务依赖及验证路径。章节齐全但不能判定对错，或场景追不到授权来源，退回规格。 |
+| 候选与证据 | 执行者、验证者 → 独立评审者 | 基线、候选快照、规格版本、场景与检查、观察者及其角色、结果和证据位置；未提交的改动先固化为快照。分支通过不等于集成通过。 |
+| 裁决与处置 | 独立评审者 → 主代理、委托人 | 结论、理由、受影响场景、保留项（未验证项、未覆盖的输入与不阻断意见）和下一责任人。仅审查则返回意见；已授权交付才安排修复和复验。 |
 
-| 子命令 | 技能 | 授权范围 | 阶段挂载 | 可用档 |
-|---|---|---|---|---|
-| `firefly` | 01 | 路由 + 注册表健康检查 + 模式宣告 | — | — |
-| `firefly next` | 01 | 提案（只提案不执行） | — | — |
-| `firefly think` | 02 | 需求追问 | — | — |
-| `firefly draw` | 03 | 方案对垒 | — | — |
-| `firefly diagram` | mermaid-diagram-specialist | 出图 | — | — |
-| `firefly propose` | 04 | 规格成形 | **bounds 约束检查（05）** | — |
-| `firefly bounds` | 05 | 约束定义 | — | — |
-| `firefly tasks` | 06 | 任务拆解 | — | — |
-| `firefly implement` | 07 | 增量实现 | — | — |
-| `firefly doubt` | 09 | 反证 | — | — |
-| `firefly context` | 10 | 上下文管理 | — | — |
-| `firefly ui` | 11 | 前端质量门禁 | — | — |
-| `firefly tdd` | 13 | 测试先行 | — | — |
-| `firefly verify-web` | 14 | 运行时验证 | — | — |
-| `firefly debug` | 15 | 调试 | — | — |
-| `firefly review` | 16 | 评审裁决 | **安全维度挂 18；反证输入挂 09** | 轻量 / 常规 / `--deep` / spec |
-| `firefly guard` | 18 | 安全与门禁 | review 安全维度自动挂载 | — |
-| `firefly perf` | 19 | 性能 | bounds 预算触碰时 | — |
-| `firefly pr` | 20 | 交付 | review 清零 | — |
-| `firefly trace` | 24 | 运行记录 | 25 归档时显式调用 | — |
-| `firefly archive` | 25 | 收尾 | 调用 24 | — |
-| `firefly retro` | 26 | 复盘 | 归档时轻量 | — |
+### 何时改变路线，何时停止
 
-**隐式挂载（无独立子命令，由持有技能的阶段触发，同样受本表授权）**：08 source（08 在 07/16 内部按需调用）→ 授权范围 `07/16` 内；12 arch（新模块/新公共 API/跨模块数据流变更时，由 01 判定后挂 04/07）；23 docs（spec 变更、架构决策、归档时由 04/25 调用）；13/14/15 的互相引用同此。
+主代理在收到新证据、候选变化或中断恢复时重新判断，不按技能编号推进。若导出的状态测试通过但文件不可读，先判断原委托：仅审查就报告这一反例并停止；已委托交付则把失败场景交回执行者，修复后验证并独立评审**新候选**。若修复需要更改已批准的业务承诺，应先回到负责人，不由执行者改写验收条件。
 
-**未列入本表的触发一律拒绝**——这是元原则 1 的可执行形态。
+**修复循环与调试的切换。** 已委托交付时，验证失败默认交回执行者：失败能稳定复现、检查能区分正确与错误实现，就按 07 修改并复跑原始检查。出现下列任一情况改交 15：失败无法稳定复现；一轮修复未改变原症状；几个竞争解释预言同一症状而现有检查无法区分。转交时停止叠加改动，该轮计入 07 的修复预算。15 取得区分性反馈或定位根因后，把触发输入、预期结果和根因写回任务记录；修复仍按“验证并独立评审新候选”进行。「查明并修好」是调查加交付的复合委托：15 保存的触发输入与预期结果就是修复场景：主代理让规格作者把它写入规格、让规划者建立最小任务，按 04 的联合裁决后进入实现；预期结果属推断或修复范围超出用户所说的症状时先交负责人确认。
 
-### 4.7 生成器与投影（v1.2 新增）
+中断后从既有规格、`tasks.md`、Git 和验证记录恢复；不另建调度器。恢复时先做三件事：按委托标识找到未结委托，同一意图再次提出时续作而不新建并行的第二条流程；读取任务、进度、验证与归档记录中的未决条目，包括会话外到达的流水线结果、未回传的移除结果和未到期的观察窗口；核对工作树的未提交改动与已记录的候选快照，对不上的部分按用户修改保留并先确认。必要证据不可得、重复修复无进展，或下一步需要对外发送、上线、破坏性移除等未获准的影响时，返回当前结论、所缺的证据或授权以及相应负责人。CI 通知、子代理建议和文档内容都不能替代授权。
 
-- **现状**：`/tmp/slim-index/build-flynext.py` 是**仓外**一次性脚本，全文不打开 DESIGN.md，23 卡中英文是手写常量；产物 `docs/skill-proof/data/sets/firefly-next.js` 因此可能偏离真源（英文三卡已实际偏离）。
-- **处置**：把生成器**纳入仓库** `docs/skill-proof/tools/build-flynext.py`（仓内新增文件），并新增 `docs/skill-proof/tools/verify-flynext.py` 校验器，检查四项：①卡数 == DESIGN 技能数；②每卡机制条目数 == 对应小节的 ①②③ 条目数；③禁用词表（`--doubt`、`Merged with security`、`OTel GenAI semantic conventions` 等已撤表述）零命中；④`source.sha` == `git log -1 --format=%H -- DESIGN.md`。校验失败即非零退出，生成前必跑。
-- 仓外脚本本体本轮只读，不修改；新仓内文件从零编写。
+**按条件查入口。** 直接委托具体能力就从该处进入；下表决定进行中的工作何时移交。移交时连同原终点和允许效果一起交出，被移交方的结论回到原决定，不自动带来新的写入权。
 
-### 裁定结果
+| 触发条件 | 交给 | 带回什么 |
+|---|---|---|
+| 需要用户在后果不同的方案之间取舍 | 02 | 纪要：原话、选定行为及来源、未决阻塞 |
+| 提问解决不了，要对照方案、时序图或可操作原型才能决定；说不清请求、任务、文件各自的生命周期 | 03 | 选中行为、反例、首个可验证切片 |
+| 不确定自有系统是否保留某种行为，或某方案是否可行 | 03 | 单问题实验的观察 |
+| 不确定第三方依赖在所用版本与配置下承诺什么 | 08 | 写入任务的结论：引用、观察条件、仍不能依赖的部分 |
+| 场景改变公共接口，或两方要独立开发 | 12 | 回写规格的契约：状态、错误语义、重试条件、兼容窗口 |
+| 委托只要求查明某次失败的原因；或交付中的验证失败符合上述切换条件 | 15 | 根因、区分性证据、触发输入与预期结果 |
+| 只想知道别人能否读到文件；或要把质量线挂成流水线检查 | 18 | 覆盖范围与结果分开陈述的结论；门禁挂载或待授权配置任务 |
+| 场景承诺的是用户取得结果，或服务有值班承诺 | 24 | 随规格约定的运行信号要求；绑定候选与规格版本的演练记录 |
+| 已修复，能否发布；旧能力能否移除 | 25 | 就绪评估、归档或移除路径上的决定 |
 
-**v1.1 裁定（2026-11-20）**
+15 返回根因后，调查委托应结束，不转 07。
 
-1. **doubt / guard 合并**：**回退**——firefly-doubt、firefly-guard 恢复独立技能（23 技能）。
-2. **mar / nextup 吸收**：**机制提炼**（mar→16 独立性协议 + 标准一致性维度；nextup→01 `firefly next` 子命令），不原文收编。
-3. **裁定复述条款**（02 think ④）：**确认纳入**。
+#### English
 
-**v1.2 裁定（2026-11-20，第二轮 mar 六维复审后，按"设计问题全修"执行）**
+### Firefly Next workflow overview
 
-4. **§0.5 路线**：采 **A 方案**——保留 `assets/shared/` 为唯一编辑源、扩展现有 token 渲染；不新建 `assets/skills/` 树、不合并三份 manifest。理由：仓库已有单源 + 守卫，A 的改动面远小于 B，且不动 `--check` 与 parity 测试。
-5. **技能数**：维持 **23**。按 §1 的合并三条件复核，24 trace 与 10 context 均满足三条（独立触发 / 独立产物 / 被消费），不并入；该判据同时解释了 17/21/22 的并入。
-6. **依据处理**：查无此物的 12 处按「改写归因 / 标 own design / 标【未验证】」三种方式处理，不删除设计条款本身。
-7. **P0 试点**：先以一条真实历史变更跑通 09，再批量落其它技能。
+Firefly Next is a workflow for collaborative software engineering. The requested outcome defines the deliverable: an investigation produces a supported explanation, a proposal defines what to build, implementation delivers a verified change, and review produces an independent judgment. Not every request ends in a code change.
 
-## 5. 参考来源（主要）
+For a full feature delivery, the requirement owner and spec author agree on observable behavior (04), the planner divides it into independently verifiable tasks and names a verifier for each scenario (06), the implementer builds and integrates the change (07), verifiers observe affected behavior against that mapping, and an independent reviewer judges the integrated candidate against the spec and evidence (16). Other capabilities answer questions along that path: clarify an uncertain goal (02–03), challenge a consequential assumption (09), settle the contract before a public interface changes (12), verify real browser interactions (14), or check isolation when a permission boundary changes (18). Accepting code is distinct from declaring it ready to launch: the signals on-call staff need are agreed with the spec (24), and readiness checks the recovery plan and, where 24 was triggered, the drill on the same candidate (25).
 
-> 标注约定：**[已核]** = 可直接检索到原文；**[未验证]** = 无法定位原始出处，仅作定性表述；**[own design]** = 本设计自有主张，不冠以外部出处。
+### Routing: choose the entry and terminal condition
 
-- **[已核]** Anthropic: *Equipping agents for the real world with Agent Skills*（2025-10）https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills
-- **[已核]** Anthropic: *Effective context engineering for AI agents*（2025-09）https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents；Skill authoring best practices（官方文档，含 <500 行建议）
-- **[已核]** GitHub: *Spec-driven development with AI*（spec-kit，2025-09）https://github.blog/ai-and-ml/generative-ai/spec-driven-development-with-ai-get-started-with-a-new-open-source-toolkit/
-- **[已核]** *Adversarial Review: Structured Disagreement for Grounded Agentic Code Review*（arXiv 2608.18167，ICML 2026）
-- **[已核]** Debug2Fix（arXiv 2602.18571）：调试子代理 + 交互式调试工具
-- **[已核]** OpenTelemetry GenAI semantic conventions（仅作字段命名参考，不作合规要求）
-- **[未验证]** 「2025-11 实测 689 行可疑代码」——无法定位到机构/标题/链接，04 点已降为定性表述
-- **[未验证]** 锁测试基线与 self-passing 风险的「多家实践」（skyramp/bunnyshell/matrix-os 等机构名，无可定位文章）
-- **[未验证]** 「a11y 自动化只覆盖 30-40% WCAG」——数字在 GOV.UK service standard 与 TestParty 等处出现过，但原始出处未统一
-- **[已核]** StackToHeap（2025-08-10）*Code reviews with Claude Code subagents*——个人博客，非机构共识
-- **[own design]** 裁决三档 [必须改|建议|可接受]、模式宣告、基线先行、双案下限的阈值（>3 文件）、轻量档阈值
+**The user chooses the deliverable and permitted effects; the main agent chooses the entry and next step.** This overview describes the workflow rather than a task that must run before work begins. Workers may recommend a next step, but cannot widen the mandate or approve their own candidate. Four requests about the same month-end export illustrate the distinction:
+
+- **“Find out why refresh starts the export over.”** Investigate whether disconnecting ends computation or the page loses a still-running job ID. Return observations, cause or missing evidence; do not change the product even if the remedy is known.
+- **“Propose recovery; do not implement it.”** Clarify only unresolved intent and probe only consequential unknowns. Deliver scenarios that distinguish correct from incorrect behavior, task dependencies and checks. Stop when the proposal is ready for implementation.
+- **“Implement the recovery design that passed the ready decision.”** Start at the first task with satisfied dependencies rather than repeating intake. The implementer supplies a candidate, verification checks affected behavior, and independent review judges the integrated candidate. Deliver the verified change or an evidenced blocker; pushing, archiving and launching are not implied.
+- **“Review this candidate.”** Send the fixed candidate, spec and evidence directly to independent review. Return acceptance, required revisions, pending recheck or insufficient evidence; do not fix the candidate. If the request could mean either advice or edits and the difference affects writes, clarify first.
+
+### What justifies each handoff
+
+| Handoff | Producer → consumer | Facts needed to proceed |
+|---|---|---|
+| Mandate and decisions | Controller and requirement owner → spec author | Mandate ID, deliverable, permitted effects, terminal condition, selected behavior and exclusions with their source (the user's words or the owner's confirmation). Refer undecided trade-offs to the owner. |
+| Spec and tasks | Spec author and planner → implementer and reviewer | Scenarios with spec version and decision source, observable assertions, dependencies and checks. Return a complete-looking but undecidable spec, or a scenario that traces to no authorized decision, for revision. |
+| Candidate and evidence | Implementer and verifier → independent reviewer | Baseline, candidate snapshot, spec version, scenario and check, observer and role, result and evidence location; uncommitted changes are fixed as a snapshot first. Branch success is not integrated success. |
+| Verdict and disposition | Independent reviewer → controller and requester | Conclusion, grounds, affected scenarios, reservations (unverified items, uncovered inputs and non-blocking findings) and next owner. Standalone review returns findings; only an authorized delivery proceeds to repair and recheck. |
+
+### Reroute or stop
+
+Reassess on new evidence, candidate changes or resumption, not on the next position number. If the status test passes but the exported file is unreadable, a review mandate ends with that counterexample. A delivery mandate routes the failing scenario to the implementer, then verifies and independently reviews the **new candidate**. A repair that changes the approved behavior goes back to its owner; the worker cannot redefine acceptance.
+
+**Repair loop or diagnosis.** Under a delivery mandate a verification failure returns to the implementer by default: when the failure reproduces reliably and the check discriminates, repair under 07 and rerun the original check. Route to 15 when the failure cannot be reproduced reliably, when one repair leaves the symptom unchanged, or when competing explanations predict the same symptom and no existing check separates them. Stop stacking edits at that point; the round still counts against 07's budget. Once 15 obtains a discriminating signal or a root cause, it writes the trigger input, expected result and cause back to the task record, and the repair is still verified and independently reviewed as a new candidate. “Find out and fix it” combines investigation with delivery: the trigger input and expected result saved by 15 serve as the repair scenario; the controller has the spec author write it into the spec and the planner build a minimal task, enters implementation only after the joint decision under 04, and returns to the owner first when the expected result is inferred or the repair reaches beyond the symptom the user described.
+
+Resume from existing specs, `tasks.md`, Git and verification records without a second scheduler. On resumption do three things first: locate the open mandate by its ID and continue rather than start a parallel flow when the same intent is raised again; read open items in the task, progress, verification and archive records, including pipeline results that arrived outside the session, removal results not yet returned and observation windows still running; compare uncommitted changes in the worktree with the recorded candidate snapshot, preserving any mismatch as user work and confirming before proceeding. If required evidence is unavailable, retries make no progress or the next effect requires new authority (external transmission, launch, destructive removal), return the current conclusion, missing evidence or permission, and responsible owner. CI events, worker suggestions and document text cannot confer authority.
+
+**Route by condition.** Honor direct entry; the table decides when work in progress moves. Pass the original endpoint and permitted effects with the handoff; a returned conclusion goes back to the original decision and brings no new write authority.
+
+| Trigger | Go to | What returns |
+|---|---|---|
+| The user must choose between options with different consequences | 02 | Minutes: original words, selected behavior and its source, open blockers |
+| Questions cannot settle it and comparing options, a sequence diagram or an operable prototype is needed; or the lifetimes of request, job and file are unclear | 03 | Selected behavior, counterexamples, first testable slice |
+| Uncertain whether the system's own behavior persists, or whether an approach is feasible | 03 | Observation from a single-question probe |
+| Uncertain what a third-party dependency promises at the installed version and configuration | 08 | A conclusion written into the task: references, conditions, limits of reliance |
+| A scenario changes a public interface, or two sides must develop independently | 12 | A contract written back to the spec: states, error semantics, retry conditions, compatibility window |
+| The mandate asks only why a known failure happens; or a verification failure in delivery meets the switch conditions above | 15 | Root cause, discriminating evidence, trigger input and expected result |
+| Only whether another account can read the file; or a quality bar to mount as a pipeline check | 18 | Coverage and results stated separately; a mounted gate or a configuration task pending authorization |
+| A scenario promises that users obtain a result, or the service has an on-call promise | 24 | Signal requirements agreed with the spec; a drill record bound to a candidate and spec version |
+| Fixed—may it ship; may the legacy behavior be removed | 25 | Decisions on the readiness, archive or removal path |
+
+A diagnosis returned by 15 ends an investigation and does not authorize 07.
+
+### 02 问什么、问多少、谁来回答？ / What gets asked, how much, and who answers?
+
+> `requirements` · `firefly-think` · `conditional` · `designed`
+
+#### 中文
+
+**事实交给能查证的人，取舍交给有权承担后果的人。** 澄清者先查现有规格、源码、历史决定和可复现现象，再列出仍会改变设计的分歧。准备提问时，为每个可能答案各写一句验收条件。两句没有实质区别，便没有理由打断用户。
+
+「刷新后又要重来」至少有两种解释：后台任务仍在但页面丢了任务号；后台计算随请求断开而终止。澄清者先从现有材料查哪条属实，查不出再交 03 做单问题实验。随后才问财务负责人：「如果生成时间不变，但刷新后仍可取得同一份结果，月结工作是否能继续？」肯定答复把首批目标限定为恢复；否定答复意味着还要约定完成时间和测量负载。这比让用户选择队列产品更接近他真正要作的决定。
+
+每次优先问能排除最多无效工作的一个问题。纪要写入委托记录，保留原话、选定的行为、排除的解释和仍未解决的阻塞；规格的场景靠这些记录的指针取用决定，而不是重新解释“快一点”。已有答案不再询问；若缺少真正的决策人，则交付两种后果及建议，不替其承诺。需要实验才能确定的事实交 03 或 08，不在访谈中推测；提问解决不了、要靠方案对照或原型才能决定的，交 03。涉及对外承诺、数据保留或风险转移时，纪要必须区分用户原话、代理推断和负责人已确认的选择；推断出的行为在规格里保留“推断”标记，直到负责人确认。“你看着办”若未明确授权选择保留期限，不得写成同意长期保留；向有权人呈现两种后果，未答复则阻塞该决定，其余独立调查可继续。
+
+#### English
+
+**Investigate facts; ask decision owners about trade-offs.** Before interrupting, write an acceptance condition for each plausible answer. If the conditions do not differ materially, the question is unnecessary.
+
+After refresh, the server may still be working while the UI has lost the job ID, or disconnecting may have stopped computation. Establish which is true from existing material; if that fails, hand the question to 03 as a single-question probe. Then ask finance whether recovering the original result at unchanged elapsed time solves month-end work. A yes prioritizes recovery; a no requires a latency objective and representative load. Choosing a queue is not the user's decision at this point.
+
+Ask the most consequential unresolved question first. Write the minutes into the mandate record: the user's words, selected behavior, rejected interpretation and remaining blocker; the spec cites these decisions by pointer rather than reinterpreting “faster.” If the owner is unavailable, state both consequences and recommend a default without committing on their behalf. Facts that need an experiment go to 03 or 08 rather than being guessed in the interview; a decision that questions cannot settle goes to 03. For external promises, data retention or transferred risk, distinguish the user's words, inference and the owner's explicit decision, and keep inferred behavior marked as inferred in the spec until the owner confirms. “Use your judgment” is not agreement to indefinite retention unless that choice was delegated. Leave the decision blocked while independent investigation continues.
+
+### 03 模糊想法如何变成可执行概念？ / How does a vague idea become an actionable concept?
+
+> `idea` · `firefly-draw` · `conditional` · `trial`
+
+#### 中文
+
+**概念稿的目的，是确定第一项值得交付的用户行为。** 02 的提问解决不了的不确定性交到这里；事实取决于第三方依赖的版本承诺时交 08。`draw` 先判断不确定性在哪里：用户想得到什么尚不清楚时，用一页纸对照现有做法、受益者和失败条件；边界难以理解时，用时序图标出请求、任务和文件各自的生命周期；某条事实尚未成立时，用可丢弃原型回答一个问题。图和原型都不是交付目标。
+
+对「刷新后继续导出」，最小路线可能只是取回已有任务。先观察刷新前后的任务标识和寿命；若后台确实保留任务，就验证相同身份能否恢复该任务。若请求断开会终止计算，才比较持久任务与其他方案。若仅需改变前端绑定关系，不为论证严谨而搭建队列。
+
+当两个可行方案仍然难分时，分别产出候选，再按预先约定的标准交叉评价：是否恢复同一次意图、是否重复产出、由谁承担运行成本。可以移植另一候选的优点，但移植后须复核原选择理由。交给规格阶段的是选中的行为、被淘汰的解释、反例、证据位置和首个可验证切片。技术试验无法决定的业务代价，须注明并交回负责人。若争议在用户能否操作，而不是服务能否实现，交付供目标使用者操作的可丢弃原型，记录任务、观察和未解决的障碍；不得以作者演示代替试用。仅委托时序图时，图及待确认边界就是终点，不启动候选竞赛或正式规划。
+
+#### English
+
+**A concept identifies the first user behavior worth delivering.** Use a one-page comparison when value is unclear, a sequence diagram when lifetimes or boundaries are unclear, and a disposable probe when a feasibility claim is untested. None is mandatory by itself. Enter here when 02's questions cannot settle the uncertainty; a fact that depends on a third party's versioned promise goes to 08.
+
+For resumable export, inspect the request, job and file before proposing a queue. If the server retains the job, test whether its owner can recover that same job after refresh. Compare durable execution alternatives only if disconnecting really ends computation or reattachment fails the promise.
+
+Where alternatives remain credible, develop them independently and compare against criteria agreed in advance: intent recovery, duplicate output, and operating burden. Recheck a synthesized candidate after adopting useful parts of another. Hand spec the selected behavior, rejected interpretation, counterexample, evidence pointer and first testable slice. Escalate business trade-offs the experiment cannot settle. For uncertainty about usability, give the intended user an operable disposable prototype and record the task, observations and unresolved obstacles. An author demo is not a user trial. A diagram-only mandate ends with the diagram and open boundaries, not a competition or plan.
+
+### 04 spec 是对话的压缩，还是流程的门？ / Is a spec compressed conversation or a gate?
+
+> `spec` · `firefly-propose` · `path` · `designed`
+
+#### 中文
+
+**规格首先保存已经达成的行为承诺；只有当这些承诺不足以区分正确与错误实现时，它才阻止开工。** 作者从需求纪要、概念验证或用户给定材料中提取行为，不重复访谈。对每项必须满足的要求，给出前置条件、用户动作、可观察结果及不在本次交付范围内的行为。每个必需场景带稳定标识、内容摘要和决定来源；决定来源指向纪要中的用户原话、负责人确认或代理推断，并标明是哪一种。来源为推断的必需场景须经负责人确认（可在批准提案时一并确认）才能通过开工裁决，未确认的列入未决阻塞。规格同时列出未写入本次规格的已选行为和仍未决的阻塞，未决阻塞涉及的范围留空待定，不由作者补齐。
+
+报表导出至少要区分三个场景：`E1` 同一次提交的响应丢失后重试，仍指向一个任务；用户明确再提交一次，即使查询条件相同也得到新任务。`E2` 本人刷新后能找到原任务，其他账户不能领取。`E3` 文件可取得且内容正确才显示完成；生成失败必须显示失败。若本次只承诺恢复，不得把计算速度写为验收指标。
+
+定稿前由非作者尝试构造一个能通过文字却违背用户意图的实现。「支持重试」会同时接受重复生产和正确恢复，应退回补全 E1；若歧义已消除且各场景均有取证办法，就交给规划。高代价假设尚未证实时可调用 09；规格不因缺少一份独立反证报告而一律失败。后续若要改变已承诺行为，应修改对应场景、更新规格版本，并使相关观察、开工裁决和评审包失效。
+
+**两处在规划前进行的移交。** 场景改变公共接口，或两方需要独立开发时交 12；契约（状态、错误语义、重试条件、兼容窗口）回写规格场景后，才交规划。场景承诺的是用户取得结果，或服务有值班承诺时，把 24 的三个问题（什么叫成功、用户最可能在哪一步失败、发现异常时谁采取什么行动）的答案写进规格的运行信号要求，由 06 排入任务；两项条件都不满足的内部重构不触发。
+
+**可开工是对规格包和任务包的联合裁决。** 规格作者给每个必需场景稳定标识；规划者在 06 建立双向映射。主代理将两个包及版本、对应纪要交给未参与编写它们的评审者：既要按场景找任务与观察，也要按任务反查授权承诺，来源仍为推断的场景视同未获授权。E3 成功有任务而失败不可见，没有通过条件；返回遗漏的分支给规划者，不重写已决定的目标。两包均通过才交 07。开工裁决写入任务记录，记明两包的版本与评审者身份；恢复时据此区分已获准开工与待审。单改任务只重审任务及相交映射；修改承诺则规格和受影响任务均须重审，旧开工裁决降为历史。单纯委托提案在此终止。
+
+#### English
+
+**A spec records agreed behavior. It becomes a gate when that record cannot distinguish a correct implementation from a plausible wrong one.** Derive preconditions, action, observable outcome and exclusions from existing decisions, without repeating the interview. Give each required scenario a stable ID, a content digest and a decision source—the user's words, the owner's confirmation or an agent inference, named as such. A required scenario sourced only to an inference passes the ready decision only after the owner confirms it, possibly together with the proposal; an unconfirmed one is listed as an open blocker. List selected behavior kept out of this spec and open blockers; the scope behind an open blocker stays pending rather than being filled in by the author.
+
+E1 distinguishes retrying one intent after a lost response from deliberately requesting a new export of the same query. E2 requires owner recovery after refresh and denial to another account. E3 requires a retrievable, correct file before completion and a visible failure otherwise. Faster computation is excluded unless specifically agreed.
+
+A non-author tries to construct a wrong implementation that still satisfies the wording. “Supports retry” accepts duplicate production and must be refined. Hand off once each required scenario has a verification path. Request independent dissent for a consequential unproven assumption, not for every spec. Changing a promise requires updating the scenario and spec version and invalidating affected observations, ready decisions and review packages.
+
+**Two handoffs precede planning.** When a scenario changes a public interface or two sides must develop independently, go to 12; planning starts only after the contract—states, error semantics, retry conditions, compatibility window—is written back into the scenario. When a scenario promises that users obtain a result, or the service has an on-call promise, write the answers to 24's three questions (what counts as success, where users are most likely to fail, who acts on an anomaly and how) into the spec's signal requirements for 06 to schedule; an internal refactor meeting neither condition does not trigger this.
+
+**Apply-ready is a joint decision about spec and tasks.** Give each required scenario a stable ID. The planner builds the two-way mapping in 06. The controller gives both versioned packages and the matching minutes to an independent non-author, who checks both directions: each scenario has an owned task and observation; every task traces to an authorized promise, and a scenario still sourced only to an inference counts as unauthorized. A task for E3 success without its failure branch returns to planning, not implementation. Both packages must pass before 07. Record the ready decision in the task record with both package versions and the reviewer's identity; resumption uses it to tell an approved start from a pending one. For a task-only edit recheck tasks and intersecting mappings; a changed promise requires renewed review of the spec and affected tasks and reduces the earlier ready decision to history. A proposal mandate ends here.
+
+### 05 质量线是一次性写死，还是每次评审重新判断？ / Is the quality bar written once, or re-judged at every review?
+
+> `constraints` · `firefly-bounds` · `contract` · `designed`
+
+#### 中文
+
+**质量约束在实现前约定，适用条件可以修订，但不能在评审时为了让候选通过而追改标准。** `bounds` 先从项目已有服务目标、兼容承诺、数据边界和测试中提取受影响的约束。没有足够依据的数字不写成预算；先在原版本上测量，记录负载和波动，再由责任人决定哪些变化不可接受。
+
+**约束写在受影响的规格旁，而不是另建一份通用清单。** 每条记录适用场景、责任人、判据、测法、基线来源和失败处置。例如「只有请求人可以下载」是硬约束：所有者的成功记录不能替代另一账户的拒绝记录。「大报表不得超过内存预算」是负载约束：输入规模、并发度、运行环境和采样方式不同，两次数字就不能直接比较。
+
+**评审的裁决次序：** 先确认候选使用了约定的测法，再比较结果。候选超过上限是违反约束，按 16 返回退修。样本变小、断言被删除或验证未运行说明结果无效：要先修改候选才能补跑的（如断言被删除），是退修；约定的检查能在当前候选上补跑的，是待复验，恢复测量即可，不计修复轮次；所需证据在现有授权或工具下取不到的，是证据不足，直接升级。以上都不能放行。若原负载已不具代表性，单独提交标准修订，说明受影响的消费者、放宽代价和批准人；保留原结果，按新测法重测基线和候选。一次获准的例外须有范围和终止条件，不自动成为下一项工作的默认标准。跨变更持续有效的预算由项目责任人保存稳定参考值；变更规格引用它，不能以“上一版结果”为由滚动放宽。尚无目标但能稳定测量时，可由负责人批准“不劣于已接受基线＋记录的测量容差”；噪声大到无法区分则不写成约束，只观察。连续三项变更各自通过、相对共同基线却越线时，应由 16 拒绝，不能通过重设基线消除退化。测法稳定、失败有责任人的约束，经责任人同意后交宿主 `guard` 挂载为回归检查（21，需写入授权）。
+
+#### English
+
+**Agree constraints before implementation. Revise their applicability when facts change, but never retrospectively redefine success to pass a candidate.** Bounds identifies affected service objectives, compatibility promises, data boundaries and tests. Where no defensible threshold exists, measure the original version under a specified workload and have the owner decide acceptable variation.
+
+Keep each constraint beside the relevant spec: scenario, owner, criterion, method, baseline source and consequence of failure. Owner-only download is absolute and needs a denial check as well as owner success. A memory budget is comparable only for specified input size, concurrency, environment and sampling method.
+
+Review the method before the number. Exceeding a limit violates the constraint and returns a revision request under 16. A smaller fixture, removed assertion or unrun check leaves the result invalid: a check that can run only after the candidate changes, such as a removed assertion, is a revision; if the agreed check can be rerun on the current candidate, the verdict is pending recheck—restore the measurement, with no repair round consumed; if the evidence cannot be obtained under existing authority or tools, it is insufficient evidence and escalates directly. None passes. If the workload is obsolete, approve a separate revision stating consumer impact and trade-off; preserve the old result and rerun baseline and candidate. A one-off exception has a scope and expiry, not the force of a new default. The project owner maintains a stable cross-change reference for standing budgets. Specs reference it rather than resetting it to the previous release. For reproducible measurements without a target, the owner may approve a non-regression limit against the accepted reference plus measured tolerance. Results too noisy to distinguish stay observational and are not written as constraints. Reject cumulative regression against the shared reference even when three incremental comparisons look acceptable. A constraint with a stable method and an owner for failures may, with the owner's consent, be handed to guard as a regression check (21, write authority required).
+
+### 06 工作单元是什么？阻塞关系落在哪里？ / What is the unit of work, and where do blocking relations live?
+
+> `tickets` · `firefly-tasks` · `path` · `designed`
+
+#### 中文
+
+**一个任务交付一段可以独立观察的行为。** 规划者在 `tasks.md` 写明交付结果、对应场景、依赖、修改范围和验证路径。执行者即使没有参与前面的讨论，也应能从这些指针找到所需依据。状态查询读取同一清单，不要求人员维护重复工单。
+
+导出案例中，A 交付「本人能提交固定小样本并取回正确文件」；B 验证「丢响应后重试仍指向同一任务」；C 交付「刷新恢复且不可跨账户领取」。B、C 依赖 A 提供可调用行为。若 A 只提交表结构，没有可运行路径，则不能据此开始依赖集成结果的工作。E3 的失败分支还需明确归属，不能因成功路径已通而遗漏。
+
+阻塞边的解除由主代理依据目标基线上的集成结果判定。子工作树通过只说明候选可供集成，不表示任务完成。发现环形依赖时，指出两项各自在等对方的哪一项承诺；需要契约的交 12，由契约作者产出并回写规格后再切出契约任务，否则合并为一个交付切片。不得靠手工勾选解除环。
+
+**规划输出与查询分权。** 计划由 04 的规划者写入，`tasks` 只读。每个必需场景映射到 `任务 / 验证者 / 检查与预期 / 在何时、哪个候选快照上观察`，并记明所对照的规格版本；任务反向列出场景号。验证者是否必须独立于执行者，取决于观察的性质：观察来自可重放的机械检查，且该检查已在已知错误候选上证明会失败（13、14）时，执行者可以自跑，评审者能够复跑；需要真实操作（11、14）、第二身份（18）、替代观察或测量判读（05、19）的场景，由未实现该候选的验证者观察。执行者自跑的结果只作偏离说明，不替代指定验证者的观察记录。分别指定改动前基线、任务定向检查、集成后的整体验证。只能在首次迁移前观察的旧报表先留脱敏样本和版本，再允许迁移任务就绪。非作者按 04 检查失败分支、循环依赖、不可重放项和集成断言；缺任一必需映射就退回规划，不允许事后填“已测”。
+
+#### English
+
+**A task delivers one independently observable behavior.** In `tasks.md`, record the result, scenario, dependencies, allowed scope and verification path. A worker without conversation history must be able to locate the evidence. Status views read this same list.
+
+A delivers a correct fixed-sample file to its owner. B checks retry after response loss; C supplies recovery after refresh and account isolation. B and C require callable behavior from A, not a schema commit. Assign the E3 failure path explicitly as well as successful retrieval.
+
+Only the controller unblocks dependents after integration and verification on the target baseline. A passing child branch is a candidate for integration, not completion. For a dependency cycle identify the promises each side needs. Send work that needs a contract to 12 and extract a contract task only after the contract author writes it back to the spec, or combine the tasks; do not break the cycle by checking a box.
+
+**Separate planning writes from queries.** Planning under 04 writes the record; `tasks` only reads it. Map each required scenario to task, verifier, check, expected outcome, observation time and candidate snapshot, with the spec version it is judged against; map tasks back to scenarios. Whether the verifier must be independent of the implementer depends on the observation: a replayable mechanical check already shown to fail on a known-wrong candidate (13, 14) may be run by the implementer and rerun by the reviewer; scenarios needing real operation (11, 14), a second identity (18), alternative observation or measurement interpretation (05, 19) are observed by someone who did not build the candidate. The implementer's own results document deviations and do not replace the designated verifier's record. Specify baseline, targeted and integrated checks separately. Capture a redacted, versioned pre-migration sample before unblocking a non-replayable migration. Under 04 a non-author checks failure branches, cycles, non-replayable evidence and integrated assertions. A missing required mapping returns for repair, never a retrospective “tested.”
+
+### 07 实现是薄流程，还是编排？ / Is implementation a thin flow or orchestration?
+
+> `implementation` · `firefly-implement` · `path` · `designed`
+
+#### 中文
+
+**默认顺序是选一项、记录基线、实现、验证、集成。** 主代理只在有多个就绪任务、各自的接口已由 12 的契约定下且合并后仍可验证时并行派发。两个执行者修改不同文件并不充分：若前端和服务端对“完成”的含义仍不一致，并行只会制造两份各自通过的错误实现。
+
+派发时提供场景号、规格及源码指针、允许修改的范围和验收命令；执行者返回候选快照、实际运行的检查、结果和偏离项。未提交的改动在产生第一条证据前固化为可定位的快照（提交、stash 或补丁文件及其内容摘要），之后工作树的实现与快照不一致即视为新候选（候选快照固定的是实现，见头部的身份与版本）。若已有基线失败，先区分本次要修的失败、环境故障和未授权的既有问题，不把额外修复混进本任务。合并后重跑相交场景。主代理在派发 16 之前，按 06 的映射补齐尚未由指定验证者完成的观察。最终裁决绑定集成候选，不能用各分支的绿色结果拼出集成通过。
+
+恢复是这项设计的检验：在 B 分支验证通过而尚未集成时中断。接手者应能从任务、Git 和已有进度记录找到候选快照，继续集成而不重复实现；若基线已改变，应重新验证受影响的行为。任何修复需要改变 E1 的业务承诺时，停止实现，交负责人确认后再由规格作者修改场景，不把范围扩大解释为技术细节。
+
+**修复预算由主代理按委托记入进度记录，每轮产生时即写入。** 一轮是针对一个失败场景修改并复跑其原始检查；只有该场景出现可核对的改善且未破坏已通过的必需场景才算进展。一轮修复未改变原症状时不再叠加改动，转 15 取区分性反馈（见 01）。连续三轮无进展，或同一交付经三轮独立退修仍未通过，停止自动修复，交付候选、失败历史和待决定事项。换执行者、换候选或恢复会话不重置预算。工具未启动、超时和无效裁决不是代码退修，按 16 处理；外部效果是否已发生不明时先核实，不盲目重发。复跑的结果写入新的证据位置，不覆盖旧候选的证据。恢复时工作树里对不上已记录快照的未提交改动按用户修改保留，先确认再继续，不擅自清理工作树。
+
+#### English
+
+**Default to one ready task: capture baseline, implement, verify, integrate.** Parallelize only independently ready work with contracts settled by 12 and a meaningful post-merge check. Separate files do not make conflicting meanings of “complete” safe to implement in parallel.
+
+Dispatch scenario IDs, spec/source pointers, allowed writes and checks. Collect candidate snapshot, actual checks, results and deviations. Fix uncommitted changes as a locatable snapshot (commit, stash or patch file with content digest) before the first evidence is produced; afterwards a worktree whose implementation differs from the snapshot is a new candidate (the candidate snapshot fixes the implementation; see 身份与版本 at the top). Classify an existing failure as in-scope, environmental or unrelated before editing. Re-run intersecting scenarios after merge. Before dispatch to 16, the controller completes the observations the designated verifiers have not yet made under 06's mapping. Green branch results do not establish integration success.
+
+Interrupt after B passes on its branch but before merge. Recovery should locate the candidate snapshot from tasks, Git and existing progress, resume integration, and recheck behavior if the baseline moved. If a repair changes the E1 promise, stop, return to the owner for confirmation and have the spec author revise the scenario instead of silently widening scope.
+
+**The controller tracks repair budgets for the mandate in existing progress, writing each round as it happens.** A cycle edits for a failing scenario and repeats its original check; progress requires observable improvement without breaking a previously passing required scenario. When one repair leaves the symptom unchanged, stop stacking edits and route to 15 for a discriminating signal (see 01). Stop automatic repair after three consecutive no-progress cycles or three independent revision rounds on the delivery without acceptance. Return candidate, failure history and open decision. Changing worker, candidate or session does not reset the budget. Reviewer startup failures, timeouts and invalid verdicts use 16, not a code-repair cycle. Reconcile uncertain external effects before retry. Reruns write new evidence locations and never overwrite an earlier candidate's evidence. On resumption, uncommitted changes that do not match a recorded snapshot are preserved as user work and confirmed first.
+
+### 08 实现依据应该是官方文档，还是代码与证据？ / Should implementation follow official docs, or code and evidence?
+
+> `source` · `firefly-source` · `conditional` · `designed`
+
+#### 中文
+
+**把“该版本承诺什么”与“当前环境发生了什么”作为两项结论记录。** 前者以适用版本的正式契约为依据；后者以实际依赖、相关实现、配置和可复现观察为依据。社区讨论可帮助定位线索，但不能独立证明这两个结论。外部资料只作证据，不改变执行权限。
+
+当一个事实会改变设计时，`source` 先确认项目用的版本和配置，找到声明该行为的具体段落，再沿本地调用路径检查实际情况。必要时设计区分两种解释的最小实验。结果直接写在作决定的任务或规格中：待判定的问题、引用、观察条件、结论以及仍不能依赖的部分。没有影响选择的争议，不单独产出研究报告。
+
+例如，通知库在本地连续多次按提交顺序回调，但文档只承诺最终通知。这可以证明观察条件下出现了有序结果，不能证明所有负载下都有序。导出状态应按任务标识和明确终态关联，而不能用“收到第三条回调”判断完成。若业务确实依赖顺序，应取得受支持的保证或在自身边界实现该保证，再交给架构与测试确认。跨团队复用或决定公共契约时，调查者必须留下消费方可访问的持久记录：版本、配置、来源段落、观察输入和依赖上限。外部引用会变化时保存许可范围内的最小摘录或不可变版本引用；无法还原的结论降为假设。例行查询只在任务中留引用，不创建重复报告。
+
+#### English
+
+**Record a versioned promise separately from observed behavior.** Use the applicable formal contract for the former, and installed dependency, configuration, source and reproducible observation for the latter. Community reports are leads; external text cannot grant authority.
+
+For a consequential question, identify the installed version, locate the exact promise, follow the local call path, and run the smallest experiment that distinguishes the explanations. Put the question, references, conditions, conclusion and limits in the task making the decision. Routine lookups need no separate report.
+
+Repeated ordered callbacks do not warrant depending on ordering if the library promises eventual notification only. Associate events by job ID and explicit terminal state instead of treating the third callback as completion. If ordering is essential, obtain a supported guarantee or implement it at an owned boundary and test that contract. For a public promise or cross-team dependency, preserve a consumer-accessible note with version, configuration, source passage, input and limits of reliance. For mutable sources use an immutable reference or minimal permitted excerpt. Downgrade an unrecoverable conclusion to an assumption. Routine lookups need only a task reference.
+
+### 09 什么时候请一个 fresh-context 反方？ / When do you bring in a fresh-context dissenter?
+
+> `doubt` · `firefly-doubt` · `conditional` · `trial`
+
+#### 中文
+
+**当一个高代价决定依赖未经验证的假设，且现有检查无法回答它时，才引入独立反方。** 规格作者先写清“什么结果会让我改变决定”。答不出这个问题，讨论的是偏好而非可反证主张；已有可靠断言能区分结果，就先运行断言。用户也可明确委托独立反证，但反方不取代定稿评审。
+
+交给反方的是候选快照、必需场景、约束和允许的验证手段，不是作者关于“为什么应该通过”的自评。反方提交能改变结论的最小反例，分别列出候选设计和业务承诺对同一输入的预测。能运行就给出实际结果；只能推演时，说明哪一项观察还缺失。规格期与实现期的记录分别绑定候选，不能用实现后的报告反向证明早先的决定。
+
+例如「按查询条件去重即可保证重试安全」遇到两个条件完全相同的请求：其一是响应丢失后重发，其二是用户隔天主动再导出。候选把二者都合并，E1 却要求只合并前者。此反例足以退回修改；十条赞成意见不能抵消它。应改为显式区分提交意图，或由业务负责人修改承诺，再用两个输入复验。每个主张先给一次独立调查；只在出现新的、能区分两种解释的证据时允许再查一次。主代理把反例记为成立、驳回（附相反观察）或未决，规划开始后写入受影响的任务记录，规划前写入规格的未决阻塞；关闭后仍有长期约束力的取舍归入决策记录（23）。仍未决的高代价承诺交负责人，不以换人重复询问代替决定；负责人裁决后把该条改记为“经负责人关闭”，注明接受的风险或修改的承诺，不留在未决。
+
+#### English
+
+**Use a fresh-context dissenter when a consequential decision rests on an untested assumption that existing checks cannot settle.** First state the result that would change the decision. A preference is not falsifiable; run an adequate existing assertion before commissioning a second agent. Dissent does not replace final judgment.
+
+Provide the candidate snapshot, required scenarios, constraints and permitted checks, not the author's self-assessment. Ask for the smallest counterexample that changes the outcome, competing predictions, and observed result or explicit missing observation. Bind spec-stage and implementation-stage records separately.
+
+Deduplicating by query conflates retransmission after a lost response with an intentional new export of the same query the next day. The candidate merges both; E1 permits merging only the former. This single counterexample warrants sending the candidate back regardless of favorable opinions. Introduce submission identity or obtain a revised business promise and verify both inputs again. Allow one independent investigation per claim and one follow-up only for new discriminating evidence. The controller records upheld, dismissed with contrary observation, or unresolved in the affected task record, or in the spec's open blockers before planning starts; a closed choice with lasting force goes to the decision record (23). Escalate a consequential unresolved promise rather than polling fresh dissenters indefinitely; once the owner decides, mark it closed by the owner with the accepted risk or revised promise.
+
+### 10 上下文该分层加载，还是压缩成一份交接？ / Should context be layered, or compressed into a handoff?
+
+> `context` · `firefly-context` · `contract` · `designed`
+
+#### 中文
+
+**运行中按需加载，转交时补足无法从项目事实恢复的信息。** 常驻上下文只需目标、授权、当前场景、任务及证据指针。源码、日志和历史讨论在具体判断需要时打开，避免执行者在大量旧结论中反复寻找仍然有效的事实。
+
+交接不再维护第二份进度表。任务记录说明交付承诺，Git 说明变更实际位于哪里，验证记录说明在哪个候选上观察到了什么。交接摘要只补充关键取舍、未决假设、阻塞原因和下一次可执行的检查；摘要里仍有约束力的取舍写回委托记录或决策记录，不留在摘要中。三者矛盾时以可核对的候选和证据重建状态；缺失的证据标为未验证，不用前任的“已经好了”补齐。
+
+接手 E1 的摘要可写为：「已排除按查询去重，原因见重试／主动重导反例；意图 ID 的修改在候选 X，尚未集成到基线 Y；下一步在 Y 上重放丢失响应。」实际交接必须给出可定位的 X、Y；未提交的候选以其固化快照的内容摘要定位。验收时让未参与对话的执行者接手，观察他是否能找到原决定、区分分支通过和集成通过，并在不重新采访用户的情况下继续。交接压缩时优先保留授权与终点、候选位置、未决失败、已否决选项和下一检查，先删重复过程。发送者脱敏，接收者实际打开关键指针；若临时证据不可访问，只迁移授权范围内的必要摘录，否则标未验证。缺失“不得发布”的摘要作废，以原委托为准。
+
+#### English
+
+**Load context on demand during work; at handoff add only what durable project facts cannot recover.** Keep the mandate, active scenario, task and evidence pointers in view. Fetch source, logs and history for a particular decision.
+
+Tasks hold commitments, Git locates the actual change, and verification records observations against a candidate. The handoff adds rationale, open assumptions, blockers and the next executable check—not another progress ledger. Binding trade-offs in a summary are written back to the mandate or decision record rather than left in the summary. Reconcile disagreements against identifiable revisions and evidence, marking missing evidence unverified; a predecessor's assurance cannot fill it.
+
+An E1 handoff names the counterexample that rejected query deduplication, the unmerged intent-ID revision X, baseline Y, and the lost-response replay to run after integration. Use real revisions in practice; an uncommitted candidate is identified by the content digest of its fixed snapshot. Test with a successor who has not seen the conversation: they must recover the decision and resume without treating branch verification as integration or repeating the interview. Protect authority, endpoint, candidate, unresolved failures, rejected choices and next check when compressing; drop duplicate history first. The sender redacts and the recipient opens essential pointers. Transfer only permitted minimal evidence or mark inaccessible items unverified. A summary missing “do not release” cannot override the mandate.
+
+### 11 UI 质量由谁保证？ / Who guarantees UI quality?
+
+> `frontend` · `firefly-ui` · `conditional` · `trial`
+
+#### 中文
+
+**实现者对交互设计负责，独立验证者对观察结果负责，评审者对验收结论负责。** 实现前给每个受影响状态写出进入条件、允许动作、用户能感知的反馈以及离开状态的方式。验证者据此检查实际可操作性，而不是根据组件名称推断用户一定能完成操作。无 UI 改动时不要求生成此清单。
+
+导出页面至少应区分提交中、后台处理中、可下载、失败。刷新后仍在处理时，应显示原任务而不是一个看似从未提交的空表单；生成失败时应说明状态和可执行的下一步，而非无限等待。若用户主动重试，界面必须遵守 E1 对重发与新意图的区分。
+
+构建侧给出操作与预期，如“仅用键盘从任务列表返回原任务，能识别当前状态并到达下一可用动作”。运行时验证侧在真实页面执行，并记录构建标识、视口与缩放、焦点、状态文本和结果。自动扫描可发现一部分语义问题，却不能证明状态转换可理解；截图也不能证明键盘可达。缺少某一路证据时说明缺口，由评审判断它是否影响对应场景。构建前，UI 负责人定位项目现有组件、设计规范、目标视口和可访问性要求；没有约定时按实际受众指定验证条件，不自行声称符合某项完整标准。交给 14 的矩阵至少覆盖受影响的窄屏、放大、键盘焦点和非颜色提示。用长文件名在窄屏放大时操作下载按钮，再关闭颜色差异识别失败状态；被遮挡或只能凭颜色辨别，分别退回布局或状态呈现，不以桌面截图替代。
+
+#### English
+
+**The implementer owns the interaction, the independent verifier owns observations, and the reviewer owns acceptance.** Specify entry conditions, allowed actions, perceptible feedback and exit for each changed state. No UI change requires no UI checklist.
+
+Distinguish submission, background work, downloadable output and failure. Refresh during processing must recover the original task rather than show an apparently untouched form. Failure needs an intelligible next action, not an endless spinner. Retry controls must preserve E1's distinction between retransmission and a new intent.
+
+Give runtime verification an observable path, such as returning to the job by keyboard, identifying its state and reaching the next available action. Record build identity, viewport and zoom, focus, status text and result. Scans cannot establish comprehensible transitions, and screenshots cannot establish keyboard access. Report missing evidence against the specific scenario it affects. Before building, identify project components, design rules, target viewports and accessibility requirements. If absent, specify conditions for the audience without claiming compliance with an entire standard. Give 14 a matrix covering affected narrow layouts, zoom, keyboard focus and non-color cues. Exercise download with a long filename at narrow width and zoom, and identify failure without color. Occluded controls or color-only errors return to the implementer; a desktop screenshot cannot substitute.
+
+### 12 设计从词汇、契约，还是实验开始？ / Does design start with vocabulary, contracts, or experiments?
+
+> `architecture` · `firefly-arch` · `conditional` · `trial`
+
+#### 中文
+
+**选择起点取决于哪个未知最可能推翻接口。** 同一个词在消费者和提供方之间含义不同，先统一词义；词义明确而两方需要独立开发，先给契约；第三方能力本身尚不确定，先做可丢弃实验。三项不是每次必须执行的固定流程。仅有模块内部变化且不改变外部承诺，不要求单独架构评审。04 在场景改变公共接口或两方需要独立开发时把工作交到这里，07 的并行派发以契约为前提；契约回写规格后才切任务、做实现。
+
+后端称「完成」为数据库记录已写，前端称「完成」为用户能下载文件。若不先纠正词义，两边可各自通过单元测试，却同时违反 E3。先写 `ready = 有权请求者当前可以取得正确文件`。然后让界面作者仅凭 `queued / ready / failed` 草图处理三种结果，让执行端说明何时发布各状态、失败能否重试、已有消费者会否受影响。消费者必须能据此写出独立断言。
+
+若对象存储写入成功与读取可见之间可能存在间隔，在可控环境延迟可见性，区分“写入即 ready”和“确认可读才 ready”。草图和实验用于确定边界，不能以未经验证的原型替代契约。把公开承诺归入规格；若以后很可能有人再次提出被否决的替代路线，将代价和重审条件写入决策记录。改变公共接口时，契约作者列出现行和新消费者、成功及错误语义、重试条件、兼容窗口；让至少一个代表性的旧消费者按原契约重放。字段名不变但可重试变成永久失败，也是破坏性变更，需迁移计划（22）或恢复原语义。纯内部接口无存量消费者时注明依据，不虚构兼容义务。
+
+#### English
+
+**Begin with the uncertainty most likely to invalidate the interface.** Resolve disputed vocabulary, write a contract for independently implemented sides, or probe an uncertain dependency before promising feasibility. Internal changes without an external behavioral effect need not trigger an architecture process. 04 sends work here when a scenario changes a public interface or two sides must develop independently, and 07 parallelizes only on a settled contract; tasks and implementation start after the contract is written back to the spec.
+
+If the worker calls a database write complete while the UI means downloadable, both can pass unit tests and violate E3. Define `ready` as a correct file retrievable by the authorized requester now. Have the consumer handle queued/ready/failed from a sketch; have the provider specify transition, retry and compatibility semantics. The consumer should be able to write independent assertions.
+
+Where storage visibility may lag a write, delay visibility in a controlled probe to distinguish the competing publication rules. Keep the public promise in the spec, not the prototype. Record the rejected option and conditions for revisiting it when future changes are likely to reopen the decision. For public interfaces inventory current and new consumers, success and error semantics, retry conditions and compatibility window. Replay a representative existing consumer against its original contract. Turning a retryable error permanent is breaking even with identical field names: restore semantics or require migration under 22. Document why an internal interface has no existing consumers where applicable.
+
+### 13 测试何时值得写？红色意味着什么？ / When is a test worth writing, and what does red mean?
+
+> `tdd` · `firefly-tdd` · `conditional` · `designed`
+
+#### 中文
+
+**能稳定区分旧行为与目标行为的测试，值得先写。** 选择接近公开行为、运行成本可接受的接缝。先在未修改实现的基线上运行，确认失败来自预期断言，而不是环境、数据准备或测试自身。随后只改变实现，在同一测试版本和可比环境下重跑。若需求本身改变，应先修订场景，不能用削弱断言来制造绿色结果。
+
+E1 不能只断言服务返回了一个 ID。测试应保留一次提交的意图标识，使服务端确已接受请求但首个响应未送达，再用相同标识重发，检查两次只对应一个任务；另用新意图提交相同查询，检查生成不同任务。只测第一种情况，会漏掉“所有相同查询永久共用一个任务”的错误实现。
+
+任务证据记录测试及候选快照、运行者、输入、预期失败原因和实际结果。数据库未连接产生的红色只证明环境故障；若基线已经通过，先检查是否本来就满足承诺或断言过弱。昂贵且不稳定的自动化不必硬写，但须在任务开始时声明替代观察、负责人及未覆盖风险；独立评审仍按相同的行为承诺验收。红色记录必须摘录实际失败值与预期值或相应错误信息，并关联检查和基线版本；文字“已红”不构成证据。替代检查若无法在错误候选与正确候选上产生可区分结果，只能返回未验证，不能转为通过。
+
+#### English
+
+**Write the test first when a stable assertion can distinguish old and intended behavior at reasonable cost.** Run it against the unchanged baseline, identify the expected assertion failure, then run the same test revision under comparable conditions on the candidate. Changing the requirement calls for a scenario revision, not a weakened assertion.
+
+For E1, let the server accept an intent but discard its first response. Retransmit the same intent and verify one job. Submit the same query under a new intent and verify a different job. Testing only retransmission misses an implementation that permanently reuses the first job for every matching query.
+
+Record test version and candidate snapshot, who ran it, inputs, expected reason for failure, and observed outcomes. A disconnected database is not useful red evidence. A passing baseline may indicate an existing guarantee or a weak assertion. For impractical automation, agree alternative observation, owner and residual risk before implementation; independent review still evaluates the same promise. Quote observed versus expected values or the actual failure message, with check and baseline identity; a statement that it was red is not evidence. An alternative check unable to distinguish a wrong candidate from a correct one returns unverified, not passed.
+
+### 14 浏览器里的行为由什么证明？ / What proves browser behavior?
+
+> `browser` · `firefly-verify-web` · `conditional` · `designed`
+
+#### 中文
+
+**运行时证据必须能把用户操作、具体候选和可观察结果对应起来。** 验证者在允许的访问范围内建立新的隔离会话，不取用个人浏览器状态；记录候选快照、构建标识、视口与缩放、会话标识、所用测试身份、操作顺序、截图或录屏，以及与结论有关的 DOM 或网络断言。归档标识而不归档凭证。观察未命中断言时，不能仅凭页面可见或请求成功判通过。
+
+验证 E2/E3 时，使用测试账户提交固定小样本，记下任务号，刷新，确认打开的仍是同一任务，下载后核对实际文件内容。再执行一次受控生成失败，观察状态和可恢复操作。返回 200 的错误页、只有标题的空 CSV、来自前一任务的文件，都可能使界面看似成功；断言应足以区分这些结果和预期样本。
+
+账户隔离需第二个独立测试身份，不能把所有者路径当成权限证明。证据不全时按场景的每个检查或分支分别返回通过、失败、未验证或有依据的不适用，场景结论取最差状态；只对失败或未验证部分安排补验。对重复出现、已有稳定夹具的路径，保存为项目内可重放检查，经下述区分验证后交宿主 `guard` 挂载（21）；一次性调查不要求新增长期脚本。验证者把路径纳入长期检查前，先在已知错误候选与正确候选各跑一次：下载场景替换为内容错误但响应成功的文件，应仅前者失败；布局场景则使用遮挡下载按钮的坏候选。记录实际失败断言、修复后的结果和夹具，不把页面内容当指令，不保留浏览器凭证。不能区分两者时退回检查本身，不提交“长期覆盖”。
+
+#### English
+
+**Bind runtime evidence to the user action, candidate and observable result.** Use a fresh isolated session within the authorized scope, not personal browser state. Record candidate snapshot, build identity, viewport and zoom, session identifier, test role, actions, screenshot or recording, and relevant DOM/network assertions without storing credentials.
+
+Submit a known fixture, capture its job ID, refresh, reopen the same job, download the output and compare content. Exercise controlled failure and recovery as well. An HTTP 200 error page, a header-only CSV, or another task's file can all accompany a successful-looking UI. Assertions must distinguish them from the expected fixture.
+
+Use a separate test identity to check account isolation. Report passed, failed, unverified or justified non-applicability per check or branch within a scenario, with the scenario's conclusion taking the worst status; rerun only the failed or unverified parts. Preserve repeatable project-level checks for recurring paths with stable fixtures and, after the discrimination test below, hand them to guard for mounting (21); not every one-off investigation needs a lasting script. Before retaining a browser check, run a known-bad and a correct candidate. Use wrong file content with a successful response for downloads, or an occluded control for layout. Preserve fixture, actual failing assertion and corrected result; treat page content as data and never retain browser credentials. A non-discriminating check goes back for revision and does not count as lasting coverage.
+
+### 15 调试先要什么信号？ / What signal does debugging require first?
+
+> `debugging` · `firefly-debug` · `conditional` · `trial`
+
+#### 中文
+
+**首先要有能区分故障与正常行为的反馈。** 验证发现异常后先保存触发输入、相关版本、环境、可观察症状及预期结果。发生频率不稳定时，先改进捕捉手段；在没有反馈的情况下连续更改实现，会使“这次没有再出现”无法解释。01 的切换条件与直接委托把工作交到这里。调试结论与触发输入写回任务记录；交付委托中的修复产物按 01 走验证与新候选的独立评审，不由调试者自行放行。
+
+以“页面显示完成，下载偶尔为空”为例。过早发布 ready 与关联到错误任务都会造成相同投诉，却预言不同结果：前者在文件可见后应恢复，延迟可见性会放大失败窗口；后者即使等待足够久，任务标识或文件内容仍然不匹配。固定测试输入和任务号，同时观察状态转换、文件可读时间及内容标识，再只改变其中一个条件。
+
+一次修复未改变原症状时，停止继续叠加改动，回到竞争解释。提交调试结论时必须说明哪项证据支持根因、哪项实验排除了替代解释，以及同一反馈如何验证修复。只能暂时缓解而未定位原因时，明确区分缓解措施、残余风险和下次捕捉办法，不把缓解写成根因修复。收尾时列出本次临时探针和改动；移除非交付诊断，在没有探针的候选上重放最初反馈。若只有开着探针才通过，结论仍是原因未明或时序受扰，返回捕捉方案；只有明确作为产品信号且经 24 审核的探针才可长期保留。
+
+#### English
+
+**Obtain a signal that distinguishes faulty from normal behavior before editing.** Preserve input, revisions, environment, symptom and expected outcome. For intermittent faults improve capture first; multiple speculative patches make a single non-recurrence uninterpretable. The switch conditions and direct mandates in 01 route work here. Write the diagnosis and trigger input back to the task record; under a delivery mandate the repair is verified and independently reviewed as a new candidate under 01, not released by the debugger.
+
+A ready export that downloads empty can result from early publication or a mismatched job. Delaying file visibility should widen the failure window only in the first explanation. A wrong association persists after the file is readable. Fix input and job ID, observe state transition, readability time and content identity, then vary one condition.
+
+If a repair leaves the symptom unchanged, return to competing explanations. Report evidence for the cause, the discriminating experiment and the same feedback after repair. Label mitigation, residual risk and future capture separately when the cause remains unknown. Inventory temporary probes, remove non-delivery diagnostics, and replay the original feedback on the uninstrumented candidate. Passing only with a probe means timing interference or an unresolved cause; return a capture plan. Retain a probe only as an intentional product signal reviewed under 24.
+
+### 16 谁的眼睛在评审？轴有多少条？ / Whose eyes review, and how many axes are there?
+
+> `review` · `firefly-review` · `path` · `designed`
+
+#### 中文
+
+**评审由未参与生成当前候选的评审者完成，默认回答两件事：行为是否兑现规格，所附证据是否足以支持结论。** 变更触及身份、公共接口、性能预算或其他已登记风险时增加对应维度。简化判断是条件维度：差异新增重复、分支或兼容层时，评审者按 17 专门判断，结论作为不阻断意见记入保留项，不构成退修，除非当前复杂度使必需行为错误或不可验证。多个评审者先独立判断，再由主代理去重、核对证据、裁决冲突，不以多数票批准。一个可复核的反例足以阻止通过。
+
+评审包应含委托及允许效果、基线和完整候选快照、规格版本与决定来源（对应纪要）、必需场景、条件适用性、验证结果和证据指针。不能仅发作者摘要。每一项必需行为都得到一个结论；豁免要指明批准范围和替代证据。审查中发现证据属于旧版本，应要求对受影响行为重验，而不是要求作者换一个日期再提交报告。
+
+例如 E3 的测试只断言 `status=ready`。若约定的文件检查存在而没有运行，是待复验，补跑即可；本例没有任何检查核对文件内容，即使套件全绿也应返回退修，说明还缺“正确文件可读取”的观察。若仅委托审查，到此结束；若在已授权交付中，主代理安排范围内修复、复验和新的独立评审。新包保留原问题但绑定新候选。出现无进展的重复退修、无法取得必要证据或需要新授权时，报告未决事项并升级，不推定通过。
+
+**裁决取值只有四种。** 接受：包不变且全部必需角色有效接受，可以附保留项。约定的必需检查尚未运行或结果不可用时不得判接受，应判待复验或证据不足。退修：实现或测试本身有缺陷，需要修改候选，走 07 的修复预算。待复验：约定的检查可以在当前候选上补跑而尚未运行或结果不可用，候选不变，不计修复轮次；同一检查补跑一次仍无可用结果的，按证据不足升级，不无限重跑。证据不足：所需证据在现有授权、工具或环境下取不到，直接升级。带保留项的接受必须逐项列出未验证项、未覆盖的输入和不阻断意见，并标明是否涉及必需行为；标“涉及”的项不得出现在接受里，出现即按无效回包处理；缺这一栏的接受同样无效，25 的销项表逐项从这一栏取数。
+
+**评审包的生命周期。** 主代理派发前固定委托、基线、候选快照、规格版本、场景清单、适用的项目标准来源、必需评审角色及非作者身份；每位评审者回传同一包标识、所审场景、证据与裁决。检查标准和证据都落到具体角色，不按人头投票。包不变且全部必需角色均有效接受，才能通过；仍在运行或缺一份裁决就保持待裁决。一个有效退修使该包不可放行，保留已返回的问题，未返回者作废；修复后的 B 重新派独立评审，迟到的 A 只能存为历史。规格或场景内容、检查标准、候选或证据改变都要重建包，不能改写旧裁决；补齐证据同样按新包重审，不把新证据挂在旧包标识下沿用旧裁决。已接受的裁决在规格版本、标准或候选变化时降为历史。
+
+评审未启动、超时、身份冲突或无效回包是基础设施/协议故障。主代理对**同一未变包的每个必需角色**最多另派两次新的独立评审者；派发、失败与裁决在产生时即写入进度记录，恢复时沿用计数，不能通过重打同内容包绕过上限。耗尽仍无有效裁决则升级，停止自动执行，不修改产品代码。有效退修走 07 的修复预算；缺授权或不可取得的必需证据直接升级。验收用 A 退修、B 等待、A 迟到、B 超时的交错顺序，任何路径都不得使 B 被旧意见批准。
+
+#### English
+
+**A reviewer who did not produce the candidate evaluates contract fidelity and evidentiary strength.** Add independent axes for affected risks such as identity, public interfaces or budgets. Simplification is a conditional axis: when a change adds duplication, branches or compatibility layers, the reviewer judges it deliberately under 17 and records the result as a non-blocking reservation, not a revision request, unless current complexity makes required behavior wrong or unverifiable. Form initial judgments separately; the controller resolves conflicts from evidence rather than votes. One reproducible counterexample can block.
+
+Supply mandate, permitted effects, baseline, complete candidate snapshot, spec version and decision sources (the matching minutes), scenarios, applicability, results and evidence pointers—not just an author summary. Adjudicate every required behavior. Exceptions identify authority and substitute evidence. Evidence from a superseded candidate snapshot requires affected checks on the current candidate, not a redated report.
+
+A green suite asserting only `status=ready` does not establish E3 file retrieval. If the agreed file check exists but was not run, the verdict is pending recheck: run it. A suite with no check of file content at all returns a revision request even when green, for the missing observation that the correct file is retrievable. Standalone review stops there; authorized delivery may repair, reverify and dispatch fresh independent review of a new package. Retain the finding but update the candidate. Escalate no-progress loops, unavailable evidence or scope expansion instead of inferring approval.
+
+**A verdict takes one of four values.** Acceptance: the package is unchanged and every required role accepts, possibly with reservations. An agreed required check that has not run or whose result is unavailable rules out acceptance; the verdict is pending recheck or insufficient evidence. Revision: the implementation or its tests are defective and the candidate must change, using 07's repair budget. Pending recheck: an agreed check can be rerun on the current candidate but has not run or its result is unavailable; the candidate is unchanged and no repair round is consumed. One rerun that still yields no usable result escalates as insufficient evidence instead of looping. Insufficient evidence: the required evidence cannot be obtained under existing authority, tools or environment; escalate directly. Acceptance with reservations lists each unverified item, uncovered input and non-blocking finding, marking whether it touches required behavior; an item marked as touching required behavior may not appear in an acceptance, and one that does makes the response invalid. Acceptance without this list is also invalid, and 25's closeout ledger takes its unverified items from it, item by item.
+
+**Review-package lifecycle.** Before dispatch the controller pins mandate, baseline, candidate snapshot, spec version, scenarios, applicable standards sources, required roles and non-author identities. Each reviewer returns the same package identity, covered scenarios, evidence and verdict. Assign standards and evidence to actual roles. Accept only when all required roles return valid acceptance for the unchanged package. A pending or missing verdict leaves it pending verdict. One valid revision request blocks the package; collect existing findings and invalidate outstanding reviews. Dispatch fresh independent review for repaired B; late A findings are historical only. A change to spec or scenario content, standards, candidate or evidence requires a new package; supplemented evidence is re-reviewed as a new package rather than attached to the old package ID with its verdicts reused. An accepted verdict becomes history when the spec version, standards or candidate change.
+
+Failed startup, timeout, identity conflict and malformed responses are infrastructure/protocol failures. For each required role on an unchanged package the controller allows at most two additional fresh reviewers. Dispatches, failures and verdicts are written to the progress record as they happen and the count survives resumption; repackaging identical content cannot restart the budget. Exhaustion escalates and stops automatic execution without product edits. Valid revision uses 07's repair budget; missing authority or unobtainable required evidence escalates directly. Replay A revised, B pending, late A acceptance and B timeout: no ordering may let A approve B.
+
+### 17 简化由专门流程做，还是评审时顺手做？ / Is simplification a dedicated pass or a review by-product?
+
+> `simplification` · `firefly-review` · `conditional` · `trial`
+
+#### 中文
+
+**在评审中专门判断是否值得简化，但评审者不顺手改代码。** 差异新增重复、分支或兼容层时做这项判断；差异不新增这些，或委托明确只要正确性结论时，不做。 一条有效建议要说清拟删除的对象、消失的维护成本、必须保持的不变量以及能检验等价的用例。只说“抽象太多”或“看起来重复”，不足以要求作者扩大本次改动。
+
+例如 API 和界面都有一张状态映射表。若两处在任何允许状态下都做相同映射、维护时必须同步修改，就可提出由单一契约生成或直接复用，并对 queued、ready、failed 逐项检验。但若前者表达领域状态，后者为用户合并多个内部步骤，表面相似不代表职责相同；强行合并会使存储变化泄漏到交互层。此时结论应当是保留边界，而不是少一张表。
+
+如果简化仅影响本次差异，作者可在现有授权内修改并复验；若需要改写整模块、删除保护或重定公共契约，作为独立提案交付，列出预期收益和回退办法。除非当前复杂度本身使必需行为错误或不可验证，否则不以范围外重构阻断小修复。若委托本身是整模块简化，16 的输入改为指定模块、消费者和不变量；先比较应保持相同与应保持不同的输出，再交 07 增量实施。评审者只裁决行为等价与维护成本，不能把“少了文件”当验收，也不能以宿主为审查技能为由拒绝转交已授权的实现。简化意见记入 16 裁决的保留项，不阻断接受。
+
+#### English
+
+**Review simplification deliberately; do not edit opportunistically.** Make this judgment when a change adds duplication, branches or compatibility layers; skip it when it adds none, or when the mandate asks only for a correctness verdict. A useful finding names the removable element, maintenance cost saved, invariant to preserve, and equivalence check. A style preference does not justify expanding scope.
+
+Two status maps may duplicate one contract and merit consolidation with queued/ready/failed consumer tests. But a domain-state map and a user-facing grouping can intentionally differ. Merging them may expose storage changes in the UI. In that case preserve the boundary, even if it costs one extra table.
+
+An in-scope simplification can be implemented and reverified by the authorized author. Module redesign, protection removal or a changed public promise needs a separate proposal with benefit and recovery path. Do not block an unrelated fix on that work unless current complexity makes required behavior wrong or unverifiable. For an explicit module simplification mandate, 16 takes the named module, consumers and invariants. Compare outputs that must remain equal and those that must remain distinct, then route authorized edits to 07 incrementally. Judge equivalence and maintenance cost, not file count. Housing detection in review does not prevent a separately authorized implementation. Simplification findings are recorded as reservations on 16's verdict and do not block acceptance.
+
+### 18 安全是独立流程，还是评审的触发项？ / Is security a standalone flow or a review trigger?
+
+> `security` · `firefly-guard` · `contract` · `designed`
+
+#### 中文
+
+**安全检查有两类入口，共用同一套判据但权限不同；门禁挂载是宿主的第三类入口。** 用户可委托 `guard` 检查指定范围；常规评审发现身份、数据流、依赖或权限变化时，只调用受影响的检查。后者保持审查权限，不因发现风险就获得修改配置、对外发送、删除或发布的权力。无关的小改动不触发全量审计。05 的质量线、14 的可重放检查等功能门禁与安全门禁都从 `guard` 进入：挂载需要写入授权，只读委托只能提出待授权的配置任务（21）。
+
+先说明保护对象、允许访问者和信任边界，再为边界两侧给出可检验的正反例。E2 的正例是所有者用测试身份下载本人报表；反例是另一授权测试身份不能读取该报表，也不能从返回值取得其内容。两个检查分别记状态，场景结论取最差：只完成所有者路径时，结论必须是「正常功能通过，隔离未验证」。记录候选快照、测试身份角色、观察和脱敏定位，不保存报表正文、凭证或原始敏感输出。
+
+检查覆盖范围与结果应分开陈述。未扫描、不可读或无法访问的输入不是无问题。需要执行不可逆处置时，由执行方在动作发生前核对批准人、动作、目标和候选快照；待批、拒绝或范围变化均保持阻断。归档时查到一条审批记录，不能补足执行时缺失的授权。`guard` 将受影响资产及数据流映射到项目的身份、隐私、依赖与秘密管理等适用控制；逐项列负责人、检查、脱敏证据或未查原因。正反身份测试通过但日志含报表内容，应判隐私控制失败。项目禁止的动作不可用临时批准覆盖；项目未给控制清单时先按实际边界提出最小适用清单，请安全责任人确认未知项，不作全范围安全声明。
+
+#### English
+
+**Security has two entries that share criteria but not permissions; gate mounting is the host's third entry.** Users may commission guard to check a named scope; a regular review runs only the affected checks when identity, data flow, dependencies or privileges change. Finding risk during review does not authorize configuration edits, external transmission, deletion or release. An unrelated small change triggers no full audit. Functional gates such as 05's quality bars and 14's replayable checks enter through guard together with security gates: mounting requires write authority, and a read-only mandate can only raise a configuration task pending authorization (21).
+
+Identify asset, permitted actor and trust boundary, then test both sides. E2 requires successful retrieval by an owner test identity and denial without content disclosure to another authorized test identity. Record each check's status separately and take the worst for the scenario: owner success alone leaves isolation unverified. Retain candidate snapshot, roles, observations and redacted locations, not credentials or report contents.
+
+Report coverage separately from results: unreadable or unexamined input is not clean. Before an irreversible action the executor must verify approval of the specific action, target and candidate snapshot by an authorized person. Pending, denied, or changed scope remains blocked. An approval record found at archive cannot retroactively authorize execution. Guard maps affected assets and flows to applicable project controls such as identity, privacy, dependencies and secrets. Record owner, check, redacted evidence or reason not examined. Passing both identity checks with report contents in logs still fails privacy. Ad hoc permission cannot override a prohibited action. Without a project catalog, propose controls from actual boundaries and refer unknowns to the security owner rather than declaring the whole product safe.
+
+### 19 性能工作先测量，还是先改代码？ / Does performance work start with measurement or edits?
+
+> `performance` · `firefly-perf` · `conditional` · `trial`
+
+#### 中文
+
+**先确定用户等待的那段时间，再决定是否优化。** 对“导出很慢”，提交到得到任务号、队列等待、实际计算、文件可读是四个不同区间。把同步接口改成快速返回任务号，可能改善交互，却没有缩短拿到正确文件的时间。需求只要求刷新可恢复时，不把该项工作记为性能提升。
+
+若目标确为缩短月结总时长，先选择代表性数据和并发，记录环境、缓存冷热状态、基线分布和测量波动。用单独的诊断运行定位瓶颈，避免把 profile 本身的开销计入正式对比；若负载发生器先饱和，结果不能用于比较候选。修改前写明预计改善哪个区间，以及可能转移到内存、尾延迟或后台负载的成本。
+
+在可比条件下交替复测基线与候选，报告端到端结果和受影响的分段，而非只挑最好的一次。差异不足以区别于波动时，结论是未证实改善；若优化增加复杂度却没有可重复收益，建议保留较简单实现。PR 应附复跑方法和限制，使评审者能质疑测量设计，而不仅是阅读数字。保留影响决定的尝试（包括撤回项）、配置、样本与撤回原因；一次粗测只有在用户明确要数量级且注明条件时才可交付，不用于选择方案。结果成为产品承诺时，把稳定基线、容差和维护人交 05，由 21 接入可重复的回归检查；没有这些条件则仍是调查结果。
+
+#### English
+
+**Define the user's clock before optimizing.** Acknowledgement, queue delay, computation and file readability measure different outcomes. Returning a job ID faster can improve interaction without reducing time to a correct file. Recovery after refresh is not itself a performance gain.
+
+For a month-end latency target record representative data, concurrency, environment, cache conditions, baseline distribution and variation. Diagnose the bottleneck in a separate profiling run; a saturated load generator invalidates comparisons. Predict the affected interval and possible cost displaced to memory, tail latency or background load.
+
+Repeat baseline and candidate under comparable conditions, reporting the end-to-end result and relevant intervals rather than a best run. A difference within noise is unproven. Prefer simpler code when added complexity has no reproducible benefit. Provide the method and limitations for independent review. Preserve decision-relevant attempts including reverted ones, configurations, samples and reasons. A single labeled ballpark is acceptable only for an explicit rough estimate, never for choosing between designs. When the result becomes a product promise, hand baseline, tolerance and owner to 05 and a repeatable regression check to 21. Otherwise report it as investigation.
+
+### 20 PR 为谁而写？ / Who is the PR written for?
+
+> `delivery` · `firefly-pr` · `conditional` · `trial`
+
+#### 中文
+
+**PR 的第一读者是此刻必须决定能否合入的人，第二读者是以后必须解释这项决定的人。** 描述首先给出可观察变化、原因和最高风险的判断，再给阅读顺序与验证证据。作者不应逐文件复述 diff；评审者需要的是先看哪个承诺、哪个用例最可能推翻它，以及还剩什么未知。
+
+导出变更可从这样的导语开始：「先检查 E1 如何区分断线重发和主动重导，再对照这两个输入的任务标识。E2 的账户隔离见独立验证记录。计算速度不在本次承诺内。」附最终候选快照、规格版本与验收指针（含评审保留项）、失败时的处置。不能访问的证据应明确指出，而不是以“已测”省略。
+
+拆分尺度是**能否分别裁决和回退**。建立异步任务契约与删除旧同步接口涉及不同消费者和授权，适合拆开；让同一行为成立的状态转换与对应断言，不应为了行数目标拆成两个独立宣称可交付的 PR。准备描述、创建 PR、推送、合并和重写共享历史分别有不同影响，前一动作不自动授权后一动作。仅整理已获准的提交历史时，先固定原 tree 与目标范围，整理后核对完整 tree 身份。测试通过但 tree 不同，须解释并单独取得行为变更授权；非预期差异则停止，不推送。仅要求改善描述时不得整理历史。
+
+#### English
+
+**Write first for the reviewer deciding whether to merge, then for the maintainer who must explain the decision later.** Lead with observable change, reason, riskiest judgment, reading order, and verification. Do not narrate the diff file by file.
+
+An export PR can lead with E1's distinction between retransmission and a deliberate new intent, point to corresponding job IDs and independent E2 checks, and explicitly exclude faster computation. Include the final candidate snapshot, spec version and acceptance evidence including review reservations, and the failure response. Disclose inaccessible evidence rather than writing “tested.”
+
+Split when decisions can be accepted and reverted independently. Introducing an async contract and removing the synchronous API involve different consumers and authority. Keep a behavior change with the assertion that proves it rather than splitting to meet a line quota. Drafting, opening, pushing, merging and history rewriting require their own applicable authority. For authorized history-only cleanup, pin the original tree and target scope and compare the complete resulting tree. Green tests with a changed tree are not equivalence: stop on unintended differences; intended behavior changes need separate authority. A description-only mandate never authorizes rewriting history.
+
+### 21 质量门禁由流水线固定，还是靠人记得？ / Are gates fixed in the pipeline, or remembered by people?
+
+> `ci` · `firefly-guard` · `contract` · `trial`
+
+#### 中文
+
+**凡是输入明确、结果可重复、失败后有人能处置的要求，应进入流水线。** 05 定义质量线，14 沉淀可重放检查，19 交来已成为产品承诺的回归基线；宿主 `guard` 在已获写入授权时把它们挂载到消费项目的 CI，并负责说明每项失败的含义。价值取舍、例外批准和不可逆动作的授权仍由人承担。检查器只能判断收到的候选，不能替人追认一个决定。
+
+从建议检查升级为阻断检查前，用一个已知违反场景的候选和一个应当通过的候选检验区分能力。若 E3 检查只搜索“ready”文本，返回错误页也可能通过；应先改为核对实际文件，再以试跑方式记录它本来会拦下什么，试跑不改动既有裁决。确认结果稳定、误拦可解释、失败有责任人后，才作为阻断项。阻断项生效即视为测法改变：尚未开始承接流量的已接受候选，其受影响场景的观察与裁决失效，重建评审包重审，新门禁的结果作为包内证据；发布中的候选不自动撤流量，新门禁的结果交发布负责人按预案决定推进或停止；已上线的候选不追溯，已归档但未上线的候选在就绪评估时按新门禁核对。不能用“流水线里已有这一项”反推检查有效。
+
+每次结果携带候选快照、检查、状态、脱敏证据位置和负责人。失败返回实现者；工具故障、输入不可用，以及必需作业被跳过、取消或没有结果，一律记为未验证并向 16 返回，总灯为绿也不例外；有依据的不适用单独记录并注明规则。未运行、不适用、通过不能共用绿色标记。只读评审提出挂载建议，不直接修改项目配置。宿主 `guard` 接收的是功能与安全门禁两类需求，不只接扫描项。每条门禁固定触发范围、候选、实际退出状态、失败责任人与复跑方法。流水线结果多在会话之外到达：写入验证记录中对应检查的状态，由下一次会话的恢复流程读取并交回责任人，不为门禁另建监听或轮询。只读委托若发现缺门禁，产出待授权配置任务及接收人，不自行写入。
+
+#### English
+
+**Automate checks with defined input, repeatable outcomes and actionable failures.** Bounds defines the bar, 14 preserves replayable checks and 19 hands over regression baselines that became product promises; guard wires them into the consuming project's CI only with write authority. People retain responsibility for trade-offs, exceptions and irreversible authorization.
+
+Before enforcement, run a known violation and a valid candidate. An E3 check searching for “ready” may accept an error page; check actual contents, then record as a trial what the rule would block; a trial changes no existing verdict. Promote only when results are stable, false blocks understood, and a failure owner identified. A promoted gate counts as a changed method: for accepted candidates not yet serving traffic, affected observations and verdicts lapse and the package is rebuilt for re-review with the gate's result as evidence; a candidate in rollout is not automatically rolled back—the release owner decides promotion or stop under the plan using the gate's result; live candidates are not revisited, and an archived candidate that is not yet live is checked against the gate at readiness assessment. Presence in a pipeline is not evidence of validity.
+
+Return candidate snapshot, check, status, redacted evidence location and owner. A behavior failure goes to implementation; unavailable input or infrastructure, and any skipped, cancelled or resultless required job, leave the claim unverified and return unverified to 16 even when the pipeline is green. Record justified non-applicability separately with its rule. Not-run, non-applicable and passed are distinct. Read-only review proposes configuration changes rather than applying them. Guard owns functional as well as security gates, not only scanners. Pin trigger scope, candidate, actual exit status, failure owner and replay method for each. Pipeline results usually arrive outside a session: write them to the status of the matching check in the verification record, where the next session's resumption reads them and returns them to the owner; build no listener or poller for gates. In a read-only mandate, hand an identified owner a configuration task pending authorization.
+
+### 22 旧系统何时可以下线？ / When may a legacy system be retired?
+
+> `deprecation` · `firefly-archive` · `contract` · `trial`
+
+#### 中文
+
+**替代能力可用与旧能力可移除，是两项独立决定。** 迁移负责人先列消费者、旧承诺、替代路径和观察周期，逐个验证真实消费者已切换；再提交破坏性移除的决定。通知已发、期限已到、新入口已上线，都不能单独证明无人依赖旧入口。
+
+假设网页已全部使用异步导出，但月末批处理仍可能调用同步接口。观察一周没有调用，若其中不含月结日，就不能据此判定退休。应由批处理负责人核对配置和执行周期，在覆盖真实周期的窗口验证替代路径及结果一致性。对身份未知或无法观察的消费者，应保留风险说明并延长兼容、补充观察或取得明确的风险接受，而非记为“已迁移”。
+
+移除申请记录消费者证据、停用顺序、恢复办法、执行者与单独批准。需要区分撤回新流量、恢复旧接口和恢复已删除数据：三者并非同一种回退。确实不可恢复时说明后果并交有权人决定。归档责任是保存和复核这一决定，不因归档新功能而自动执行删除。对无法完整枚举消费者的公开接口，迁移负责人同时给出公告渠道、旧到新用法、支持期限、联系与风险接受人。区分建议迁移与强制截止；在完整业务周期结束前不可用零流量作移除依据。归档存放迁移决定，并带一条待处置的移除条目。实际切换或删除是破坏性变更，须另有委托，按交付路径走 06 的任务、07 的实施和 16 的独立评审；评审场景至少含“旧入口按声明不可用，已迁移的消费者仍能从替代路径取得结果”。获准的执行者按停用顺序执行后，把执行时间、实际影响和残余风险回传到归档记录，负责人核对后关闭条目；回传未到时条目保持待处置。观察窗口跨越完整业务周期的，窗口终点与接手者写入任务记录。
+
+#### English
+
+**Replacement availability and permission to remove legacy behavior are separate decisions.** Inventory consumers, existing promises, replacement paths and relevant observation cycles. Verify each real migration before requesting destructive removal. Notices, deadlines and a deployed entry point do not establish absence of dependencies.
+
+A month-end batch job may still use synchronous export after the web UI migrates. A quiet week outside month-end proves little. Have the owner inspect configuration, exercise the replacement and observe the real cycle. Unknown consumers require extended compatibility, better observation or explicit risk acceptance—not an invented migration success.
+
+Document evidence, retirement order, recovery, executor and separate approval. Stopping new traffic, restoring an endpoint and recovering deleted data are different operations. Disclose irreversibility. Archive preserves and reviews the decision; it does not silently remove the old behavior. For public interfaces with unenumerable consumers, the migration owner supplies notice channel, old-to-new usage, support window, contact and risk acceptor. Distinguish advice from a mandatory deadline; zero traffic before a complete business cycle cannot justify removal. Archive records the decision with an open removal item. Switching over or deleting is a destructive change under a separate mandate and follows the delivery path: tasks under 06, implementation under 07 and independent review under 16, with a review scenario at least for “the old entry point is unavailable as declared and migrated consumers still obtain results from the replacement path.” The authorized executor follows the retirement order and returns the time, actual impact and residual risk to the archive record, where the owner closes the item after checking; until then it stays open. When an observation window spans a complete business cycle, its end and the successor are written to the task record.
+
+### 23 为什么留下来，留在哪里？ / Why is kept, and where does it live?
+
+> `docs` · `firefly-docs` · `conditional` · `designed`
+
+#### 中文
+
+**长期保留的是下一位维护者不能从代码可靠还原、但会影响下一次决定的信息。** 术语含义归入团队词汇；对外行为归入规格；具有长期约束力的取舍、被否决的备选和重审条件归入 ADR；只解释当前差异的阅读说明留在 PR。各处用指针连接，不维护多份相同结论。
+
+例如 `ready` 的定义要让前端、执行端和验收者共同引用，因此属于规格或词汇。「为何不按查询条件去重」值得留下 ADR，因为将来的性能优化可能再次提出该方案。记录触发决策的 E1、曾考虑的替代、失败反例以及何时应重新评估；实验输入和完整输出保留在证据位置。若只能从历史推断当初动机，把“观察到的行为”“有证据的理由”“仍未知”分开，不代替原作者补写意图。
+
+规格同步是一项有写入效果的工作。先列本次新增、修改、移除和重命名的承诺，再把结果与当前实现和测试对照，检查未涉及条款是否仍在。重命名保留旧标识到新标识的映射、原场景与引用；不得以删旧建新静默丢弃历史。被替代的 ADR 标记状态及继任决定。把变更前后语义对照交给 25 的非作者复核，能打开文件不等于内容保全。写本地调查或 ADR 不包含更新长期规格的授权。最终应让持不同意见的维护者找到原始依据，而不是只能引用另一份摘要。
+
+#### English
+
+**Retain reasoning that future maintainers cannot reliably recover from code and that affects their next decision.** Put vocabulary in a glossary, public behavior in the spec, consequential choices and reconsideration conditions in an ADR, and change-local reading guidance in the PR. Link rather than duplicate conclusions.
+
+Define `ready` where UI, worker and verifier share it. Record why query equality is not intent identity because future optimization may reopen that choice: include E1, the rejected alternative, counterexample and conditions for reconsideration. Link experiment inputs and outputs. Distinguish observed behavior, documented rationale and unknown historical intent.
+
+Spec sync is a write operation. Enumerate additions, changes, removals and renames, reconcile them with implementation and tests, and verify preservation of unrelated clauses. Preserve an old-to-new ID mapping, scenarios and references on rename; never silently lose history through delete-and-add. Mark superseded ADRs with status and successor. Send a before/after semantic comparison to independent closeout review in 25; an accessible file is not proof of preservation. An investigation or ADR does not authorize updating the long-lived spec. Leave enough primary evidence for a future maintainer to disagree intelligently.
+
+### 24 功能上线时，可观测性也一起上线吗？ / Does observability ship with the feature?
+
+> `observability` · `firefly-trace` · `contract` · `trial`
+
+#### 中文
+
+**与功能一同交付的，是值班人员判断用户是否得到结果所需的信号。** `trace` 面向产品运行，不是记录代理做了多少步骤。04 在场景承诺用户取得结果、或服务有值班承诺时把这项工作交到这里；两项条件都不满足的内部重构不触发。规格阶段先让维护者回答：什么叫成功，用户最可能在哪一步失败，发现异常时谁会采取什么行动？已有信号足以回答就直接复用；不能回答时再选最少的指标、日志或追踪。
+
+异步导出最容易误判的是“请求已接受”和“文件可用”。提交成功率正常时，队列仍可能长期积压，也可能任务已置为 ready 却无法下载。前者需要获知未完成任务的等待情况，后者需要核对完成状态之后的文件获取结果。两种故障的处置不同，不能用一条通用错误计数掩盖。度量维度应有界，不以用户或任务号作为高基数标签；需要关联个案时使用受控、脱敏的记录，不保存报表内容。
+
+发布前在测试环境分别模拟任务延迟和文件不可读，请未参与实现的人凭这些信号定位失败阶段，并指出应检查的责任环节。演练记录绑定候选快照、规格版本、注入的故障和执行人；候选或运行信号要求在演练后变化时重做演练。若只能看出“发生错误”，无法区分两种处置路径，就把缺失信号退回实现。通过后把带候选快照的演练记录、观察方法、负责人和异常时的下一步写入进度记录，交给发布负责人；“已接入日志”不能代替这次演练。若服务有值班承诺，还要在测试环境中停止信号上报，区分“无失败”与“无数据”，验证通知到达指定接警人且能按 runbook 找到下一步。记录触发条件、渠道、接收和恢复结果；仅看板有曲线不得给出告警链通过。无值班承诺时，在交付摘要说明可观察但不会主动通知。
+
+#### English
+
+**Ship the signals an operator needs to tell whether users obtained the promised result.** Trace addresses product behavior, not agent activity. 04 sends work here when a scenario promises that users obtain a result or the service has an on-call promise; an internal refactor meeting neither condition does not trigger it. Define success, likely failure stages, and who would act on an anomaly. Reuse sufficient existing signals; add only the measurements required for unanswered questions.
+
+Submission success can coexist with a growing export backlog or a ready file that cannot be retrieved. Queue waiting and post-ready retrieval outcomes distinguish those failures and point to different remedies. Keep metric dimensions bounded; use scoped, redacted records for individual correlation rather than user/job IDs as high-cardinality labels or report contents in logs.
+
+In a test environment induce delayed processing and unreadable output separately. Ask a non-author to locate the failed stage and identify the next responsible component from the signals. Bind the drill record to the candidate snapshot, spec version, injected faults and executor; repeat the drill if the candidate or the signal requirements change afterwards. An undifferentiated error count is insufficient if it cannot distinguish remedies; return the missing signals to the implementer. Write the drill record with its candidate snapshot, the observation method, owner and response into the progress record for the release owner; “logging is enabled” is not acceptance. For an on-call service, interrupt telemetry in test to distinguish no failures from no data. Verify delivery to the named responder and an actionable runbook; record trigger, channel, receipt and recovery. A working dashboard cannot pass the alert chain. Without an on-call promise disclose visibility without active notification.
+
+### 25 上线前需要什么证据？ / What evidence is required before launch?
+
+> `shipping` · `firefly-archive` · `path` · `designed`
+
+#### 中文
+
+**发布就绪要分别证明候选正确、运行异常可发现、出现异常有人可以处置。** 负责人汇总此前已约定的验收条件，而非在最后阶段临时增加不可预期的门禁。最终候选快照、独立评审裁决（含保留项）、适用的项目检查、运行观察方式和处置责任必须对应同一交付范围；24 已触发时，演练记录还须对应同一候选；演练之后候选或运行信号要求有变化则先重做演练，只有规格版本变化而信号要求未变时，在演练记录上登记新版本并注明未受影响的理由。
+
+导出案例的销项表应能逐行打开：E1 的两个输入分别得到复用任务和新任务；E2 的刷新恢复与账户隔离均有结果；E3 不仅有状态转换，还包括正确文件与失败信号。每行写候选、观察结果、证据位置、评审者与未验证项，未验证项逐项取自裁决的保留项栏并带“是否涉及必需行为”的标记；标“涉及”的未验证项使就绪评估不通过。然后回答运行问题：由谁观察积压或下载失败，何时停止新流量，队列中尚未完成的任务如何保存或告知用户。
+
+若代码和测试已通过，但撤回新版本会丢失在途任务，裁决应是「代码验收通过，发布未就绪」，指出缺少的处置和责任人。获得归档授权才同步、移动变更记录；移动后重新打开证据，区分正常到期与遗失。获得发布授权才实施发布。已就绪、已批准、已上线是三种不同事实，不得在交付摘要中混用。
+
+**三个可独立委托的终点。** 就绪评估只读；本地归档须指定变更，先由非作者核对 23 的同步计划，获准后同步，再复核结果与原范围（包括未改条款与重命名映射），再由非作者确认待归档的变更、最终候选与证据清单相符，最后移动并复开证据。语义丢失则停止归档并在授权范围内修复、重审，不用文件存在代替内容核对。归档的迁移决定带待处置条目，移除结果未回传并核对前保持未关闭（22）。
+
+若另有上线委托，发布负责人在首批流量前把候选快照、各阶段范围、观察窗口、推进与停止阈值、在途任务处置、停止/回退权限及执行人写入进度记录；具体数字由服务目标和基线给出，不套统一百分比。观察不完整或触及停止阈值就不得扩大流量，按已批准预案止损，超出授权时立即交有权人。观察窗口跨越会话时，窗口终点与接手者随预案保存，到期由下一次会话核对信号后才决定是否推进。最后一阶段也要按原场景和 24 的信号复验，记录实际执行、残余影响与接手者，才能报告已上线且复验通过。就绪或归档委托都不得执行上述流量动作。
+
+#### English
+
+**Launch readiness requires evidence of correctness, detection, and accountable response.** Aggregate previously agreed criteria, not surprise gates. The final candidate snapshot, independent verdict with reservations, applicable project checks, observation method and response owner must cover the same delivery. Where 24 was triggered, the drill record must also match the same candidate; a candidate or signal requirement changed after the drill is drilled again first, and when only the spec version changed with signal requirements intact, the record notes the new version and why it was unaffected.
+
+The closeout ledger links both E1 input outcomes, E2 recovery and isolation, and E3 correct content and failure signal. Each row identifies candidate, observation, evidence, reviewer and unverified items, taken item by item from the verdict's reservations with their mark for touching required behavior; an unverified item marked as touching required behavior fails the readiness assessment. Specify who detects backlog or retrieval failure, when to stop new traffic, and what happens to in-flight jobs.
+
+If a rollback loses outstanding jobs, report “code accepted; not launch-ready” despite green tests. Identify the missing response and owner. Archive/sync requires its own authority; reopen evidence after moving records and distinguish expiry from loss. Release requires release authority. Ready, approved and live are not interchangeable claims.
+
+**Three separately commissionable endpoints.** Readiness assessment is read-only. Local archive names a change: a non-author first reviews 23's sync plan; after authorized sync, independently check the result against scope, including untouched clauses and rename mappings. Have a non-author match the archive package to the named change, final candidate and evidence ledger before moving records and reopening evidence. Semantic loss stops archive for authorized repair and re-review; existence is not preservation. An archived migration decision keeps an open removal item that stays open until the removal result is returned and checked (22).
+
+Under a separate launch mandate, before first traffic the release owner writes candidate snapshot, stage scope, observation windows, promotion/stop thresholds, in-flight disposition, authorized stop/rollback actions and executors into the progress record. Use service objectives and baselines rather than a universal rollout percentage. Incomplete observations or a stop threshold prohibit expansion. Contain within the approved plan or escalate immediately for further authority. When an observation window outlives the session, its end and the successor are kept with the plan and the next session checks the signals before deciding whether to advance. Verify the final stage against original scenarios and 24's signals, recording execution, residual impact and successor before claiming live and verified. Neither readiness nor archive authorizes traffic changes.
+
+### 26 复盘改代码、环境，还是技能？ / Does retro change code, environment, or skills?
+
+> `retro` · `firefly-retro` · `conditional` · `trial`
+
+#### 中文
+
+**选择能够消除原因的最小改动，并在下一次同类任务中检验。** 复盘从已发生的失败或重复返工开始：先记录当时的输入、决定、工具结果和实际后果，再把事实与事后推断分开。只提取与该变更相关的脱敏材料，不把完整会话作为学习资产，不要求每次正常交付都产生一条新规则。
+
+同一个“错误地批准 E3”可以有三种原因。产品提前发布 ready，改代码并增加回归；测试夹具永远返回可读文件，改环境或夹具；证据本来足以区分，评审者却反复把 200 当成下载成功，才考虑调整评审规则。先问“若上次已有这项改动，那次错误还会不会通过”，而不是直接把教训写进所有技能。
+
+规则候选必须注明适用范围、基准版本、预期减少的错误、可能增加的误拦和撤回条件。让既有规则、最小机械检查、候选规则在相同的正常与失败案例上只记录各自会怎样裁决；保留未参与调规则的案例，由独立评审比较漏检、误拦、人工打断与成本。同效选较简单方案，无可复核收益则不采纳。复盘批准的是改进建议，规则启用另行批准；生效后保留版本和撤回依据。相同症状在独立事件中反复出现且原因仍有争议时，由负责人界定可读证据范围，分别请非作者从判断失误与工具缺陷解释同一事实；综合者保留反对证据而非只摘录共识。若只是未接入的坏文件夹具，修正夹具并交 21；若留出集出现新的必需场景误阻断且未获风险接受，拒绝启用规则，已启用则按撤回条件处理。
+
+#### English
+
+**Choose the smallest intervention that removes the cause, then test it on subsequent comparable work.** Start from an actual failure or repeated rework. Separate contemporary input, decision, tool result and consequence from later inference. Share scoped, redacted facts, not an entire transcript. Routine success need not create a standing rule.
+
+An erroneous E3 acceptance can arise at three layers. Fix premature ready publication in product code; fix always-readable fixtures in the environment; consider changing review instructions only for repeated judgment errors despite adequate evidence. Ask whether the proposed change would actually have prevented the observed failure.
+
+For a rule candidate state scope, base revision, expected misses prevented, possible false blocks and withdrawal condition. Shadow-score the existing rule, smallest mechanical check and candidate on the same normal/failing inputs. Use held-out cases and independent assessment of misses, false blocks, interruptions and cost. Prefer the cheaper equivalent, reject unproven changes, require separate activation approval, and retain the version and rollback basis. For recurring independent incidents with disputed causes, scope evidence access and have non-authors independently test judgment and tooling explanations against the same facts. Preserve contrary evidence in synthesis. Route an unwired bad-file fixture to 21 rather than updating instructions. Reject a rule that introduces a material held-out false block without risk acceptance; apply its withdrawal condition if already active.

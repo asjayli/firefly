@@ -1,0 +1,73 @@
+@design 19
+
+# Entry. firefly-perf is named directly, dispatched by firefly-review for the
+# affected checks of the budget axis, or named by a scenario map row as the
+# verifier of a measurement to interpret. The non-trigger condition is the
+# missing clock or load.
++trigger: to measure a slow path, or to compare candidates against a baseline
++trigger: The mandate record must cover the writes the work takes
++trigger: the affected checks of that axis
++trigger: Only those checks run, and their results return to that review
++trigger: a measurement to interpret
++trigger: No reproducible load, or a user-waiting time that cannot be defined
+
+# Authorization boundary. Perf measures; it does not tune. The verdict and the
+# acceptable change stay with the reviewer and the requirement owner; the
+# constraint entry and the CI mount are other skills' writes; a review dispatch
+# leaves one write only.
++mandate: The edits that make the code faster belong to `firefly-implement`
++mandate: Redefining a criterion, a measurement method or a baseline so that a candidate passes
++mandate: These are the requirement owner's decisions; this skill prepares and presents them
++mandate: The verdict is the independent reviewer's to issue, never this skill's
++mandate: that is firefly-bounds' write
++mandate: that is firefly-guard's write, under its own authority
++mandate: The observation row and its evidence are the only write
++mandate: The handover carries no write authority
+
+# Inputs: the interval the requester means, the constraint entry's method, the
+# scenario map rows, the fixed candidate.
++input: the interval of the wait the requester means
++input: the criterion, the measurement method, the baseline source and the consequence of failure
++input: the rows of `## Scenario map` in `openspec/changes/<id>/tasks.md` that name them
++input: `firefly snapshot` fixes the candidate before the first measurement record is written
+
+# Outputs: the measurement record per measured version with its attempts,
+# configurations, samples and withdrawal reasons; the observation row through
+# the recorder.
++output: one directory per measured version, never overwritten
++output: --observer verifier:firefly-perf
++output: `--note` is never omitted
++output: The recorder fills in the candidate snapshot and the spec version; nobody reports them by hand
++output: the configurations, the samples and the reason each was withdrawn
+
+# Verdicts and states: comparable conditions, no cherry-picking, noise, lapse,
+# the ballpark rule, the four statuses.
++verdict-or-state: Two numbers measured under different conditions are not compared directly
++verdict-or-state: not the best run
++verdict-or-state: is an unproven improvement
++verdict-or-state: A result made under another criterion or measurement method has lapsed (contract, Lapse)
++verdict-or-state: deliverable only when the user explicitly asked for an order of magnitude
++verdict-or-state: the result (`pass`, `fail` or `unverified`)
+
+# Handoffs: back to the review, to firefly-bounds without write authority, to
+# firefly-guard behind the owner's consent, to firefly-debug for the clock.
++handoff: its baseline, its tolerance and its owner
++handoff: writing the constraint entry needs a mandate whose permitted effects cover the spec package
++handoff: a measurement whose method is stable and whose failures have an owner
++handoff: Guard mounts it under its own write authority
++handoff: the distinguishing feedback is taken through firefly-debug first
+
+# Stops and escalation.
++stop: `ESCALATE` with the current conclusion, the missing evidence or authority, and the responsible owner
++stop: give the conclusion in the reply only, write nothing
++stop: Record the row `unverified` with the reason and return it; the review adjudicates `INSUFFICIENT_EVIDENCE` from it
++stop: Noise is not a stop
+
+# Forbidden. The last three are the overreaches this skill exists to prevent:
+# tuning the candidate to make the number, cherry-picking the best run, and
+# writing the constraint from here.
+-: APPROVE
+-: subagent-driven-development
+-: optimizes the candidate to make the number pass
+-: reports the best run as the result
+-: writes the constraint entry itself

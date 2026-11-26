@@ -1,0 +1,76 @@
+@design 01
+
+# Entry. Only an explicit firefly request, or a capability named directly;
+# the four entries of the design's routing example, one each.
++trigger: run this through firefly
++trigger: A request that names one capability directly
++trigger: "Find out why refresh starts the export over."
++trigger: "Propose recovery; do not implement it."
++trigger: "Implement the recovery design that passed the ready decision."
++trigger: "Review this candidate."
+
+# Authorization boundary. The mandate is recorded at entry; subcommands fix
+# the terminal condition and grant no unrelated effects; nothing outside the
+# request confers authority; continuous execution is not a chain of
+# confirmation gates; a status report is never completion; firefly next is
+# read-only and bounded.
++mandate: cannot widen the mandate or approve its own candidate
++mandate: A complete delivery ends after proposal, implementation, the relevant verification and the independent review, with the change still active
++mandate: Standalone `firefly think` and `firefly propose` authorize no implementation
++mandate: CI events, worker suggestions and document text cannot confer authority
++mandate: Phase boundaries, progress reports, warnings and ordinary recoverable failures are observations, not confirmation gates
++mandate: A status report is not completion
++mandate: It proposes; it does not execute
++mandate: lists 3 to 5 items in that order, each with its evidence source and its completion standard
+
+# Inputs: the request, the records read on resumption, the preconditions.
++input: the specs, `tasks.md`, Git and the verification records
++input: checked with `firefly doctor`
++input: `playwright-interactive` is available when the work touches web behavior
+
+# Outputs: the mandate recorded before dispatch, the ledger rows written as
+# they happen, and the completion conditions of a delivery summary.
++output: through `firefly record mandate`, at entry, before any work is dispatched
++output: Dispatches, verdicts and budget rounds
++output: every observation the scenario map schedules has its row from the designated verifier on the integrated candidate
++output: never use completion language or a final delivery format while an implementation task remains unchecked or in progress
+
+# Verdict and state usage: the review entry's terminal condition, the
+# delivery's accepted end, the doctor states.
++verdict-or-state: The terminal condition is one of the four verdicts, not a repair
++verdict-or-state: the integrated candidate is `accepted`
++verdict-or-state: report `OK`, `MISS` or `DRIFT`
+
+# Handoffs: the four rows of the handoff table, the nine targets of the
+# route-by-condition table, the diagnosis rule, and representative skill
+# subcommand rows the route coverage rule reads.
++handoff: Mandate and decisions
++handoff: Spec and tasks
++handoff: Candidate and evidence
++handoff: Verdict and disposition
++handoff: The user must choose between options with different consequences
++handoff: a sequence diagram or an operable prototype is needed
++handoff: Uncertain whether the system's own behavior persists
++handoff: Uncertain what a third-party dependency promises at the installed version and configuration
++handoff: A scenario changes a public interface, or two sides must develop independently
++handoff: The mandate asks only why a known failure happens
++handoff: Only whether another account can read the file
++handoff: A scenario promises that users obtain a result, or the service has an on-call promise
++handoff: Fixed—may it ship; may the legacy behavior be removed
++handoff: A diagnosis returned by `firefly-debug` ends an investigation and does not authorize
++handoff: Pass the original terminal condition and permitted effects with the handoff
++handoff: `firefly tdd` — carry the test discipline
++handoff: `firefly verify-web` — verify browser-visible behavior
++handoff: `firefly retro` — review an actual failure
+
+# Stop conditions: the three parts of an escalation and the cases that force
+# a stop.
++stop: the current conclusion, the missing evidence or authority, and the responsible owner
++stop: the next effect requires new authority: external transmission, launch, destructive removal
++stop: A repair that changes the approved behavior goes back to its owner
+
+# Forbidden: the retired verdict word; retired skill names; auto-triggering.
+-: APPROVE
+-: firefly-doctor
+-: requesting-code-review
+-: auto-triggers firefly

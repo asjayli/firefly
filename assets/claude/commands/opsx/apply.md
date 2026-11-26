@@ -11,20 +11,13 @@ Implement tasks from an OpenSpec change.
 
 **Input**: Optionally specify a change name (e.g., `/opsx:apply add-auth`). If omitted, check if it can be inferred from conversation context. If vague or ambiguous you MUST prompt for available changes.
 
-**Independent review contract:** Every task and full-branch reviewer receives the same structured fields:
+## Review ownership
 
-- Objective: the authorized outcome.
-- Scope: the allowed repositories, changes, files, and systems.
-- Constraints: the binding process, architecture, safety, and platform rules.
-- Authorized effects: the writes and side effects allowed to the controller.
-- Terminal condition: the state at which this workflow must stop.
-- The candidate producer identity, candidate artifacts, action, or diff, verification evidence, assumptions and risks.
-
-If a reviewer fails to start, times out, crashes, or returns an invalid verdict, reuse the unchanged review package with at most two new independent review agents. If both retries fail, return `ESCALATE` with the collected infrastructure evidence; never infer `APPROVE`. The controller validates only reviewer identity, verdict structure, and supporting evidence; it does not recursively review the verdict.
+Code candidates are judged by firefly review (16). This skill completes the tasks, runs the declared verification, and returns the verified candidate to the caller; it does not dispatch a final review and does not issue a verdict. Invoked outside firefly, report the candidate as unreviewed.
 
 ## Default Continuous Execution
 
-Implementation runs continuously by default. A completed task group, passing verification, an `APPROVE` verdict, a refactor, or a progress report never ends the workflow or waits for feedback.
+Implementation runs continuously by default. Phase boundaries, progress reports, and ordinary recoverable failures are not confirmation gates. Return to the user only when a decision, an authorization, or a piece of evidence is missing, and state what is missing and who decides.
 
 Before returning a completion summary, confirm every completion gate:
 
@@ -32,13 +25,8 @@ Before returning a completion summary, confirm every completion gate:
 - No planned implementation task remains pending or in progress.
 - The required complete verification has succeeded.
 - The change scope has been reviewed and `git diff --check` succeeds.
-- The final independent review is `APPROVE`.
 
 Never use completion language or a final delivery format while any implementation task remains unchecked or in progress.
-
-The controller dispatches an authorized repair subagent for every `REVISE` finding, requires targeted verification, and dispatches a fresh independent reviewer. That reviewer must not have produced the candidate or any repair in the current cycle.
-
-Repeat this repair-review loop until an `APPROVE` verdict or the no-progress `ESCALATE` boundary.
 
 **Steps**
 
@@ -102,24 +90,17 @@ Repeat this repair-review loop until an `APPROVE` verdict or the no-progress `ES
    - Follow the explicit TDD path (RED/GREEN/REFACTOR) for the task
    - On completion, mark the task complete in the tasks file (`- [ ]` → `- [x]`) and continue to the next task
    - Diagnose and repair in-scope design issues and first test failures within scope, then run targeted verification; this is not a user confirmation gate
-   - On `ESCALATE`, combine the blocking evidence, recommended default, option impacts, and reason the workflow cannot continue into one user decision request.
 
-   Only `ESCALATE` pauses for user input. Use it only for a critical ambiguity that cannot be reasonably inferred, a required scope or authorization expansion, a conflicting rule, an unavailable required capability, or a repair loop with no verifiable progress. The user may also interrupt explicitly.
+7. **Run final integration verification**
 
-7. **Run final integration verification and full-branch review**
-
-   Complete every task. Run integration and global verification across the complete implementation. Build a commit-bounded full-branch review package covering the complete implementation range, or a WORKTREE package when commit authorization or branch policy left changes uncommitted. Dispatch a fresh full-branch reviewer that is independent from every candidate producer. Only a final `APPROVE` may produce `Implementation Complete`.
-
-   The final repair-review loop ends on `APPROVE`, or once every Critical and Important finding has been fixed and confirmed by a fresh re-review, after at most three further review rounds; remaining Minor findings are recorded as follow-up items in the coverage ledger, not silently dropped. This severity-gated closing does not override the no-progress `ESCALATE` boundary.
-
-   On a final authorized `REVISE`, the controller dispatches an implementation repair subagent with the findings, reruns integration and global verification, builds a fresh full-branch package, and dispatches a fresh independent full-branch reviewer. Without repair authorization, return the findings unchanged. A final `ESCALATE` is limited to the substantive boundaries in the independent review contract.
+   Complete every task. Run integration and global verification across the complete implementation. Report the candidate as ready for review once every task is checked and the declared verification has run. The verdict belongs to firefly review.
 
 8. **On completion or escalation, show status**
 
    Display:
    - Tasks completed this session
    - Overall progress: "N/M tasks complete"
-   - If all done and the final review approved: report completion and keep the change active
+   - If all done: report the candidate as ready for review and keep the change active
    - If escalated: report the consolidated decision request and its evidence
 
 **Output During Implementation**
@@ -150,7 +131,7 @@ Working on task 4/7: <task description>
 - [x] Task 2
 ...
 
-All tasks and final integration review complete. The change remains active.
+All tasks and final integration verification complete. The change remains active.
 ```
 
 **Output On Escalation (User Decision Required)**
@@ -176,11 +157,10 @@ No further in-scope action can proceed without this decision.
 - Keep going through tasks until done or blocked
 - Always read context files before starting (from the apply instructions output)
 - Infer ordinary implementation details from the objective, artifacts, and repository evidence; escalate only a consequential ambiguity with multiple materially different outcomes
-- If implementation reveals issues, update authorized artifacts or code, then re-run the matching verification and independent review
+- If implementation reveals issues, update authorized artifacts or code, then re-run the matching verification
 - Keep code changes minimal and scoped to each task
-- Update a task checkbox only after targeted verification and an independent `APPROVE`
+- Update a task checkbox only after targeted verification
 - Diagnose the first test failure and other recoverable errors before escalation
-- Only `ESCALATE` pauses for user input
 - Use contextFiles from CLI output, don't assume specific file names
 
 **Fluid Workflow Integration**

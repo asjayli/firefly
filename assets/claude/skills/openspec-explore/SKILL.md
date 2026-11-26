@@ -287,3 +287,9 @@ But this summary is optional. Sometimes the thinking IS the value.
 - **Do visualize** - A good diagram is worth many paragraphs
 - **Do explore the codebase** - Ground discussions in reality
 - **Do question assumptions** - Including the user's and your own
+
+---
+
+## Review ownership
+
+Explorations are not reviewed. Findings are input to firefly think (02) or firefly propose (04).

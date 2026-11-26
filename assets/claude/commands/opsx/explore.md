@@ -162,6 +162,12 @@ When things crystallize, you might offer a summary - but it's optional. Sometime
 
 ---
 
+## Review ownership
+
+Exploring is thinking; this command performs no review. When exploration turns into a change, the spec it produces is judged by the joint ready decision of firefly propose (04) and the candidate by firefly review (16). Invoked outside firefly, treat any resulting proposal as unreviewed.
+
+---
+
 ## Guardrails
 
 - **Don't implement** - Never write code or implement features. Creating OpenSpec artifacts is fine, writing application code is not.

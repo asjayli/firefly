@@ -278,43 +278,7 @@ compare_path() {
   return 1
 }
 
-resolve_openspec_root() {
-  if [[ -n "$OPENSPEC_ROOT" ]]; then
-    validate_root "$OPENSPEC_ROOT" ""
-    echo "$OPENSPEC_ROOT"
-    return
-  fi
-
-  local npm_global_root
-  npm_global_root="$(npm root -g)"
-  local resolved="$npm_global_root/@fission-ai/openspec"
-  validate_root "$resolved" "@fission-ai/openspec"
-  echo "$resolved"
-}
-
-read_openspec_version() {
-  local openspec_root="$1"
-  local pkg="$openspec_root/package.json"
-  [[ -f "$pkg" ]] || return 0
-  node -e 'const p=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")); process.stdout.write(p.version||"")' "$pkg" 2>/dev/null
-}
-
-is_valid_openspec_package() {
-  local openspec_root="$1"
-  local pkg="$openspec_root/package.json"
-
-  [[ -f "$pkg" ]] || return 1
-  node -e 'const p=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")); process.exit(p.name === "@fission-ai/openspec" ? 0 : 1)' "$pkg" 2>/dev/null
-}
-
-openspec_version_matches() {
-  local openspec_root="$1"
-  local ver
-
-  is_valid_openspec_package "$openspec_root" || return 1
-  ver="$(read_openspec_version "$openspec_root")"
-  [[ "$ver" == "$OPENSPEC_OVERRIDE_VERSION" ]]
-}
+# OpenSpec root resolution and version checks live in firefly-upstream.sh.
 
 is_managed_global_command() {
   local command_path="$1"
@@ -395,48 +359,4 @@ repair_global_command() {
   fi
   repair_path "$GLOBAL_COMMAND_SOURCE" "$command_path"
   write_global_command_state
-}
-
-validate_discovered_superpowers_root() {
-  local root_path="$1"
-  local claude_root_real
-  local plugin_root_real
-
-  validate_root "$root_path" ""
-  if [[ ! -d "$root_path" ]]; then
-    echo "Claude plugin install path does not exist: $root_path" >&2
-    return 1
-  fi
-
-  claude_root_real="$(cd "$CLAUDE_ROOT" && pwd -P)"
-  plugin_root_real="$(cd "$root_path" && pwd -P)"
-  if [[ "$plugin_root_real" != "$claude_root_real/plugins" && "$plugin_root_real" != "$claude_root_real/plugins/"* ]]; then
-    echo "Claude plugin install path must be inside $CLAUDE_ROOT/plugins: $root_path" >&2
-    return 1
-  fi
-
-  validate_superpowers_skills_root "$root_path"
-}
-
-validate_superpowers_skills_root() {
-  local root_path="$1"
-  local skills_path="$root_path/skills"
-  local root_real
-  local skills_real
-
-  if [[ ! -d "$skills_path" ]]; then
-    echo "Claude plugin skills directory is missing: $skills_path" >&2
-    return 1
-  fi
-  if [[ -L "$skills_path" || -n "$(find "$skills_path" -type l -print -quit)" ]]; then
-    echo "Claude plugin skills directory must not contain symlinks: $skills_path" >&2
-    return 1
-  fi
-
-  root_real="$(cd "$root_path" && pwd -P)"
-  skills_real="$(cd "$skills_path" && pwd -P)"
-  if [[ "$skills_real" != "$root_real/skills" && "$skills_real" != "$root_real/skills/"* ]]; then
-    echo "Claude plugin skills directory escapes plugin root: $skills_path" >&2
-    return 1
-  fi
 }

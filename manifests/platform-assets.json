@@ -13,6 +13,42 @@
     "{{PLATFORM_SPAWN}}": {
       "codex": "spawn_agent",
       "claude": "Task"
+    },
+    "{{PLATFORM_LABEL}}": {
+      "codex": "Codex",
+      "claude": "Claude Code"
+    },
+    "{{PLATFORM_CHILD_WAIT}}": {
+      "codex": "**Codex child-agent waiting:** The single blocking-wait limit is 60 seconds. After dispatching an in-scope child agent with `spawn_agent`, repeatedly call `wait_agent` with `timeout_ms: 60000` and use `list_agents` to poll the active-agent set. When a wait times out, immediately begin the next 60-second wait while any in-scope child remains active. When a callback arrives, automatically continue with its repair, verification, or next workflow phase, then resume the wait loop for every remaining active child.",
+      "claude": "**Claude Code child-agent lifecycle:** After dispatching an in-scope child with the native `Task` mechanism, retain control and collect its lifecycle through Claude Code's native agent handling. When a callback arrives, automatically continue with its repair, verification, or next workflow phase, then continue tracking every remaining in-scope child. Do not emit a `final` response, completion summary, or user-facing wait request while an in-scope child remains active, except for an explicit user interruption or a valid `ESCALATE` boundary."
+    },
+    "{{PLATFORM_NAME}}": {
+      "codex": "Codex",
+      "claude": "Claude"
+    },
+    "{{PLATFORM_DOCTOR}}": {
+      "codex": "doctor-codex.sh",
+      "claude": "doctor-claude.sh"
+    },
+    "{{PLATFORM_INIT_HINT}}": {
+      "codex": "If the repository is expected to work from both Codex and Claude, prefer initializing with `--tools codex,claude`.",
+      "claude": "When preparing a repository for the Claude firefly path, prefer initializing with `--tools codex,claude` so the project can be used consistently from both firefly clients."
+    },
+    "{{PLATFORM_ASK_SELECT}}": {
+      "codex": ", then let the user select",
+      "claude": " and use the **AskUserQuestion tool** to let the user select"
+    },
+    "{{PLATFORM_ASK_OPEN}}": {
+      "codex": "Ask the user (open-ended, no preset options):",
+      "claude": "Use the **AskUserQuestion tool** (open-ended, no preset options) to ask:"
+    },
+    "{{PLATFORM_TODO}}": {
+      "codex": "Track progress through the artifacts with the client's available planning mechanism.",
+      "claude": "Use the **TodoWrite tool** to track progress through the artifacts."
+    },
+    "{{PLATFORM_ASK_ONCE}}": {
+      "codex": "request one substantive selection",
+      "claude": "use **AskUserQuestion** once for a substantive selection"
     }
   },
   "shared": [
@@ -21,45 +57,33 @@
     "skills/firefly-verify-web",
     "skills/mermaid-diagram-specialist",
     "skills/firefly-archive",
+    "skills/firefly-context",
     "skills/firefly-draw",
     "skills/firefly-propose",
     "skills/firefly-review",
     "skills/firefly-tasks",
-    "skills/openspec-sync-specs",
-    "superpowers/skills/brainstorming",
-    "superpowers/skills/writing-plans",
-    "superpowers/skills/executing-plans",
-    "superpowers/skills/test-driven-development"
+    "skills/firefly-bounds",
+    "skills/firefly-source",
+    "skills/firefly-doubt",
+    "skills/firefly-arch",
+    "skills/firefly-docs",
+    "skills/firefly-ui",
+    "skills/firefly-tdd",
+    "skills/firefly-debug",
+    "skills/firefly-guard",
+    "skills/firefly-perf",
+    "skills/firefly-trace",
+    "skills/firefly-pr",
+    "skills/firefly-retro",
+    "skills/firefly",
+    "skills/firefly-init",
+    "skills/firefly-repair",
+    "skills/openspec-apply-change",
+    "skills/openspec-propose",
+    "skills/openspec-archive-change",
+    "references"
   ],
   "platformSpecific": [
-    {
-      "path": "skills/firefly",
-      "reason": "Router embeds divergent controller mechanisms: Codex spawn_agent/wait_agent/list_agents polling vs Claude native Task lifecycle, plus a phase-verification clause carried only by Codex."
-    },
-    {
-      "path": "skills/firefly-init",
-      "reason": "Initialization guidance differs in framing (--tools recommendation wording) beyond a plain path token."
-    },
-    {
-      "path": "skills/firefly-doctor",
-      "reason": "Prose references the platform by label ('Codex/Claude environment') in full sentences, not only path variables."
-    },
-    {
-      "path": "skills/firefly-repair",
-      "reason": "Same platform-label sentence pattern as firefly-doctor."
-    },
-    {
-      "path": "skills/openspec-apply-change",
-      "reason": "User-selection step uses AskUserQuestion only on Claude via a sentence-level rewrite."
-    },
-    {
-      "path": "skills/openspec-propose",
-      "reason": "AskUserQuestion prompt and progress-tracking (TodoWrite vs client mechanism) differ at sentence level."
-    },
-    {
-      "path": "skills/openspec-archive-change",
-      "reason": "Spec-sync step is described differently (openspec flow vs Task-invoked openspec-sync-specs)."
-    },
     {
       "path": "skills/openspec-explore",
       "reason": "Explores are invoked differently (/opsx: prefix on Claude) and ASCII/table formatting differs."
@@ -67,14 +91,6 @@
     {
       "path": "skills/playwright-interactive",
       "reason": "Codex carries a config.toml + sandbox flag block and codex.emitImage() calls; Claude uses environment-generic enablement and emitImage(). NOTICE.txt also differs."
-    },
-    {
-      "path": "superpowers/skills/subagent-driven-development",
-      "reason": "Overlay targets the upstream superpowers install root. Continuous-controller and child-agent lifecycle diverge (Codex spawn_agent/wait_agent/list_agents polling vs Claude native Task lifecycle); the model-selection section is conditional on Codex but unconditional on Claude. Byte-identical siblings (brainstorming, writing-plans, executing-plans, test-driven-development) are rendered from assets/shared/superpowers/skills/."
-    },
-    {
-      "path": "superpowers/skills/requesting-code-review",
-      "reason": "Overlay targets the upstream superpowers install root. code-reviewer.md frontmatter carries an explicit-model directive only on Claude; Codex omits it."
     }
   ],
   "claudeOnly": [
@@ -87,8 +103,7 @@
       "skills/openspec-apply-change",
       "skills/openspec-archive-change",
       "skills/openspec-explore",
-      "skills/openspec-propose",
-      "skills/openspec-sync-specs"
+      "skills/openspec-propose"
     ]
   }
 }

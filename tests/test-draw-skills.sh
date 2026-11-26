@@ -25,12 +25,20 @@ do
   assert_file_contains "$path" "without making the diagram bloated"
 done
 
+# v2 firefly-draw settles behavior; rendering belongs to the controller command
+# `firefly diagram` (phase 8 registers it). The skill text points there and
+# carries none of the retired rendering machinery.
 for path in \
   "$ROOT_DIR/assets/claude/skills/firefly-draw/SKILL.md" \
   "$ROOT_DIR/assets/codex/skills/firefly-draw/SKILL.md"
 do
-  assert_file_contains "$path" "Request concise Chinese notes for key methods and critical intermediate steps."
-  assert_file_contains "$path" "Optimize for fast understanding, not maximum annotation density."
+  assert_file_contains "$path" "firefly diagram"
+  for retired in "firefly-draw.sh" "mmdc" ".svg"; do
+    if grep -Fq "$retired" "$path"; then
+      echo "expected $path to no longer name the retired rendering token: $retired" >&2
+      exit 1
+    fi
+  done
 done
 
 echo "draw skill docs test passed"

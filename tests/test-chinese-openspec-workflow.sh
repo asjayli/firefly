@@ -79,18 +79,13 @@ assert_file_contains "$ROOT_DIR/assets/codex/skills/openspec-archive-change/SKIL
 assert_file_contains "$ROOT_DIR/assets/codex/skills/openspec-archive-change/SKILL.md" "artifactPaths.specs.existingOutputPaths"
 assert_file_not_contains "$ROOT_DIR/assets/codex/skills/openspec-archive-change/SKILL.md" "mkdir -p openspec/changes/archive"
 assert_file_contains "$ROOT_DIR/assets/codex/skills/openspec-explore/SKILL.md" "artifactPaths.<artifact>.existingOutputPaths"
-assert_file_contains "$ROOT_DIR/assets/codex/skills/firefly/SKILL.md" "changeRoot"
-assert_file_contains "$ROOT_DIR/assets/claude/skills/firefly/SKILL.md" "changeRoot"
+# v2: changeRoot resolution lives in firefly-implement's command note.
+assert_file_contains "$ROOT_DIR/assets/codex/skills/firefly-implement/SKILL.md" "changeRoot"
+assert_file_contains "$ROOT_DIR/assets/claude/skills/firefly-implement/SKILL.md" "changeRoot"
 
-for path in \
-  "$ROOT_DIR/assets/claude/commands/opsx/sync.md" \
-  "$ROOT_DIR/assets/claude/skills/openspec-sync-specs/SKILL.md" \
-  "$ROOT_DIR/assets/codex/skills/openspec-sync-specs/SKILL.md"
-do
-  assert_file_contains "$path" "planningHome.root"
-  assert_file_contains "$path" '<planningHome.root>/openspec/specs/<capability>/spec.md'
-  assert_file_not_contains "$path" "For each repo-local capability"
-done
+# /opsx:sync is a thin shell: the sync itself, including its planning-root
+# handling, runs through firefly docs.
+assert_file_contains "$ROOT_DIR/assets/claude/commands/opsx/sync.md" 'firefly docs'
 
 for path in \
   "$ROOT_DIR/assets/claude/commands/opsx/archive.md" \

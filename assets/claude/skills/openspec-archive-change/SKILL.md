@@ -15,18 +15,11 @@ Archive a completed change in the experimental workflow.
 
 **Input**: Optionally specify a change name. If omitted, check if it can be inferred from conversation context. If vague or ambiguous you MUST prompt for available changes.
 
-**Independent review contract:** An explicit archive request authorizes the named change's spec sync and local archive move. Use `Task` for an independent reviewer different from the candidate producer. Every review package contains:
+An explicit archive request authorizes the named change's spec sync and local archive move.
 
-- Objective: the authorized outcome.
-- Scope: the allowed repositories, changes, files, and systems.
-- Constraints: the binding process, architecture, safety, and platform rules.
-- Authorized effects: the writes and side effects allowed to the controller.
-- Terminal condition: the state at which this workflow must stop.
-- The change identity, candidate producer identity, candidate artifacts, action, or diff, verification evidence, warnings, assumptions and risks.
+## Review ownership
 
-Require an evidence-backed `APPROVE`, `REVISE`, or `ESCALATE`. On `APPROVE`, continue automatically. On `REVISE`, repair the sync plan, sync result, or archive package, revalidate, and review again. Only `ESCALATE` pauses for user input, and only for unresolved data-loss risk, goal or rule conflict, missing authorization, a critical ambiguity, or an unavailable required capability.
-
-If a reviewer fails to start, times out, crashes, or returns an invalid verdict, reuse the unchanged review package with at most two new independent review agents. If both retries fail, return `ESCALATE` with the collected infrastructure evidence; never infer `APPROVE`. The controller validates only reviewer identity, verdict structure, and supporting evidence; it does not recursively review the verdict.
+Spec sync, the archive package, and readiness are judged by firefly archive (25), which uses firefly docs (23) for the sync. This skill performs the archive move it is asked for; it does not review and does not decide readiness.
 
 **Steps**
 
@@ -48,7 +41,7 @@ If a reviewer fails to start, times out, crashes, or returns an invalid verdict,
 
    **If any artifacts are not `done`:**
    - Display warning listing incomplete artifacts
-   - Include the warning in the independent archive review; it is not a confirmation gate by itself
+   - Include the warning in the archive summary; it is not a confirmation gate by itself
 
 3. **Check task completion status**
 
@@ -58,7 +51,7 @@ If a reviewer fails to start, times out, crashes, or returns an invalid verdict,
 
    **If incomplete tasks found:**
    - Display warning showing count of incomplete tasks
-   - Include the warning in the independent archive review; escalate only if it creates unresolved data-loss or goal-conflict risk
+   - Include the warning in the archive summary; escalate only if it creates unresolved data-loss or goal-conflict risk
 
    **If no tasks file exists:** Proceed without task-related warning.
 
@@ -69,13 +62,11 @@ If a reviewer fails to start, times out, crashes, or returns an invalid verdict,
    **If delta specs exist:**
    - Compare each delta spec with its corresponding main spec at `<planningHome.root>/openspec/specs/<capability>/spec.md`
    - Determine what changes would be applied (adds, modifications, removals, renames)
-   - Build a combined sync plan and send it through the independent review protocol
-   - On `APPROVE`, sync delta specs by default by using `Task` to invoke openspec-sync-specs for change '<name>' with the reviewed delta spec analysis
-   - Validate the sync result for intended content, preservation, and idempotency, then independently review the result before continuing
+   - Build a combined sync plan
+   - Sync delta specs through firefly docs when it is installed; otherwise use the OpenSpec spec-sync skill.
+   - Validate the sync result for intended content, preservation, and idempotency
 
-5. **Review and perform the archive**
-
-   Build an archive package containing the named change identity, sync status, completion warnings, target path, and preservation evidence. Apply the independent review protocol and proceed only on `APPROVE`.
+5. **Perform the archive**
 
    Create an `archive` directory under `planningHome.changesDir` if it doesn't exist:
    ```bash
@@ -117,8 +108,7 @@ All artifacts complete. All tasks complete.
 **Guardrails**
 - Auto-select a uniquely identified change; request selection only for multiple equally plausible candidates
 - Use artifact graph (openspec status --json) for completion checking
-- Don't block archive on ordinary warnings - record and review them
+- Don't block archive on ordinary warnings - record them in the summary
 - Preserve .openspec.yaml when moving to archive (it moves with the directory)
 - Show clear summary of what happened
-- If delta specs exist, use the openspec-sync-specs approach (agent-driven) by default
-- Only `ESCALATE` pauses for user input
+- Sync delta specs through firefly docs when it is installed; otherwise use the OpenSpec spec-sync skill.

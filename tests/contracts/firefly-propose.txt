@@ -1,0 +1,163 @@
+@design 04
+# firefly-propose: the spec as a record of agreed behavior, the joint ready
+# decision over the spec package and the task package, the ready decision as
+# the only start record, and the limits around inferred scenarios, open
+# blockers and tasks.
+
+# Entry: named by the user, or for a ready decision again.
++trigger: The user names `firefly propose`, with a description of the change, a file path or both
++trigger: A spec package or a task package changed after a ready decision
+# Decidable skips: an open goal, and a change that already carries the decision.
++trigger: The minutes hold no selected behavior
++trigger: propose and review nothing again
+# A valid ready decision starts implementation only under a mandate that continues into delivery.
++trigger: Under a proposal-only mandate the proposal is complete
+
+# Mandate: the spec blocks only what cannot be judged; nothing is re-asked or filled in.
++mandate: It holds the start back only when those commitments cannot tell a correct implementation from a wrong one
++mandate: Do not re-interview the user
++mandate: write nothing for the part the inference has not settled
+# Mandate: the task package and the record rows belong to others.
++mandate: the planner writes them under `firefly-tasks`
++mandate: Never hand-write or edit a row of `## Ready decision`
++mandate: Planning is not a start
++mandate: Implementing anything or editing product code
++mandate: A mandate whose recorded terminal condition is not the `accepted` candidate is read as proposal-only
++mandate: the mandate in force is the newest row of `## Mandate`
++trigger: A scope confirmation
++trigger: the task package goes through the joint decision again
++trigger: When the owner narrowed it, the planner then edits the task package under this skill
++mandate: the id is `<change>-delivery` and the permitted effects are the delivery effects of `firefly-implement`
+# Mandate: the mandate is on record before any artifact exists.
++mandate: Record the mandate immediately after the change exists and before any artifact is written
+
+# Mandate: the producer self-critique runs before the handover.
++mandate: Run the producer self-critique
++mandate: Every acceptance criterion is falsifiable.
++mandate: Dependency edges are acyclic.
++mandate: Nothing exceeds the user-authorized scope.
+
+# Inputs: the accepted sources, and the three kinds of decision source.
++input: A specified file is requirement input, never implementation output
+# A file the user named is the requirement record itself; nothing is added to it.
++input: is itself the requirement record
++input: `<kind>` is `user-words`, `owner-confirmed` or `agent-inference`
+# Words that exist only in the conversation become a minutes entry before a scenario cites them.
++input: is recorded first, as a new minutes entry under `openspec/think/`
+# A reviewer name becomes part of a file name; the recorder refuses any other character.
++input: A name begins with a letter or digit and holds letters, digits and `. _ : @ + -` only
+
+# Inputs carried forward from the earlier contract: context provenance and read-only project memory.
++input: Context Provenance
++input: Read project memory read-only
+
+# Outputs: which carrier, and when it is written.
++output: By `firefly record mandate` in step 1, right after the change is created and before any artifact
+# The pointer to the requirement record is one hand-written line, never a hand-written row.
++output: one hand-written line below the table: `Minutes: <path>`
++output: By `firefly record ready`, as each joint verdict returns and before the next step
+# The joint review is a review dispatch of its own, and each return has a file.
++output: Progress record, `## Review dispatches`
++output: verdict-reviewer-<reviewer>.md
++output: Store the whole return, unchanged
++output: validate --root <project-root>
++output: the recorded ready decision with both package versions and the reviewer
++output: The task list and `## Scenario map` of `tasks.md` are not outputs of this skill
+# A contract and a runtime signal requirement are written into the spec; design.md judges nothing.
++output: `design.md` holds only the design that supports the scenarios, plus the dependency conclusions that support them, and judges nothing
+
+# The proposal-only end reports ready and names the next command; it is never staged as an interruption.
++output: Report that it is ready and give `firefly implement <change>` as the next command
++output: the writes and side effects the task groups need as the task package declares them
++mandate: the permitted effects are the delivery effects of `firefly-implement`
++output: do not describe this normal completion as an interruption or as missing authorization
+# Chinese requirements keep the normative words and the requirement heading.
++output: 必须、不得、禁止、应当
++output: ### Requirement:
+
+# Verdict and record usage: only ACCEPT starts; versions come from the runtime;
+# a ready decision holds only while both package versions match.
++verdict-or-state: Only `ACCEPT` hands the change to `firefly-implement`
++verdict-or-state: A required scenario still sourced to `agent-inference` counts as unauthorized and cannot pass
++verdict-or-state: it is the ready decision they wait for, not the planning
++verdict-or-state: The spec version is the content digest of every scenario
++verdict-or-state: snapshot --spec <change>
++verdict-or-state: snapshot --tasks <change>
++verdict-or-state: The tool computes both. Nobody estimates, derives or copies them
++verdict-or-state: must equal the versions in the identity of the return the decision relies on
++verdict-or-state: A late return records no decision
++verdict-or-state: The newest row of `## Ready decision` is the current ready decision
++verdict-or-state: in every version comparison this skill makes
++verdict-or-state: Every other row, and a newest row whose versions differ, is `historical`
+# Observations and task mappings lapse by the spec version of the whole package; other records follow the Lapse rule.
++verdict-or-state: Every observation and every task mapping in `## Scenario map` that cites the old spec version is `historical`
++verdict-or-state: Ready decisions and review packages follow the contract's Lapse rule
+# Only the rows of the ready decision table are left out of the task package version.
++verdict-or-state: A tick and a row of the `## Ready decision` table are left out of the task package version
++verdict-or-state: Never infer a verdict
+# A joint ACCEPT is valid only with its reservation list; the source line must match the entry it points to.
++verdict-or-state: an `ACCEPT` without its reservation list
++verdict-or-state: whose entry is not the user's words or the owner's confirmation counts as `agent-inference`
+# A promise changes only on the owner's decision; design.md is in neither package version.
++verdict-or-state: A promise changes only on the requirement owner's decision
++verdict-or-state: `design.md` is in neither package version
++output: every criterion, measurement method and runtime signal requirement is in the spec file with its scenario or in a row of `## Scenario map`, never in `design.md` alone
+
+# Handoffs: the two before planning, the joint review, the one to implementation.
++handoff: The contract (states, error semantics, retry conditions, compatibility window) is written back into the scenario
++handoff: written into the runtime signal requirements of the spec file
++handoff: An internal refactor that meets none of these conditions triggers none of these handoffs
++handoff: The constraint entry sits beside the affected scenario
++handoff: The conclusion entry is written where the decision is made
++mandate: A record under `docs/dependencies/` is not among them: it needs its own authority
++handoff: Return the missing branch to the planner; the agreed goal is not rewritten
+# The joint review carries both package versions in its identity; a failed reviewer follows firefly-review.
++handoff: --package <change>@ready.<spec12>.<tasks12>
++handoff: as `firefly-review` handles an infrastructure failure
++handoff: Under a mandate that continues into delivery, enter `firefly-implement` without another joint review
++handoff: Which mandate is in force is read from the newest row of `## Mandate` (step 4)
++handoff: Out, after `ACCEPT`, only under a mandate that continues into delivery
++verdict-or-state: which the author does not fill in
++verdict-or-state: goes back to step 7 for its tasks and mappings to be checked again
++mandate: The tasks of a required scenario that waits for the owner's confirmation are inside it
+
+# Stops: strict validation, a missing source, the three escalation items, and the normal end.
++stop: A non-zero exit blocks the start
++stop: is not repaired here: the next step needs an effect the mandate does not permit
++stop: The requirement source cannot be recovered
++stop: A spec does not fail only because no dissent report exists
++stop: No version is derived by hand, so no ready decision is recorded
++stop: An `ESCALATE` carries three things: the current conclusion, the missing evidence or authority, and the responsible owner
++stop: Do not ask whether to continue
+
+# The source is looked for in all four places before the mandate escalates.
++stop: from the input, the referenced files, the conversation or repository evidence
+
+# Forbidden: the retired verdict word.
+-: APPROVE
+# Forbidden: retired skill names (one of them was routed through by the earlier version of this skill).
+-: brainstorming
+-: writing-plans
+# Forbidden: the superseded ways of getting a package version and of bounding the joint review.
+-: rev-parse --short HEAD
+-: at most two more times
+# Forbidden: the superseded joint review identity, the withdrawn rules about editing tasks.md around a candidate snapshot, and fine-grained lapse.
+-: package `<change>@ready`
+-: between a fixed candidate snapshot and the verdict on it
+-: the candidate snapshot of the implementation
+-: the affected observations
+# Overreach: the author settles what only the requirement owner may settle.
+-: confirm an inferred scenario on the owner's behalf
+-: fill the open blocker with the author's own behavior
+# Overreach: the proposal takes over the planner's package.
+-: write the scenario map for the planner
+# Overreach: ready is reported without a recorded decision, or the user is asked for a stage confirmation.
+-: report the change as ready without a recorded ready decision
+-: ask the user whether to start implementation
+# Overreach: a valid ready decision is read as a delivery mandate, or a signal requirement is kept out of the spec version.
+-: Enter `firefly-implement`; propose and review nothing again
+-: Runtime signal requirements are written in `design.md`
+
+# Overreach: the user is asked to clarify before the work goes on.
+-: Stop and clarify
++handoff: The state list is in `design.md`: for each affected state, its entry condition, the actions it allows, the feedback the user can perceive, and how it is left

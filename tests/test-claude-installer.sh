@@ -84,7 +84,7 @@ fi
 
 assert_contains "$(<"$MANIFEST")" '"version": "1.6.0"'
 assert_contains "$(<"$MANIFEST")" '"overrideTargetVersion": "1.6.0"'
-assert_contains "$(<"$INSTALLER")" 'npm install -g @fission-ai/openspec@1.6.0'
+assert_contains "$(<"$ROOT_DIR/scripts/firefly-install.sh")" 'npm install -g @fission-ai/openspec@1.6.0'
 
 installer_help="$("$INSTALLER" --help)"
 doctor_help="$("$DOCTOR" --help)"
@@ -102,7 +102,6 @@ trap 'rm -rf "$tmp_dir"' EXIT
 export CLAUDE_HOME="$tmp_dir/.claude"
 export FIREFLY_BIN_DIR="$tmp_dir/.local/bin"
 bin_dir="$tmp_dir/bin"
-superpowers_root="$CLAUDE_HOME/plugins/cache/superpowers/6.1.1"
 export OPENSPEC_ROOT="$tmp_dir/openspec"
 npm_log="$tmp_dir/npm.log"
 export FAKE_NPM_ROOT="$tmp_dir/npm-global"
@@ -135,19 +134,9 @@ if [[ "$deprecated_flag_status" != "1" ]]; then
 fi
 assert_contains "$deprecated_flag_output" "unknown argument: --install-openspec"
 
-mkdir -p "$CLAUDE_HOME/plugins"
-mkdir -p "$superpowers_root/skills/brainstorming"
-mkdir -p "$superpowers_root/skills/writing-plans"
-mkdir -p "$superpowers_root/skills/test-driven-development"
-mkdir -p "$superpowers_root/skills/subagent-driven-development"
-mkdir -p "$superpowers_root/skills/requesting-code-review"
-mkdir -p "$superpowers_root/skills/executing-plans"
 mkdir -p "$OPENSPEC_ROOT/dist/core/templates/workflows"
 printf '{"name":"@fission-ai/openspec","version":"1.6.0"}\n' > "$OPENSPEC_ROOT/package.json"
 printf 'user local claude think\n' > "$CLAUDE_HOME/skills/firefly-think/SKILL.md"
-printf 'user local claude brainstorming\n' > "$superpowers_root/skills/brainstorming/SKILL.md"
-printf 'user local claude tdd\n' > "$superpowers_root/skills/test-driven-development/SKILL.md"
-printf 'user local claude review\n' > "$superpowers_root/skills/requesting-code-review/SKILL.md"
 printf 'export function serializeConfig() { return "wrong"; }\n' > "$OPENSPEC_ROOT/dist/core/config-prompts.js"
 printf 'export const propose = "wrong";\n' > "$OPENSPEC_ROOT/dist/core/templates/workflows/propose.js"
 cat > "$bin_dir/openspec" <<EOF
@@ -155,20 +144,6 @@ cat > "$bin_dir/openspec" <<EOF
 exit 0
 EOF
 chmod +x "$bin_dir/openspec"
-cat > "$CLAUDE_HOME/plugins/installed_plugins.json" <<EOF
-{
-  "version": 2,
-  "plugins": {
-    "superpowers@superpowers-marketplace": [
-      {
-        "scope": "user",
-        "installPath": "$superpowers_root",
-        "version": "6.1.1"
-      }
-    ]
-  }
-}
-EOF
 
 mkdir -p "$FIREFLY_BIN_DIR"
 printf '#!/usr/bin/env bash\n# firefly global command shim\necho user-command\n' > "$FIREFLY_BIN_DIR/firefly"
@@ -185,12 +160,12 @@ fi
 assert_contains "$command_collision_output" "refusing to replace existing command: $FIREFLY_BIN_DIR/firefly"
 rm "$FIREFLY_BIN_DIR/firefly"
 
+# No upstream superpowers plugin or directory exists in this fake HOME; the
+# install must still succeed and lay out the full managed asset set.
 installer_output="$(PATH="$bin_dir:$PATH" "$INSTALLER")"
 assert_contains "$installer_output" "🧱 firefly Claude installer"
 assert_contains "$installer_output" "✅ Applied openspec override"
 assert_contains "$installer_output" "✅ Applied firefly-managed Claude assets"
-assert_contains "$installer_output" "✅ Detected Claude superpowers plugin at $superpowers_root"
-assert_contains "$installer_output" "✅ Applied firefly-managed Claude superpowers overrides"
 assert_contains "$installer_output" "💾 Backed up"
 assert_contains "$installer_output" "🎉 firefly Claude install complete"
 assert_contains "$(cat "$npm_log")" "install -g @fission-ai/openspec@1.6.0"
@@ -200,39 +175,55 @@ for mirror_path in assets scripts manifests; do
 done
 
 test_path_not_exists "$CLAUDE_HOME/skills/firefly-think.firefly.bak"
-test_path_not_exists "$superpowers_root/skills/brainstorming/SKILL.md.firefly.bak"
-test_path_not_exists "$superpowers_root/skills/test-driven-development/SKILL.md.firefly.bak"
-test_path_not_exists "$superpowers_root/skills/requesting-code-review/SKILL.md.firefly.bak"
 test_path_not_exists "$OPENSPEC_ROOT/dist/core/config-prompts.js.firefly.bak"
 test_path_not_exists "$OPENSPEC_ROOT/dist/core/templates/workflows/propose.js.firefly.bak"
 test_file_exists "$CLAUDE_HOME/skills/firefly-think/SKILL.md"
 test_file_exists "$CLAUDE_HOME/skills/firefly/SKILL.md"
 test_file_exists "$CLAUDE_HOME/skills/openspec-propose/SKILL.md"
-test_file_exists "$CLAUDE_HOME/skills/openspec-sync-specs/SKILL.md"
 test_file_exists "$CLAUDE_HOME/skills/mermaid-diagram-specialist/SKILL.md"
 test_file_exists "$CLAUDE_HOME/skills/playwright-interactive/SKILL.md"
 test_file_exists "$CLAUDE_HOME/commands/opsx/propose.md"
-test_file_exists "$superpowers_root/skills/brainstorming/SKILL.md"
-test_file_exists "$superpowers_root/skills/writing-plans/SKILL.md"
-test_file_exists "$superpowers_root/skills/test-driven-development/SKILL.md"
-test_file_exists "$superpowers_root/skills/subagent-driven-development/SKILL.md"
-test_file_exists "$superpowers_root/skills/requesting-code-review/SKILL.md"
-test_file_exists "$superpowers_root/skills/requesting-code-review/code-reviewer.md"
-test_file_exists "$superpowers_root/skills/executing-plans/SKILL.md"
-
-# subagent-driven-development is overlaid as a whole directory: its runtime
-# scripts and prompt templates must land alongside SKILL.md, and the scripts
-# must keep their exec bit through the cp -R overlay.
-sdd_root="$superpowers_root/skills/subagent-driven-development"
-test_file_exists "$sdd_root/implementer-prompt.md"
-test_file_executable "$sdd_root/scripts/task-brief"
-test_file_executable "$sdd_root/scripts/review-package"
-test_file_executable "$sdd_root/scripts/sdd-workspace"
-
+# The handoff contract is installed from the rendered references directory.
+test_file_exists "$CLAUDE_HOME/firefly/references/handoff-contract.md"
+cmp "$ROOT_DIR/assets/claude/references/handoff-contract.md" "$CLAUDE_HOME/firefly/references/handoff-contract.md"
 # Runtime scripts are installed to ~/.claude/firefly/bin and must stay executable.
 test_file_executable "$CLAUDE_HOME/firefly/bin/bootstrap-project.sh"
 test_file_executable "$CLAUDE_HOME/firefly/bin/list-change-tasks.sh"
-test_file_executable "$CLAUDE_HOME/firefly/bin/firefly-draw.sh"
+# Runtime scripts are installed to ~/.claude/firefly/bin and must stay executable,
+# the five added with the snapshot and record tools included; the renamed
+# diagram script replaces the old one; the shared install/doctor libraries
+# and their common helper ship alongside the platform scripts.
+for runtime_script in bootstrap-project.sh list-change-tasks.sh firefly-diagram.sh firefly-snapshot.sh firefly-record.sh review-package task-brief sdd-workspace doctor-claude.sh validate-openspec-cn.mjs firefly-common.sh firefly-install.sh firefly-doctor.sh; do
+  test_file_executable "$CLAUDE_HOME/firefly/bin/$runtime_script"
+done
+test_path_not_exists "$CLAUDE_HOME/firefly/bin/firefly-draw.sh"
+for runtime_script in review-package task-brief sdd-workspace firefly-snapshot.sh firefly-record.sh firefly-diagram.sh firefly-common.sh firefly-install.sh firefly-doctor.sh; do
+  cmp "$ROOT_DIR/scripts/$runtime_script" "$CLAUDE_HOME/firefly/bin/$runtime_script"
+done
+echo "ok claude installer: runtime scripts and shared libraries installed, executable and identical to the source"
+
+# The installed skill set equals the manifest's skill set, so a skill that is
+# registered is installed; firefly-context is checked by name as well.
+manifest_skill_names="$(node -e 'const m=require(process.argv[1]); console.log(m.managedAssets.filter(a => a.kind === "skill-directory" && a.source.startsWith("assets/claude/skills/")).map(a => a.target.split("/").pop()).sort().join("\n"))' "$MANIFEST")"
+installed_skill_names="$(find "$CLAUDE_HOME/skills" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort)"
+if [[ "$manifest_skill_names" != "$installed_skill_names" ]]; then
+  echo "installed skill set differs from the manifest" >&2
+  exit 1
+fi
+# Without any superpowers present the install still lays out exactly the 31
+# managed skill directories.
+installed_skill_count="$(find "$CLAUDE_HOME/skills" -mindepth 1 -maxdepth 1 -type d | wc -l)"
+if [[ "$installed_skill_count" -ne 31 ]]; then
+  echo "expected 31 installed skill directories but got $installed_skill_count" >&2
+  exit 1
+fi
+test_file_exists "$CLAUDE_HOME/skills/firefly-context/SKILL.md"
+for s in firefly-bounds firefly-source firefly-doubt firefly-arch firefly-docs \
+         firefly-ui firefly-tdd firefly-debug firefly-guard firefly-perf firefly-trace \
+         firefly-pr firefly-retro; do
+  test_file_exists "$CLAUDE_HOME/skills/$s/SKILL.md"
+done
+echo "ok claude installer: 31 skill directories installed without any superpowers present"
 test_file_executable "$CLAUDE_HOME/firefly/bin/doctor-claude.sh"
 test_file_executable "$CLAUDE_HOME/firefly/bin/validate-openspec-cn.mjs"
 cmp "$ROOT_DIR/scripts/validate-openspec-cn.mjs" "$CLAUDE_HOME/firefly/bin/validate-openspec-cn.mjs"
@@ -249,22 +240,9 @@ assert_contains "$actual_skill" "$expected_skill"
 expected_router="$(cat "$ROOT_DIR/assets/claude/skills/firefly/SKILL.md")"
 actual_router="$(cat "$CLAUDE_HOME/skills/firefly/SKILL.md")"
 assert_contains "$actual_router" "$expected_router"
-expected_brainstorming="$(cat "$ROOT_DIR/assets/claude/superpowers/skills/brainstorming/SKILL.md")"
-actual_brainstorming="$(cat "$superpowers_root/skills/brainstorming/SKILL.md")"
-assert_contains "$actual_brainstorming" "$expected_brainstorming"
-expected_tdd="$(cat "$ROOT_DIR/assets/claude/superpowers/skills/test-driven-development/SKILL.md")"
-actual_tdd="$(cat "$superpowers_root/skills/test-driven-development/SKILL.md")"
-assert_contains "$actual_tdd" "$expected_tdd"
-expected_review_template="$(cat "$ROOT_DIR/assets/claude/superpowers/skills/requesting-code-review/code-reviewer.md")"
-actual_review_template="$(cat "$superpowers_root/skills/requesting-code-review/code-reviewer.md")"
-assert_contains "$actual_review_template" "$expected_review_template"
-expected_sdd="$(cat "$ROOT_DIR/assets/claude/superpowers/skills/subagent-driven-development/SKILL.md")"
-actual_sdd="$(cat "$superpowers_root/skills/subagent-driven-development/SKILL.md")"
-assert_contains "$actual_sdd" "$expected_sdd"
 expected_command="$(cat "$ROOT_DIR/assets/claude/commands/opsx/propose.md")"
 actual_command="$(cat "$CLAUDE_HOME/commands/opsx/propose.md")"
 assert_contains "$actual_command" "$expected_command"
-assert_contains "$(<"$MANIFEST")" '"id": "openspec-sync-specs-skill"'
 expected_openspec_config="$(cat "$ROOT_DIR/assets/openspec/dist/core/config-prompts.js")"
 actual_openspec_config="$(cat "$OPENSPEC_ROOT/dist/core/config-prompts.js")"
 assert_contains "$actual_openspec_config" "$expected_openspec_config"
@@ -285,7 +263,7 @@ assert_contains "$doctor_output" "$OPENSPEC_ROOT/dist/core/templates/workflows/p
 assert_contains "$doctor_output" "$CLAUDE_HOME/skills/firefly-think"
 assert_contains "$doctor_output" "$CLAUDE_HOME/skills/firefly"
 assert_contains "$doctor_output" "$CLAUDE_HOME/commands/opsx"
-assert_contains "$doctor_output" "$superpowers_root/skills/requesting-code-review"
+assert_contains "$doctor_output" "$CLAUDE_HOME/firefly/references"
 
 rm "$FIREFLY_BIN_DIR/firefly"
 
@@ -314,7 +292,7 @@ test_file_executable "$FIREFLY_BIN_DIR/firefly"
 test_path_not_exists "$FIREFLY_BIN_DIR/firefly.firefly.bak"
 cmp "$ROOT_DIR/scripts/firefly-global.sh" "$FIREFLY_BIN_DIR/firefly"
 
-echo "drift" >> "$superpowers_root/skills/brainstorming/SKILL.md"
+echo "drift" >> "$OPENSPEC_ROOT/dist/core/config-prompts.js"
 
 set +e
 drift_output="$(PATH="$bin_dir:$PATH" "$DOCTOR" 2>&1)"
@@ -332,13 +310,12 @@ repair_output="$(PATH="$bin_dir:$PATH" "$DOCTOR" --repair)"
 assert_contains "$repair_output" "🛠️ Repairing drifted or missing assets"
 assert_contains "$repair_output" "💾 Backed up"
 assert_contains "$repair_output" "✅ Repaired"
-test_path_not_exists "$superpowers_root/skills/brainstorming/SKILL.md.firefly.bak"
 
 post_repair_output="$(PATH="$bin_dir:$PATH" "$DOCTOR")"
 assert_contains "$post_repair_output" "✨ No drift detected"
 assert_contains "$post_repair_output" "firefly Claude doctor passed"
 
-chmod -x "$CLAUDE_HOME/firefly/bin/firefly-draw.sh"
+chmod -x "$CLAUDE_HOME/firefly/bin/firefly-diagram.sh"
 
 set +e
 mode_drift_output="$(PATH="$bin_dir:$PATH" "$DOCTOR" 2>&1)"
@@ -350,11 +327,11 @@ if [[ "$mode_drift_status" != "1" ]]; then
   exit 1
 fi
 assert_contains "$mode_drift_output" "❌ DRIFT"
-assert_contains "$mode_drift_output" "$CLAUDE_HOME/firefly/bin/firefly-draw.sh"
+assert_contains "$mode_drift_output" "$CLAUDE_HOME/firefly/bin/firefly-diagram.sh"
 
 mode_repair_output="$(PATH="$bin_dir:$PATH" "$DOCTOR" --repair)"
-assert_contains "$mode_repair_output" "$CLAUDE_HOME/firefly/bin/firefly-draw.sh"
-test_file_executable "$CLAUDE_HOME/firefly/bin/firefly-draw.sh"
+assert_contains "$mode_repair_output" "$CLAUDE_HOME/firefly/bin/firefly-diagram.sh"
+test_file_executable "$CLAUDE_HOME/firefly/bin/firefly-diagram.sh"
 
 rm "$CLAUDE_HOME/firefly/bin/validate-openspec-cn.mjs"
 
@@ -409,6 +386,30 @@ doctor_script_repair_output="$(PATH="$bin_dir:$PATH" "$DOCTOR" --repair)"
 assert_contains "$doctor_script_repair_output" "$CLAUDE_HOME/firefly/bin/doctor-claude.sh"
 test_file_executable "$CLAUDE_HOME/firefly/bin/doctor-claude.sh"
 cmp "$ROOT_DIR/scripts/doctor-claude.sh" "$CLAUDE_HOME/firefly/bin/doctor-claude.sh"
+
+# FIREFLY_MANIFEST overrides the default manifest path: a temporary manifest
+# without one skill-directory installs everything but that skill.
+manifest_override_dir="$(mktemp -d)"
+trap 'rm -rf "$tmp_dir" "$manifest_override_dir"' EXIT
+mkdir -p "$manifest_override_dir/fake-root/manifests" "$manifest_override_dir/home"
+ln -s "$ROOT_DIR/assets" "$manifest_override_dir/fake-root/assets"
+ln -s "$ROOT_DIR/scripts" "$manifest_override_dir/fake-root/scripts"
+node -e '
+  const fs = require("fs");
+  const m = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+  m.managedAssets = m.managedAssets.filter(
+    (a) => !(a.kind === "skill-directory" && a.source === "assets/claude/skills/firefly-doubt")
+  );
+  fs.writeFileSync(process.argv[2], JSON.stringify(m, null, 2) + "\n");
+' "$MANIFEST" "$manifest_override_dir/fake-root/manifests/claude.json"
+
+override_home="$manifest_override_dir/home/.claude"
+manifest_override_output="$(CLAUDE_HOME="$override_home" FIREFLY_BIN_DIR="$manifest_override_dir/home/.local/bin" OPENSPEC_ROOT="$tmp_dir/openspec" FIREFLY_MANIFEST="$manifest_override_dir/fake-root/manifests/claude.json" PATH="$bin_dir:$PATH" "$INSTALLER")"
+assert_contains "$manifest_override_output" "🎉 firefly Claude install complete"
+test_path_not_exists "$override_home/skills/firefly-doubt"
+test_file_exists "$override_home/skills/firefly/SKILL.md"
+test_file_exists "$override_home/firefly/references/handoff-contract.md"
+echo "ok claude installer: FIREFLY_MANIFEST drops the removed skill-directory entry"
 
 missing_openspec_root="$tmp_dir/missing-openspec"
 rm -rf "$missing_openspec_root"
@@ -471,27 +472,10 @@ test_path_not_exists "$invalid_openspec_root/dist/core/config-prompts.js"
 test_file_exists "$CLAUDE_HOME/skills/firefly/SKILL.md"
 
 missing_openspec_dir="$(mktemp -d)"
-trap 'rm -rf "$tmp_dir" "$missing_openspec_dir"' EXIT
+trap 'rm -rf "$tmp_dir" "$manifest_override_dir" "$missing_openspec_dir"' EXIT
 export CLAUDE_HOME="$missing_openspec_dir/.claude"
 export FIREFLY_BIN_DIR="$missing_openspec_dir/.local/bin"
 unset OPENSPEC_ROOT
-mkdir -p "$CLAUDE_HOME/plugins"
-missing_openspec_superpowers_root="$CLAUDE_HOME/plugins/cache/superpowers/6.1.1"
-mkdir -p "$missing_openspec_superpowers_root/skills"
-cat > "$CLAUDE_HOME/plugins/installed_plugins.json" <<EOF
-{
-  "version": 2,
-  "plugins": {
-    "superpowers@superpowers-marketplace": [
-      {
-        "scope": "user",
-        "installPath": "$missing_openspec_superpowers_root",
-        "version": "6.1.1"
-      }
-    ]
-  }
-}
-EOF
 
 set +e
 missing_openspec_output="$(PATH="$bin_dir:$PATH" "$INSTALLER" 2>&1)"
@@ -504,118 +488,10 @@ if [[ "$missing_openspec_status" != "1" ]]; then
 fi
 assert_contains "$missing_openspec_output" "openspec install root not found"
 assert_contains "$missing_openspec_output" "Applied firefly-managed Claude assets"
-assert_contains "$missing_openspec_output" "Applied firefly-managed Claude superpowers overrides"
 assert_contains "$missing_openspec_output" "firefly Claude install incomplete"
 
-missing_plugin_dir="$(mktemp -d)"
-trap 'rm -rf "$tmp_dir" "$missing_openspec_dir" "$missing_plugin_dir"' EXIT
-export CLAUDE_HOME="$missing_plugin_dir/.claude"
-export FIREFLY_BIN_DIR="$missing_plugin_dir/.local/bin"
-export OPENSPEC_ROOT="$tmp_dir/openspec"
-mkdir -p "$CLAUDE_HOME/plugins"
-
-set +e
-missing_plugin_output="$(PATH="$bin_dir:$PATH" "$INSTALLER" 2>&1)"
-missing_plugin_status=$?
-set -e
-
-if [[ "$missing_plugin_status" != "1" ]]; then
-  echo "expected missing plugin exit code 1 but got $missing_plugin_status" >&2
-  exit 1
-fi
-assert_contains "$missing_plugin_output" "/plugin marketplace add obra/superpowers-marketplace"
-assert_contains "$missing_plugin_output" "/plugin install superpowers@superpowers-marketplace"
-assert_contains "$missing_plugin_output" "choose:"
-assert_contains "$missing_plugin_output" "user"
-assert_contains "$missing_plugin_output" "CLAUDE_SUPERPOWERS_ROOT"
-
-untrusted_plugin_dir="$tmp_dir/untrusted-plugin"
-untrusted_plugin_home="$tmp_dir/untrusted-plugin-home/.claude"
-mkdir -p "$untrusted_plugin_dir/skills/brainstorming" "$untrusted_plugin_home/plugins"
-printf 'do not replace\n' > "$untrusted_plugin_dir/skills/brainstorming/SKILL.md"
-cat > "$untrusted_plugin_home/plugins/installed_plugins.json" <<EOF
-{
-  "version": 2,
-  "plugins": {
-    "superpowers@superpowers-marketplace": [
-      {
-        "scope": "user",
-        "installPath": "$untrusted_plugin_dir",
-        "version": "6.1.1"
-      }
-    ]
-  }
-}
-EOF
-
-set +e
-untrusted_plugin_output="$(CLAUDE_HOME="$untrusted_plugin_home" FIREFLY_BIN_DIR="$untrusted_plugin_home/.local/bin" OPENSPEC_ROOT="$tmp_dir/openspec" PATH="$bin_dir:$PATH" "$INSTALLER" 2>&1)"
-untrusted_plugin_status=$?
-set -e
-
-if [[ "$untrusted_plugin_status" != "1" ]]; then
-  echo "expected untrusted plugin path installer exit code 1 but got $untrusted_plugin_status" >&2
-  exit 1
-fi
-assert_contains "$untrusted_plugin_output" "must be inside"
-if [[ "$(cat "$untrusted_plugin_dir/skills/brainstorming/SKILL.md")" != "do not replace" ]]; then
-  echo "installer must not overlay an automatically discovered plugin outside CLAUDE_HOME" >&2
-  exit 1
-fi
-
-linked_skills_home="$tmp_dir/linked-skills-home/.claude"
-linked_skills_root="$linked_skills_home/plugins/cache/superpowers/6.1.1"
-linked_skills_target="$tmp_dir/linked-skills-target"
-mkdir -p "$linked_skills_root" "$linked_skills_target/brainstorming" "$linked_skills_home/plugins"
-printf 'preserve linked skill\n' > "$linked_skills_target/brainstorming/SKILL.md"
-ln -s "$linked_skills_target" "$linked_skills_root/skills"
-cat > "$linked_skills_home/plugins/installed_plugins.json" <<EOF
-{
-  "version": 2,
-  "plugins": {
-    "superpowers@superpowers-marketplace": [
-      {
-        "scope": "user",
-        "installPath": "$linked_skills_root",
-        "version": "6.1.1"
-      }
-    ]
-  }
-}
-EOF
-
-set +e
-linked_skills_output="$(CLAUDE_HOME="$linked_skills_home" FIREFLY_BIN_DIR="$linked_skills_home/.local/bin" OPENSPEC_ROOT="$tmp_dir/openspec" PATH="$bin_dir:$PATH" "$INSTALLER" 2>&1)"
-linked_skills_status=$?
-set -e
-
-if [[ "$linked_skills_status" != "1" ]]; then
-  echo "expected symlinked plugin skills installer exit code 1 but got $linked_skills_status" >&2
-  exit 1
-fi
-assert_contains "$linked_skills_output" "must not contain symlinks"
-if [[ "$(cat "$linked_skills_target/brainstorming/SKILL.md")" != "preserve linked skill" ]]; then
-  echo "installer must not write through a symlinked plugin skills directory" >&2
-  exit 1
-fi
-
-set +e
-linked_skills_doctor_output="$(CLAUDE_HOME="$linked_skills_home" FIREFLY_BIN_DIR="$linked_skills_home/.local/bin" OPENSPEC_ROOT="$tmp_dir/openspec" PATH="$bin_dir:$PATH" "$DOCTOR" --repair 2>&1)"
-linked_skills_doctor_status=$?
-set -e
-
-if [[ "$linked_skills_doctor_status" != "1" ]]; then
-  echo "expected symlinked plugin skills doctor exit code 1 but got $linked_skills_doctor_status" >&2
-  exit 1
-fi
-assert_contains "$linked_skills_doctor_output" "must not contain symlinks"
-if [[ "$(cat "$linked_skills_target/brainstorming/SKILL.md")" != "preserve linked skill" ]]; then
-  echo "doctor must not repair through a symlinked plugin skills directory" >&2
-  exit 1
-fi
-
 bad_root_dir="$(mktemp -d)"
-trap 'rm -rf "$tmp_dir" "$missing_openspec_dir" "$missing_plugin_dir" "$bad_root_dir"' EXIT
+trap 'rm -rf "$tmp_dir" "$manifest_override_dir" "$missing_openspec_dir" "$bad_root_dir"' EXIT
 
 set +e
 bad_root_output="$(CLAUDE_HOME="$bad_root_dir" "$INSTALLER" 2>&1)"

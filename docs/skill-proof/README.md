@@ -1,7 +1,10 @@
 # Skill Proof / 技能校样台（项目化源）
 
 根目录 `index.html` 的源工程：四套 agent skills（Matt / Addy / Pstack / Firefly）的定位对照与人工阅读页面，
-外加第五列 `firefly-next`——firefly 下一版的目标态设计稿（尚未实施，见 `firefly-next/DESIGN.md`）。
+外加第五列 `firefly-next`——以四套工作流为同等参考的独立设计，不要求与其中任何一套兼容。
+26 个双语对照点（23 张技能卡 + 3 个并入槽）逐题给出机制取舍、执行契约和验收差异；用月末导出案例推演从委托到交付，而非 26 道必经步骤。本稿规定的行为已在 firefly 0.2.0 实现，并经过桌面重放与一次端到端试点；标 `trial` 的位置收益对照验证尚未进行。真源见 [`firefly-next/DESIGN.md`](firefly-next/DESIGN.md)。
+
+设计真源开头定义全量开发的四个交付包及组合验收，26 题正文为正式契约；`trial` 表示收益须对照验证，并不排除开发。逐题的[四套来源、删减理由与反例审查记录](firefly-next/DECISIONS.zh.md)保留修订前的审查意见，便于对照正文复核，不代表已运行验收。页面第五列每题底部可展开同一条中文记录，包括三个并入槽。修改该记录后也需重新生成投影。
 
 ## 目录结构
 
@@ -66,10 +69,16 @@ docs/skill-proof/
 
 - localStorage 偏好键为 `skill-proof:prefs:v3`（每次集合扩容升一版：v1 三套、v2 四套、v3 五套，
   防旧 visibleSets 隐藏新栏，读者无感知）
-- 第五列 `firefly-next` 的数据由 `tools/build-flynext.py` **从 `firefly-next/DESIGN.md` 派生**：
-  中文卡正文解析生成、英文摘要读 `tools/flynext-en.json`（digest，允许滞后但受禁用词校验）。
-  **不要手改 `data/sets/firefly-next.js`**——改 DESIGN.md 或 flynext-en.json 后重跑生成器。
-- 生成前必跑 `tools/verify-flynext.py`：校验卡数/机制条目数/禁用词/sha/26 点覆盖/索引与 stats 自洽，失败即非零退出。
+- 第五列 `firefly-next` 的双语正文、分类、状态和并入决策都从 `firefly-next/DESIGN.md` 派生。
+  **不要手改 `data/sets/firefly-next.js`**，修改设计后先生成、再校验：
+
+  ```sh
+  python3 docs/skill-proof/tools/build-flynext.py
+  python3 docs/skill-proof/tools/verify-flynext.py
+  ```
+
+  生成器核对 26 个位置及中英文原题、双语答案、23 个唯一技能和三个并入宿主；验证器只读重生成比对，确保正文、映射和索引与真源一致。
+  第五列显示的 SHA-256 是 `DESIGN.md` 内容摘要，不是 Git 提交号。双语语义与试点效果仍需人工评审。
 - `/tmp/slim-index/build-firefly.py`（前三套的历史注入脚本）非幂等，重跑需先重放基线（git show → slim.py → make-static.py）；
   `build-flynext.py` 是幂等的，可反复运行。
 - 索引里的 `positionTitle.en` 沿用既有 26 点框架词汇，与 DESIGN.md 的小节英文名不同源（历史遗留），对照阅读时以中文标题为准

@@ -42,13 +42,21 @@ and `manifests/claude.json`).
 
 - **Source:** https://github.com/obra/superpowers
 - **License:** MIT.
-- **Baseline:** test baseline `6.1.1`.
-- **Modifications:** firefly maintains overlay copies of selected skills
-  (brainstorming, writing-plans, subagent-driven-development, executing-plans,
-  requesting-code-review, test-driven-development) under
-  `assets/{codex,claude}/superpowers/skills/`. These overlays are installed on
-  top of the upstream superpowers installation and never overwrite unmanaged
-  upstream assets.
+- **Derivation:** the firefly skills `firefly-draw`, `firefly-tasks`,
+  `firefly-implement`, `firefly-context`, `firefly-tdd` and `firefly-review`
+  were evolved from the corresponding superpowers overlay skills
+  (brainstorming, writing-plans, subagent-driven-development,
+  executing-plans, test-driven-development). The words in the firefly skills
+  are firefly's own, written or rewritten, not copied. firefly 0.2.0 no
+  longer installs or maintains any superpowers overlay.
+
+### OpenSpec spec-sync
+
+- **Source:** the `openspec-sync-specs` skill of the OpenSpec distribution.
+- **License:** MIT.
+- **Derivation:** the spec-sync mechanism of `firefly-docs`
+  (`references/spec-sync.md`) takes its mechanism from that skill; the text is
+  firefly's own.
 
 ## Runtime tools (user-installed, not redistributed)
 

@@ -1,0 +1,216 @@
+@design 06
+# firefly-tasks: two entries (planning write under firefly-propose, read-only
+# query), the task package as the only write, and the limits around the ready
+# decision, package versions, ticks, blockers, dependencies, verifier
+# independence and retrospective "tested".
+
+# Entered by the controller for planning, or by the user for a listing.
++trigger: The controller names this skill under `firefly-propose`
++trigger: once the spec is ready to be divided
++trigger: The user names `firefly tasks`, or asks only which tasks remain
+
+# A status request is the query entry and grants no write.
++mandate: Take the query entry: write no file, tick no item, repair nothing
+# The task package is the only write of the planning entry; the validator and the
+# version command write no carrier.
++mandate: write `openspec/changes/<id>/tasks.md`, and nothing else
++mandate: neither writes a carrier
+# Planning never decides that work may start.
++mandate: A finished plan is not a start
++mandate: `## Ready decision` is written only by `firefly record ready`
+# Only the controller opens a blocked edge.
++mandate: Only the controller does that, on the result integrated on the target baseline
+# A cycle is settled by a contract or a merge, never by a tick.
++mandate: A cycle is never cleared by ticking a box
+# Ticks: a plan is written unticked, ticks belong to integration, and neither a
+# tick nor an appended row is part of the candidate.
++mandate: A plan is written with every item unticked
++mandate: the controller ticks the items of a task group at once, as soon as that group is integrated on the target baseline
++mandate: A task group that passes only in a child worktree stays unticked
++mandate: is neither part of the task package nor part of the candidate snapshot
+# A blocker never goes onto a task item, at any time.
++mandate: A note on a task item in `tasks.md`, at any time
++mandate: A blocked task carries no note in `tasks.md`, at any time
+# The task package version changes on any edit but a tick or a row of the ready
+# decision table; a tick already in the file is the controller's and is left alone.
++mandate: Any edit to the package other than a tick or a row of the `## Ready decision` table is a task package change
++mandate: The planner neither ticks nor unticks
+# Verifier independence is decidable from the observation: the first row is a
+# replayable mechanical check that needs none of the three.
++mandate: `implementer` is allowed only in the first row, and only once that failing run exists
++mandate: provided the check has first failed on a known-wrong candidate
++mandate: Must be `verifier`: someone who did not implement the candidate
++mandate: On a row whose `Verifier` is not `implementer`, the implementer's own run documents a deviation
++mandate: needs no second identity, no alternative observation and no measurement to interpret
+
+# A check that needs a second identity, an alternative observation or a
+# measurement to interpret is observed by the verifier even when it is replayable:
+# the second row wins over the first. A browser check is placed by what it is.
++mandate: A check that falls in both rows takes the second
++mandate: replayable or not, it is in the second row
++mandate: the planner decides by what the check is, not by the skill that makes it
+# A ticked or an unticked item is not a start decision.
++mandate: A ticked or an unticked item says nothing about the ready decision
+
+# Planning does not start on a spec without a version; the version is the digest;
+# strict validation takes the project root.
++input: the change has no spec package version
++input: a required scenario lacks its stable ID `(S-xxx)`
++input: It is also the content digest of every scenario
++input: The project root, for strict validation
+# design.md supports the scenarios and judges nothing: a criterion, a measurement
+# method or a signal requirement is read from the scenarios.
++input: is never taken from it alone: each is read from the scenarios
+# Where the minutes pointer lives, and what counts as the requirement record.
++input: the `Minutes: <path>` line after its table
++input: a file the user named as the requirement is itself the requirement record
++input: For a mandate with no change the same line sits after the `## Mandates` table of the progress record
+# A change may carry a proposal-only mandate and a delivery mandate, one row each;
+# the newest row is in force, and its terminal condition tells which it is.
++input: the mandate in force is the newest row
++input: A row whose terminal condition is the `accepted` candidate is the delivery mandate
+
+# The package is complete on disk before the joint decision; the query writes nothing.
++output: complete before the package is handed to the controller
++output: The query entry writes nothing
+# Strict validation before the handover: the shipped validator reads the spec
+# package and not tasks.md; a failure it names in tasks.md is repaired here.
++output: The validator as shipped reads the spec package and not `tasks.md`
++output: A failure that names this change's `tasks.md` is repaired here and the command is rerun
+# An observation's --note carries the conditions and the expected outcome of its
+# time; it lands in the Conditions column, and the reviewer compares it with the
+# Expected the map row carries now.
++output: the reviewer sets the last two against the `Expected` and the `Check` the map row carries now
++handoff: and only under a mandate that continues into delivery
++output: every row is observed at `integrated` (on the target baseline), because the review judges the integrated candidate only
++output: Its `--note` is required.
++output: No row's judging check is one that a failure of the baseline, already accepted as known-red, keeps red
++output: those three are granted only by the request's words
++handoff: The controller never records it from this skill's return on its own
+# The status query reads the same list; no second ticket list is kept.
++output: there is no second ticket list to maintain
++output: every task group delivers one independently observable behavior
++output: the failure branches included
++output: Write `## Scenario map` after the last task group
+# The three groups of commands are each specified, and the reverse half of the map
+# lists exactly the rows that name the task.
++output: ### Baseline commands
++output: ### Targeted commands
++output: ### Integrated commands
++output: plus the integrated assertions
++output: `Scenarios:` is the reverse half of the scenario map
++output: exactly the rows of the map that name it
+# What the package must satisfy before the handover: authorized promises, the scope
+# behind no other open blocker, a promise a group depends on observed on the target
+# baseline, the current spec version in every row, a scope no wider than the
+# scenarios and their checks need, every external side effect declared in a fixed
+# form, and no placeholder. A missing required mapping goes back to planning. A
+# capture task group of its own is the one task group with no row of the map.
++output: A package that lacks any required mapping returns to planning
++output: Every task traces to a scenario whose source is `user-words` or `owner-confirmed`
++output: Nothing is planned for the scope behind any other open blocker
++output: The one task group without a row is a capture task group of its own
++output: it serves a non-replayable row and has no scenario of its own
++output: Every row of the map has its observation at `integrated`; a group that another group depends on has the check of the promise it provides observed at `task` as well
++output: Every row's `Spec version` is the version step 1 printed
++output: goes beyond what the scenarios the task group serves need, the files their checks need included
++output: at the end of the step or the command line that has it, in the form `External effect: <effect>`
++output: No field, command or row is left as a placeholder
+# Under a proposal-only mandate the return carries the writes and side effects the
+# task groups need, the integration writes among them. The delivery mandate is
+# recorded from the request's words plus what the task package declares, when the
+# user names firefly implement; never from the return alone.
++output: the return lists the writes and the side effects the task groups need
++output: says whether a task group needs a child worktree, a local commit or a merge into the target baseline
++output: The delivery mandate is recorded from the request's words plus what the task package declares
+# The sample of data observable only before a migration is captured outside the
+# migration task, and the migration task depends on where it is captured.
++output: The capture is not a step of the migration task
++output: a task group of its own that the migration task lists under `Depends on`
++output: and the migration task depends on where it is captured
+# The spec version of a map row comes from the tool and survives commits of the package.
++output: its output is the spec version the map is judged against
++output: A commit of the task package does not change it; only a change to the spec content does
+# The ready decision row carries the two package versions the tools print.
++output: `--spec` and `--tasks` carry what `firefly snapshot --spec <id>` and `firefly snapshot --tasks <id>` print
+# An implementer's own observation is recorded as such; an implementer's or an
+# observer's name goes into a ledger row and takes the recorder's characters only.
++output: recorded with `--observer implementer:<name>` and `--implemented-by-observer`
++output: A name given to an implementer or an observer begins with a letter or digit
+
+# A passing child worktree is not a completed task.
++verdict-or-state: the candidate is `ready-to-integrate`; the task is not done
+# A ready decision is in force only when its verdict is `ACCEPT` and both of its
+# package versions match.
++verdict-or-state: The newest row of `## Ready decision` is the ready decision in force
++verdict-or-state: is the ready decision in force only when its verdict is `ACCEPT`
++verdict-or-state: print now, the `wt:` prefix ignored
++verdict-or-state: Every other row is `historical`, and so is the newest row when a version differs, whatever verdict it carries
+# A spec version change lapses the observations and the map that cite the old
+# version; a changed criterion or measurement method lapses the observations made
+# under it even without a new version, and the task package version is the
+# criterion; other records lapse by their own rules. The wt: prefix is ignored in
+# every version comparison, and an observation row's Spec column is compared after
+# its spec: prefix.
++verdict-or-state: it does so whichever scenario is edited
++verdict-or-state: Every observation row and every map row that cites the old version lapses with it
++verdict-or-state: Ready decisions and review packages lapse under the Lapse rule of the handoff contract
++verdict-or-state: the observation records made under the earlier criterion or method lapse
++verdict-or-state: the map is read as the new copy
++verdict-or-state: Versions are compared without the `wt:` prefix
++verdict-or-state: compare what follows `spec:`, the `wt:` prefix ignored
+
+# The joint review is named by both package versions and recorded as the contract
+# says; a reviewer's or an agent's name goes into a file name; an inferred scenario
+# is planned but not authorized.
++handoff: under the identity `<id>@ready.<spec12>.<tasks12>`
++handoff: follow the contract's Recording section
++handoff: A return that arrives after a package changed records no ready decision for the changed package
++handoff: follows the infrastructure-failure rule of `firefly-review`
++handoff: A name begins with a letter or digit and holds letters, digits and `. _ : @ + -` only
++handoff: A scenario whose source is still `agent-inference` counts as unauthorized
++handoff: Plan and map it like any other required scenario
+# A cycle names the promise each side waits for, then goes for a contract or is
+# merged; the joint decision checks failure branches, cycles, non-replayable items
+# and integrated assertions.
++handoff: which promise it is waiting for from the other
++handoff: merge the two into one delivery slice
++handoff: failure branches, cycles, non-replayable items and integrated assertions
++handoff: The contract task is cut only after the contract is written back into the spec
++handoff: Only when both packages pass the joint decision and a ready decision is in force
+
+# No retrospective "tested"; a missing sample keeps the migration task from becoming ready.
++stop: never to be filled in afterwards as "tested"
++stop: the task does not become ready until the sample exists
++stop: create nothing to make it succeed
++stop: the current conclusion, the missing evidence or authority, and the responsible owner
+
+# Retired verdict word.
+-: APPROVE
+# Retired skill names (the absorbed one is named only in the provenance comment).
+-: executing-plans
+-: test-driven-development
+# Overreach: clearing a cycle or a dependency by hand instead of on integrated results.
+-: break the cycle by checking a box
+-: tick the box to open the dependency
+# Overreach: the planner writes the start decision that belongs to the controller.
+-: writes its own ready decision
+# Overreach: a missing mapping is invented after implementation.
+-: add the missing mapping after implementation
+# Overreach: a read-only listing turns into a repair of the plan.
+-: repairs the plan during the query entry
+# Overreach: a candidate snapshot identifier is typed into the plan by hand.
+-: type the snapshot identifier into the map
+# Overreach: the implementer observes a scenario that needs a second identity.
+-: the implementer observes the second identity check
+# Overreach: a replayable check goes to the first row although it needs a second identity.
+-: a replayable project check is the first row
+# Overreach: a tick the controller wrote is removed while a package is repaired.
+-: untick the items the controller ticked
+# Overreach: a branch that passes in a child worktree is ticked.
+-: tick the items when the branch passes
+# Overreach: a start is read from a ticked task or from a ready row whose versions no longer match.
+-: read the start from the ticked tasks
+# Overreach: a blocker is written onto a task item, or a late return is relied on for a changed package.
+-: note the blocker on the task item
+-: relies on a late return for the changed package

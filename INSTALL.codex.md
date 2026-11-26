@@ -1,43 +1,28 @@
 # firefly For Codex
 
-firefly installs an opinionated Codex workflow around OpenSpec, superpowers, requesting-code-review, and playwright-interactive.
+firefly installs an opinionated Codex workflow around OpenSpec and its own
+managed skill set. As of 0.2.0 firefly ships every workflow skill itself;
+superpowers is not a prerequisite and no superpowers skill is installed,
+overlaid or modified.
 
 This repository is GitHub-first. The Codex path assumes:
 
-- `openspec` is installed or can be installed globally with npm
-- `superpowers` is installed from its upstream Codex install guide
+- `node` and `npm` are available; the installer always installs OpenSpec
+  `1.6.0`, replacing any local version
 - firefly ships and manages its own curated copies of the workflow files it owns
 - `~/.codex` is the primary managed global target
 
 Claude has a separate install path documented in `INSTALL.claude.md`.
 
-## Current Scope
-
-The Codex installer manages:
-
-- firefly and OpenSpec support skills under `~/.codex/skills`
-- the helper skills required by the firefly flow (`mermaid-diagram-specialist`, `playwright-interactive`)
-- firefly-managed overrides for selected installed superpowers skills:
-  - `brainstorming`
-  - `writing-plans`
-  - `test-driven-development`
-  - `subagent-driven-development`
-  - `requesting-code-review`
-  - `executing-plans`
-- firefly-managed overrides for the upstream OpenSpec npm package internals (`config-prompts.js`, `propose.js`)
-- the platform-neutral `firefly` command is installed at `~/.local/bin/firefly`
-
-`playwright-interactive` is vendored into this repository (Apache-2.0, © Microsoft Corporation; see its `LICENSE.txt` / `NOTICE.txt`). `mermaid-diagram-specialist` is a firefly-original skill.
-
 ## Prerequisites
 
-- `node` and `npm` are available; the installer always installs OpenSpec `1.6.0`, replacing any local version
-- `superpowers` is installed under `~/.codex/superpowers` from the upstream guide:
+- `node` and `npm` must be available; the installer always installs OpenSpec
+  `1.6.0` (`npm install -g @fission-ai/openspec@1.6.0`), replacing any local
+  version
+- ripgrep (`rg`) is optional: `firefly tasks` uses it to accelerate task
+  scanning and falls back to `grep` when absent
 
-> Fetch and follow instructions from https://raw.githubusercontent.com/obra/superpowers/refs/heads/main/.codex/INSTALL.md
-
-Every installation runs `npm install -g @fission-ai/openspec@1.6.0` before
-applying firefly assets, replacing any locally installed OpenSpec version.
+No other upstream is required.
 
 ## Install
 
@@ -47,14 +32,41 @@ cd firefly
 bash scripts/install-codex.sh
 ```
 
+## Managed Assets
+
+After installation the Codex installer manages:
+
+- 31 skill directories under `~/.codex/skills/`:
+  - the controller `firefly` and the 24 `firefly-*` capability skills
+  - the four OpenSpec support skills: `openspec-explore`, `openspec-propose`,
+    `openspec-apply-change`, `openspec-archive-change`
+  - the helper skills `mermaid-diagram-specialist` (firefly-original) and
+    `playwright-interactive` (vendored, Apache-2.0, © Microsoft Corporation;
+    see its `LICENSE.txt` / `NOTICE.txt`)
+- `~/.codex/firefly/references/` — the shared handoff contract and other
+  cross-skill reference files every skill cites instead of restating
+- runtime scripts under `~/.codex/firefly/bin/` — the `firefly` command
+  dispatcher, the shared install/doctor libraries (`firefly-install.sh`,
+  `firefly-doctor.sh`, `firefly-common.sh`), the platform doctor
+  (`doctor-codex.sh`), `bootstrap-project.sh`, `list-change-tasks.sh`,
+  `firefly-diagram.sh`, `firefly-snapshot.sh`, `firefly-record.sh`,
+  `review-package`, `task-brief`, `sdd-workspace`,
+  `validate-openspec-cn.mjs`, `firefly-upstream.sh` and `firefly-retired.sh`
+- the global command `~/.local/bin/firefly` — a platform-neutral command that
+  dispatches to installed firefly runtimes
+- the source mirror `~/.codex/firefly/` — `assets/`, `scripts/` and
+  `manifests/` mirrored by install so global doctor/repair can diff installed
+  assets against firefly-owned copies from any directory
+- firefly-managed overrides for the upstream OpenSpec npm package internals
+  (`config-prompts.js`, `propose.js`)
+
 ## Managed State
 
 After installation:
 
-- `openspec` is available on `PATH`
-- `firefly` is available on `PATH` through `~/.local/bin/firefly`
-- firefly-managed Codex skill files are installed under `~/.codex/skills`
-- selected superpowers skill files are replaced with firefly-managed copies under `~/.codex/superpowers`
+- `openspec` is available on PATH
+- `firefly` is available on PATH through `~/.local/bin/firefly`
+- the 31 firefly-managed skill directories are installed under `~/.codex/skills`
 - firefly-managed OpenSpec overrides are applied to the installed OpenSpec package
 
 ### Symbolic Links
@@ -67,6 +79,16 @@ replace another command or a link owned by the user or another installation.
 ### OpenSpec Override Version Note
 
 firefly's OpenSpec override files are snapshots taken against OpenSpec `1.6.0` (recorded in `manifests/codex.json` as `overrideTargetVersion`). The installer and doctor refuse to overlay them onto a different upstream version, to avoid silently downgrading upstream behavior. When OpenSpec advances, update the override snapshot and the fixed version together.
+
+## Upgrading From 0.1.0
+
+- Re-run the installer; it performs the whole migration.
+- The installer and `firefly repair` move the assets left by firefly 0.1.0 (old
+  skill directories and the six superpowers overlays), hash-checked, into
+  `~/.codex/firefly/retired/<timestamp>/` backups — nothing is deleted.
+- After the old overlays are moved away, reinstall or update superpowers to
+  restore the upstream superpowers skills.
+- The CLI subcommand `firefly draw` is renamed to `firefly diagram`.
 
 ## Verify Managed State
 
@@ -91,4 +113,3 @@ Checks whether OpenSpec is already initialized and runs `openspec init` only whe
 ## Notes
 
 - This is a Codex-specific install path and does not modify `~/.claude`.
-- This installer expects upstream `superpowers` to already be installed.

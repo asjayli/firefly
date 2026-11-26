@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "fireflyVersion": "0.1.0",
+  "fireflyVersion": "0.2.0",
   "platform": "codex",
   "managedRoot": "~/.codex",
   "sources": {
@@ -10,11 +10,6 @@
       "version": "1.6.0",
       "install": "npm install -g @fission-ai/openspec@1.6.0",
       "overrideTargetVersion": "1.6.0"
-    },
-    "superpowers": {
-      "type": "upstream-install-doc",
-      "url": "https://raw.githubusercontent.com/obra/superpowers/refs/heads/main/.codex/INSTALL.md",
-      "notes": "firefly relies on upstream superpowers installation, then overlays managed customizations."
     }
   },
   "managedAssets": [
@@ -63,13 +58,6 @@
       "kind": "skill-directory"
     },
     {
-      "id": "openspec-sync-specs-skill",
-      "source": "assets/codex/skills/openspec-sync-specs",
-      "target": "~/.codex/skills/openspec-sync-specs",
-      "owner": "firefly",
-      "kind": "skill-directory"
-    },
-    {
       "id": "firefly-skill",
       "source": "assets/codex/skills/firefly",
       "target": "~/.codex/skills/firefly",
@@ -80,13 +68,6 @@
       "id": "firefly-init-skill",
       "source": "assets/codex/skills/firefly-init",
       "target": "~/.codex/skills/firefly-init",
-      "owner": "firefly",
-      "kind": "skill-directory"
-    },
-    {
-      "id": "firefly-doctor-skill",
-      "source": "assets/codex/skills/firefly-doctor",
-      "target": "~/.codex/skills/firefly-doctor",
       "owner": "firefly",
       "kind": "skill-directory"
     },
@@ -147,6 +128,14 @@
       "kind": "skill-directory"
     },
     {
+      "id": "firefly-context-skill",
+      "source": "assets/codex/skills/firefly-context",
+      "target": "~/.codex/skills/firefly-context",
+      "owner": "firefly",
+      "kind": "skill-directory",
+      "origin": "firefly-original"
+    },
+    {
       "id": "firefly-draw-skill",
       "source": "assets/codex/skills/firefly-draw",
       "target": "~/.codex/skills/firefly-draw",
@@ -170,52 +159,115 @@
       "upstream": "vendored third-party: Apache-2.0, © Microsoft Corporation (LICENSE.txt/NOTICE.txt retained)"
     },
     {
-      "id": "brainstorming-skill",
-      "source": "assets/codex/superpowers/skills/brainstorming/SKILL.md",
-      "target": "~/.codex/superpowers/skills/brainstorming/SKILL.md",
+      "id": "firefly-bounds-skill",
+      "source": "assets/codex/skills/firefly-bounds",
+      "target": "~/.codex/skills/firefly-bounds",
       "owner": "firefly",
-      "kind": "superpowers-plugin-override",
-      "upstream": "superpowers"
+      "kind": "skill-directory",
+      "origin": "firefly-original"
     },
     {
-      "id": "writing-plans-skill",
-      "source": "assets/codex/superpowers/skills/writing-plans/SKILL.md",
-      "target": "~/.codex/superpowers/skills/writing-plans/SKILL.md",
+      "id": "firefly-source-skill",
+      "source": "assets/codex/skills/firefly-source",
+      "target": "~/.codex/skills/firefly-source",
       "owner": "firefly",
-      "kind": "superpowers-plugin-override",
-      "upstream": "superpowers"
+      "kind": "skill-directory",
+      "origin": "firefly-original"
     },
     {
-      "id": "subagent-driven-development-skill",
-      "source": "assets/codex/superpowers/skills/subagent-driven-development",
-      "target": "~/.codex/superpowers/skills/subagent-driven-development",
+      "id": "firefly-doubt-skill",
+      "source": "assets/codex/skills/firefly-doubt",
+      "target": "~/.codex/skills/firefly-doubt",
       "owner": "firefly",
-      "kind": "superpowers-plugin-override",
-      "upstream": "superpowers"
+      "kind": "skill-directory",
+      "origin": "firefly-original"
     },
     {
-      "id": "requesting-code-review-skill",
-      "source": "assets/codex/superpowers/skills/requesting-code-review",
-      "target": "~/.codex/superpowers/skills/requesting-code-review",
+      "id": "firefly-arch-skill",
+      "source": "assets/codex/skills/firefly-arch",
+      "target": "~/.codex/skills/firefly-arch",
       "owner": "firefly",
-      "kind": "superpowers-plugin-override",
-      "upstream": "superpowers"
+      "kind": "skill-directory",
+      "origin": "firefly-original"
     },
     {
-      "id": "test-driven-development-skill",
-      "source": "assets/codex/superpowers/skills/test-driven-development/SKILL.md",
-      "target": "~/.codex/superpowers/skills/test-driven-development/SKILL.md",
+      "id": "firefly-docs-skill",
+      "source": "assets/codex/skills/firefly-docs",
+      "target": "~/.codex/skills/firefly-docs",
       "owner": "firefly",
-      "kind": "superpowers-plugin-override",
-      "upstream": "superpowers"
+      "kind": "skill-directory",
+      "origin": "firefly-original"
     },
     {
-      "id": "executing-plans-skill",
-      "source": "assets/codex/superpowers/skills/executing-plans/SKILL.md",
-      "target": "~/.codex/superpowers/skills/executing-plans/SKILL.md",
+      "id": "firefly-ui-skill",
+      "source": "assets/codex/skills/firefly-ui",
+      "target": "~/.codex/skills/firefly-ui",
       "owner": "firefly",
-      "kind": "superpowers-plugin-override",
-      "upstream": "superpowers"
+      "kind": "skill-directory",
+      "origin": "firefly-original"
+    },
+    {
+      "id": "firefly-tdd-skill",
+      "source": "assets/codex/skills/firefly-tdd",
+      "target": "~/.codex/skills/firefly-tdd",
+      "owner": "firefly",
+      "kind": "skill-directory",
+      "origin": "firefly-original"
+    },
+    {
+      "id": "firefly-debug-skill",
+      "source": "assets/codex/skills/firefly-debug",
+      "target": "~/.codex/skills/firefly-debug",
+      "owner": "firefly",
+      "kind": "skill-directory",
+      "origin": "firefly-original"
+    },
+    {
+      "id": "firefly-guard-skill",
+      "source": "assets/codex/skills/firefly-guard",
+      "target": "~/.codex/skills/firefly-guard",
+      "owner": "firefly",
+      "kind": "skill-directory",
+      "origin": "firefly-original"
+    },
+    {
+      "id": "firefly-perf-skill",
+      "source": "assets/codex/skills/firefly-perf",
+      "target": "~/.codex/skills/firefly-perf",
+      "owner": "firefly",
+      "kind": "skill-directory",
+      "origin": "firefly-original"
+    },
+    {
+      "id": "firefly-trace-skill",
+      "source": "assets/codex/skills/firefly-trace",
+      "target": "~/.codex/skills/firefly-trace",
+      "owner": "firefly",
+      "kind": "skill-directory",
+      "origin": "firefly-original"
+    },
+    {
+      "id": "firefly-pr-skill",
+      "source": "assets/codex/skills/firefly-pr",
+      "target": "~/.codex/skills/firefly-pr",
+      "owner": "firefly",
+      "kind": "skill-directory",
+      "origin": "firefly-original"
+    },
+    {
+      "id": "firefly-retro-skill",
+      "source": "assets/codex/skills/firefly-retro",
+      "target": "~/.codex/skills/firefly-retro",
+      "owner": "firefly",
+      "kind": "skill-directory",
+      "origin": "firefly-original"
+    },
+    {
+      "id": "firefly-references",
+      "source": "assets/codex/references",
+      "target": "~/.codex/firefly/references",
+      "owner": "firefly",
+      "kind": "reference-directory"
     },
     {
       "id": "runtime-bootstrap-script",
@@ -232,9 +284,9 @@
       "kind": "runtime-script"
     },
     {
-      "id": "runtime-firefly-draw-script",
-      "source": "scripts/firefly-draw.sh",
-      "target": "~/.codex/firefly/bin/firefly-draw.sh",
+      "id": "runtime-firefly-diagram-script",
+      "source": "scripts/firefly-diagram.sh",
+      "target": "~/.codex/firefly/bin/firefly-diagram.sh",
       "owner": "firefly",
       "kind": "runtime-script"
     },
@@ -252,6 +304,57 @@
       "owner": "firefly",
       "kind": "runtime-script",
       "note": "Shared shell helpers sourced by runtime install/doctor scripts; provides portable SHA-256."
+    },
+    {
+      "id": "runtime-install-library",
+      "source": "scripts/firefly-install.sh",
+      "target": "~/.codex/firefly/bin/firefly-install.sh",
+      "owner": "firefly",
+      "kind": "runtime-script",
+      "note": "Shared installer steps sourced by the platform installers."
+    },
+    {
+      "id": "runtime-doctor-library",
+      "source": "scripts/firefly-doctor.sh",
+      "target": "~/.codex/firefly/bin/firefly-doctor.sh",
+      "owner": "firefly",
+      "kind": "runtime-script",
+      "note": "Shared doctor checks sourced by the platform doctors."
+    },
+    {
+      "id": "runtime-snapshot-script",
+      "source": "scripts/firefly-snapshot.sh",
+      "target": "~/.codex/firefly/bin/firefly-snapshot.sh",
+      "owner": "firefly",
+      "kind": "runtime-script"
+    },
+    {
+      "id": "runtime-record-script",
+      "source": "scripts/firefly-record.sh",
+      "target": "~/.codex/firefly/bin/firefly-record.sh",
+      "owner": "firefly",
+      "kind": "runtime-script"
+    },
+    {
+      "id": "runtime-review-package-script",
+      "source": "scripts/review-package",
+      "target": "~/.codex/firefly/bin/review-package",
+      "owner": "firefly",
+      "kind": "runtime-script"
+    },
+    {
+      "id": "runtime-task-brief-script",
+      "source": "scripts/task-brief",
+      "target": "~/.codex/firefly/bin/task-brief",
+      "owner": "firefly",
+      "kind": "runtime-script"
+    },
+    {
+      "id": "runtime-sdd-workspace-script",
+      "source": "scripts/sdd-workspace",
+      "target": "~/.codex/firefly/bin/sdd-workspace",
+      "owner": "firefly",
+      "kind": "runtime-script"
     },
     {
       "id": "runtime-chinese-openspec-validator",
@@ -278,11 +381,173 @@
     {
       "id": "firefly-home-mirror",
       "source": "repo root (assets, scripts, manifests)",
-      "paths": ["assets", "scripts", "manifests"],
+      "paths": [
+        "assets",
+        "scripts",
+        "manifests"
+      ],
       "target": "~/.codex/firefly",
       "owner": "firefly",
       "kind": "source-mirror",
       "note": "Source baseline mirrored by install so global doctor/repair can diff installed assets against firefly-owned copies from any directory."
+    },
+    {
+      "id": "firefly-upstream-script",
+      "source": "scripts/firefly-upstream.sh",
+      "target": "~/.codex/firefly/bin/firefly-upstream.sh",
+      "owner": "firefly",
+      "kind": "runtime-script"
+    },
+    {
+      "id": "firefly-retired-script",
+      "source": "scripts/firefly-retired.sh",
+      "target": "~/.codex/firefly/bin/firefly-retired.sh",
+      "owner": "firefly",
+      "kind": "runtime-script"
+    }
+  ],
+  "retiredAssets": [
+    {
+      "id": "firefly-doctor-dir",
+      "since": "0.2.0",
+      "handling": "remove-with-backup",
+      "target": "~/.codex/skills/firefly-doctor",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": [
+            "c39baf461dabd490f8ae41a6d0cb20ad8eaf07c3d41b2c10c37629698ba0af39"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "openspec-sync-specs-dir",
+      "since": "0.2.0",
+      "handling": "remove-with-backup",
+      "target": "~/.codex/skills/openspec-sync-specs",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": [
+            "75f2e670bfa3da16e030ed3e95172048a6d0fbf0deca6ddfc4f8a7adc7a1e485"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "brainstorming-overlay",
+      "since": "0.2.0",
+      "handling": "overlay-leftover",
+      "target": "~/.codex/superpowers/skills/brainstorming/SKILL.md",
+      "files": [
+        {
+          "path": "",
+          "sha256": [
+            "1a20ee4db5f4e13d371f8d075e0d5da594891f6eb7b68b143f44b7291bbd6248"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "writing-plans-overlay",
+      "since": "0.2.0",
+      "handling": "overlay-leftover",
+      "target": "~/.codex/superpowers/skills/writing-plans/SKILL.md",
+      "files": [
+        {
+          "path": "",
+          "sha256": [
+            "cd24abb9864baa3b94920615277c617eb71ee9bfd46f9ad155da0d9753528f2b"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "executing-plans-overlay",
+      "since": "0.2.0",
+      "handling": "overlay-leftover",
+      "target": "~/.codex/superpowers/skills/executing-plans/SKILL.md",
+      "files": [
+        {
+          "path": "",
+          "sha256": [
+            "7d53415356569fcb57b9f22758a4396a62b977f6086088a2ee9b3e023bce057e"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "test-driven-development-overlay",
+      "since": "0.2.0",
+      "handling": "overlay-leftover",
+      "target": "~/.codex/superpowers/skills/test-driven-development/SKILL.md",
+      "files": [
+        {
+          "path": "",
+          "sha256": [
+            "7bfd0c3eee8b099193b70542f38c423ea69e097c6fe536814f6b30534e0a024b"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "subagent-driven-development-overlay",
+      "since": "0.2.0",
+      "handling": "overlay-leftover",
+      "target": "~/.codex/superpowers/skills/subagent-driven-development",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": [
+            "1612669a0213f4b7c2f9650879e38af3028b77c2e4b62103a3f800d1d328e99d"
+          ]
+        },
+        {
+          "path": "implementer-prompt.md",
+          "sha256": [
+            "7d311ea40ca5d1aace58bf87de5f89b3d48a39a5e77920fe28a16ac8d2b99449"
+          ]
+        },
+        {
+          "path": "scripts/review-package",
+          "sha256": [
+            "1fae0e1d113c6d00f5d6b910a7d4f8227fb063ff15644af935d6caa308321277"
+          ]
+        },
+        {
+          "path": "scripts/sdd-workspace",
+          "sha256": [
+            "e14d515a56db55396c7b743217e57253f0c5ba155e3805044e04c79930482d08"
+          ]
+        },
+        {
+          "path": "scripts/task-brief",
+          "sha256": [
+            "93c834d6132c7ca07f04c998541073a999813d5a3db6ca7f684ce922c1c30f2d"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "requesting-code-review-overlay",
+      "since": "0.2.0",
+      "handling": "overlay-leftover",
+      "target": "~/.codex/superpowers/skills/requesting-code-review",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": [
+            "86523a1444b335a5151a6a85b5796b6671f59f0ff25bb13ae4454fe49160c599"
+          ]
+        },
+        {
+          "path": "code-reviewer.md",
+          "sha256": [
+            "cfbb3072a67ec91f833a24fe9ff720dab56499f2f2e8a3be4370d9d24f959ca4"
+          ]
+        }
+      ]
     }
   ]
 }

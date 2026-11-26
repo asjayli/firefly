@@ -72,9 +72,18 @@ mkdir -p "$(dirname "$codex_link_target")"
 mv "$codex_home/skills/firefly" "$codex_link_target"
 ln -s "$codex_link_target" "$codex_home/skills/firefly"
 
+# A references directory the user manages through a symlink of their own is
+# kept as a symlink: its content is refreshed in place, the link survives.
+codex_refs_target="$tmp_dir/codex/user-managed/references"
+mkdir -p "$(dirname "$codex_refs_target")"
+mv "$codex_home/firefly/references" "$codex_refs_target"
+ln -s "$codex_refs_target" "$codex_home/firefly/references"
+
 CODEX_HOME="$codex_home" FIREFLY_BIN_DIR="$global_bin_dir" OPENSPEC_ROOT="$codex_openspec" FAKE_NPM_ROOT="$tmp_dir/npm-global" PATH="$bin_dir:$PATH" "$CODEX_INSTALLER" >/dev/null
 assert_symlink "$codex_home/skills/firefly"
 assert_paths_equal "$ROOT_DIR/assets/codex/skills/firefly" "$codex_link_target"
+assert_symlink "$codex_home/firefly/references"
+assert_paths_equal "$ROOT_DIR/assets/codex/references" "$codex_refs_target"
 
 printf 'drift\n' >> "$codex_link_target/SKILL.md"
 CODEX_HOME="$codex_home" FIREFLY_BIN_DIR="$global_bin_dir" OPENSPEC_ROOT="$codex_openspec" PATH="$bin_dir:$PATH" "$CODEX_DOCTOR" --repair >/dev/null

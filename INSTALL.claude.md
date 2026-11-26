@@ -1,92 +1,58 @@
 # firefly For Claude
 
-firefly supports a Claude installation path that mirrors the firefly skill layout used on Codex while staying compatible with Claude's skill and plugin structure.
-
-The Claude installer manages:
-
-- firefly and OpenSpec support skills under `~/.claude/skills`
-- the `opsx` command set under `~/.claude/commands`
-- the full firefly Claude skill set
-- firefly-managed overrides for selected installed Claude superpowers skills:
-  - `brainstorming`
-  - `writing-plans`
-  - `test-driven-development`
-  - `subagent-driven-development`
-  - `requesting-code-review`
-  - `executing-plans`
-
-This path installs firefly-managed Claude skills and commands into `~/.claude` and overlays selected skill overrides into the installed Claude superpowers plugin.
+firefly supports a Claude installation path that mirrors the firefly skill layout used on Codex while staying compatible with Claude's skill and plugin structure. As of 0.2.0 firefly ships every workflow skill itself; superpowers is not a prerequisite and no superpowers skill is installed, overlaid or modified.
 
 ## Prerequisites
 
-- `node` and `npm` must be available; the installer always installs OpenSpec `1.6.0`, replacing any local version
-- the Claude superpowers plugin must already be installed
+- `node` and `npm` must be available; the installer always installs OpenSpec
+  `1.6.0` (`npm install -g @fission-ai/openspec@1.6.0`), replacing any local
+  version
+- ripgrep (`rg`) is optional: `firefly tasks` uses it to accelerate task
+  scanning and falls back to `grep` when absent
 
-Every installation runs `npm install -g @fission-ai/openspec@1.6.0` before applying firefly assets, replacing any locally installed OpenSpec version.
+No other upstream is required.
 
-In Claude Code, register the marketplace first:
+## Managed Assets
 
-```text
-/plugin marketplace add obra/superpowers-marketplace
-```
+The Claude installer manages:
 
-Then install the plugin from this marketplace:
-
-```text
-/plugin install superpowers@superpowers-marketplace
-```
-
-When Claude Code prompts for the install scope, choose `user`.
-
-## Current Scope
-
-The current Claude implementation installs:
-
-- OpenSpec support skills:
-  - `openspec-explore`
-  - `openspec-propose`
-  - `openspec-apply-change`
-  - `openspec-archive-change`
-- firefly skills:
-  - `firefly`
-  - `firefly-init`
-  - `firefly-doctor`
-  - `firefly-repair`
-  - `firefly-think`
-  - `firefly-propose`
-  - `firefly-implement`
-  - `firefly-tasks`
-  - `firefly-review`
-  - `firefly-verify-web`
-  - `firefly-draw`
-  - `firefly-archive`
-- Helper skills required by the firefly flow:
-  - `mermaid-diagram-specialist`
-  - `playwright-interactive`
-- `~/.claude/commands/opsx`
-- selected overrides into the installed Claude superpowers plugin
-- the platform-neutral `firefly` command is installed at `~/.local/bin/firefly`
+- 31 skill directories under `~/.claude/skills/`:
+  - the controller `firefly` and the 24 `firefly-*` capability skills
+  - the four OpenSpec support skills: `openspec-explore`, `openspec-propose`,
+    `openspec-apply-change`, `openspec-archive-change`
+  - the helper skills `mermaid-diagram-specialist` (firefly-original) and
+    `playwright-interactive` (vendored, Apache-2.0, © Microsoft Corporation;
+    see its `LICENSE.txt` / `NOTICE.txt`)
+- the `opsx` command set under `~/.claude/commands/opsx`
+- `~/.claude/firefly/references/` — the shared handoff contract and other
+  cross-skill reference files every skill cites instead of restating
+- runtime scripts under `~/.claude/firefly/bin/` — the `firefly` command
+  dispatcher, the shared install/doctor libraries (`firefly-install.sh`,
+  `firefly-doctor.sh`, `firefly-common.sh`), the platform doctor
+  (`doctor-claude.sh`), `bootstrap-project.sh`, `list-change-tasks.sh`,
+  `firefly-diagram.sh`, `firefly-snapshot.sh`, `firefly-record.sh`,
+  `review-package`, `task-brief`, `sdd-workspace`,
+  `validate-openspec-cn.mjs`, `firefly-upstream.sh` and `firefly-retired.sh`
+- the global command `~/.local/bin/firefly` — a platform-neutral command that
+  dispatches to installed firefly runtimes
+- the source mirror `~/.claude/firefly/` — `assets/`, `scripts/` and
+  `manifests/` mirrored by install so global doctor/repair can diff installed
+  assets against firefly-owned copies from any directory
+- firefly-managed overrides for the upstream OpenSpec npm package internals
+  (`config-prompts.js`, `propose.js`)
 
 Current behavior of the Claude firefly layer:
 
 - keeps the same firefly command surface as Codex
-- routes proposal, implementation, review, verification, drawing, and archive requests through the same firefly skill boundaries
-- keeps `firefly-think` on the same artifact, independent-review, and versioning rules
+- routes every commissioning entry through the same firefly skill boundaries
 - installs the support skills those firefly commands depend on
-
-Current behavior of the Claude superpowers overrides:
-
-- binds brainstorming and planning to `openspec/changes/<change>/...`
-- keeps `test-driven-development` aligned with the firefly-managed TDD skill text
-- keeps execution aligned to `openspec/changes/<change>/tasks.md`
-- keeps code review aligned to explicit commit ranges and `P0`/`P1`/`P2` ordering
 
 ## Install
 
 Tell Claude:
 
 ```text
-Install openspec and the Claude superpowers plugin first. Then clone https://github.com/asjayli/Forgevia and run bash scripts/install-claude.sh from the repository root.
+Clone https://github.com/asjayli/Forgevia and run bash scripts/install-claude.sh from the repository root.
 ```
 
 Or run it directly yourself:
@@ -97,16 +63,17 @@ cd firefly
 bash scripts/install-claude.sh
 ```
 
-## Target State
+## Managed State
 
 After installation:
 
-- the firefly and OpenSpec support skill directories exist under `~/.claude/skills/`
+- the 31 firefly-managed skill directories exist under `~/.claude/skills/`
 - `~/.claude/commands/opsx` exists
-- selected Claude superpowers skill files are replaced with firefly-managed copies
+- `~/.claude/firefly/references/` and the runtime scripts are in place
 - Claude can discover and use the firefly command set globally
-- `firefly` is available on `PATH` through `~/.local/bin/firefly`
-- project bootstrap can initialize OpenSpec with `--tools codex,claude` when the repository should support both firefly clients
+- `firefly` is available on PATH through `~/.local/bin/firefly`
+- project bootstrap can initialize OpenSpec with `--tools codex,claude` when
+  the repository should support both firefly clients
 
 ### Symbolic Links
 
@@ -115,7 +82,32 @@ You may use symbolic links to place `~/.claude` or any managed subdirectory on a
 The installer replaces only its marked firefly global command. It refuses to
 replace another command or a link owned by the user or another installation.
 
+### OpenSpec Override Version Note
+
+firefly's OpenSpec override files are snapshots taken against OpenSpec `1.6.0` (recorded in `manifests/claude.json` as `overrideTargetVersion`). The installer and doctor refuse to overlay them onto a different upstream version, to avoid silently downgrading upstream behavior. When OpenSpec advances, update the override snapshot and the fixed version together.
+
+## Upgrading From 0.1.0
+
+- Re-run the installer; it performs the whole migration.
+- The installer and `firefly repair` move the assets left by firefly 0.1.0 (old
+  skill directories and the six superpowers overlays), hash-checked, into
+  `~/.claude/firefly/retired/<timestamp>/` backups — nothing is deleted.
+- After the old overlays are moved away, reinstall or update superpowers to
+  restore the upstream superpowers skills.
+- The CLI subcommand `firefly draw` is renamed to `firefly diagram`.
+
+## Verify Managed State
+
+```bash
+./scripts/doctor-claude.sh
+```
+
+Reports `OK`, `MISS`, or `DRIFT` for each managed asset. Run with `--repair` to restore drifted or missing assets:
+
+```bash
+./scripts/doctor-claude.sh --repair
+```
+
 ## Notes
 
-- This is a Claude-specific install path and does not modify `~/.codex`
-- This installer expects the Claude superpowers plugin to already be installed
+- This is a Claude-specific install path and does not modify `~/.codex`.

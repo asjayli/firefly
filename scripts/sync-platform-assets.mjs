@@ -14,6 +14,16 @@
 // Platform-specific assets (platformSpecific in the manifest) are never
 // rendered here; they stay hand-maintained per platform, but their declared
 // shared semantics are still verified so non-platform meaning cannot drift.
+//
+// Completeness assertions (--check only). Rendering walks the `shared` array,
+// so a hand-edited directory that nobody registered would be skipped silently
+// and a registered path whose source was removed would vanish just as quietly.
+// --check therefore also reports:
+//   UNREGISTERED   a source under assets/shared/skills/*,
+//                  assets/shared/superpowers/skills/* or the directory
+//                  assets/shared/references that the `shared` array omits;
+//   MISSING-SOURCE a `shared` entry whose source directory does not exist.
+// Either one is drift and fails the check, like MISS/DRIFT/SEMANTICS-DRIFT.
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -22,6 +32,12 @@ const ROOT = path.join(import.meta.dirname, '..');
 const ASSETS = path.join(ROOT, 'assets');
 const MANIFEST = path.join(ROOT, 'manifests', 'platform-assets.json');
 const PLATFORMS = ['codex', 'claude'];
+// Hand-edited scopes under assets/shared/: each child directory of `children`
+// scopes and the `itself` scope as a whole must appear in the `shared` array.
+const SHARED_SCOPES = {
+  children: ['skills', 'superpowers/skills'],
+  itself: ['references'],
+};
 
 const config = JSON.parse(fs.readFileSync(MANIFEST, 'utf8'));
 
@@ -45,6 +61,39 @@ function renderText(text, platform) {
 
 function sharedRels() {
   return config.shared;
+}
+
+// Report sources under assets/shared/ that the `shared` array does not cover,
+// and registered entries whose source is gone. Returns true on any finding.
+function checkCompleteness() {
+  let drift = false;
+  const registered = new Set(sharedRels());
+  const sharedRoot = path.join(ASSETS, 'shared');
+
+  for (const rel of registered) {
+    if (!fs.existsSync(path.join(sharedRoot, rel))) {
+      console.error(`MISSING-SOURCE assets/shared/${rel}`);
+      drift = true;
+    }
+  }
+
+  const scopes = [];
+  for (const scope of SHARED_SCOPES.children) {
+    const dir = path.join(sharedRoot, scope);
+    if (!fs.existsSync(dir)) continue;
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (entry.isDirectory()) scopes.push(`${scope}/${entry.name}`);
+    }
+  }
+  scopes.push(...SHARED_SCOPES.itself);
+
+  for (const rel of scopes) {
+    if (!registered.has(rel) && fs.existsSync(path.join(sharedRoot, rel))) {
+      console.error(`UNREGISTERED assets/shared/${rel}`);
+      drift = true;
+    }
+  }
+  return drift;
 }
 
 function renderAll() {
@@ -139,8 +188,11 @@ function main() {
     return;
   }
   if (cmd === '--check') {
+    // Completeness runs on its own so an unregistered or missing source never
+    // masks the MISS/DRIFT/SEMANTICS-DRIFT findings below it.
+    const incomplete = checkCompleteness();
     const drift = checkShared() || checkSemantics();
-    if (drift) {
+    if (incomplete || drift) {
       console.error('Platform assets out of sync');
       process.exit(1);
     }

@@ -1,0 +1,328 @@
+@design 16,17
+
+# Entry. firefly-review judges one fixed candidate. It is neither the joint
+# review before a ready decision, nor repair, nor a release decision.
++trigger: `firefly review <change>`. This is a standalone review
++trigger: An authorized delivery has integrated its candidate
++trigger: An authorized mandate is itself a module-wide simplification
++trigger: the comparison is due, and this entry is a comparison review
++trigger: the equivalence comparison it takes before the incremental implementation is due
++trigger: or its `ACCEPT` return is still to be handed over; the first paragraph of Step 2 decides which
++verdict-or-state: In every other case the generation is the next one after whatever package the snapshot has, comparison or diff
++verdict-or-state: An incomplete comparison package of the snapshot is kept when what its `brief.md` fixed is still current
++mandate: takes its comparison before any task group of the change is dispatched
++trigger: The review of a delivery runs once per complete candidate
++trigger: Resumption finds a package built from a diff without a valid verdict from every required role
++trigger: under a delivery once firefly-implement made the lapsed observations again and in a standalone review at once
+# The simplification axis: when it is judged and when it is skipped.
++verdict-or-state: Judge it when the change adds duplication, branches or a compatibility layer
++verdict-or-state: when the mandate asks only for a correctness verdict
+
+# Authorization boundary. Review reports; it never repairs the candidate, and
+# every judgment comes from someone who did not produce it.
++mandate: The review is not a repair: it changes no file of the candidate, of its spec or of its tasks
++mandate: a ticked checkbox included
++mandate: A change to the candidate, to its spec or to its tasks, a ticked checkbox included
++mandate: The reviewer does not edit code along the way
++mandate: does not apply a simplification
++mandate: Whoever fills a role did not produce the candidate.
++mandate: An implementer's summary is not a package
++mandate: Changing a check standard so that a candidate passes
++mandate: The controller records verdicts and issues none of its own
++mandate: Votes do not decide
++mandate: Fewer files is not acceptance
++mandate: A simplification finding is valid only when it states all four of these
++mandate: for a comparison package, the module under comparison
++mandate: or the handoff of a candidate that changed after its package was fixed
+
+# Inputs: strict validation first, then a package that exists and is readable,
+# judged on evidence that belongs to the candidate.
++input: validate --root <project-root>
++input: A non-zero exit means that the spec package is not compliant; the validator as shipped reads the spec package and not `tasks.md`
++input: Dispatch only after the printed path exists and is readable
++input: BASE WORKTREE openspec/changes/<id>/evidence/<snapshot12>/<generation>/package.diff
++input: `review-package --snapshot` prints the same SHA
++input: The package identity is `<change-name>@<snapshot12>.<generation>`
+# Which review an entry is: the comparison of a mandate that is itself a
+# module-wide simplification is made once, before the incremental
+# implementation. After its return was handed over, every candidate of the
+# change is reviewed as a candidate, whatever the mandate reads.
++input: Decide first which kind of entry this is; Step 3 takes the answer
++input: Judge in this order and stop at the first line that holds
++verdict-or-state: An `ACCEPT` return is handed over only after the check at the top of Step 9 finds what its `brief.md` fixed still current
++trigger: and nothing calls for the comparison again: this entry returns the stored outcome again and writes nothing
++trigger: It ends with the outcome of the package recorded and returned to the requester
++trigger: A task group of the change has been dispatched: a review of a candidate
++trigger: this entry only takes that return's handoff to firefly-implement
++trigger: this entry returns the stored outcome again and writes nothing
++verdict-or-state: Nothing is built and nothing is dispatched
++verdict-or-state: The comparison is then due again, and the first paragraph of Step 2 applied to the snapshot printed now decides the next entry
++verdict-or-state: A package that an outcome ended, a comparison made again and a package whose fixed facts changed each take the next generation
++verdict-or-state: The comparison is made again only when something calls for it again (Step 2)
++input: From then on every candidate of the change that enters review is reviewed as a candidate, whatever the mandate reads
++input: a package directory that holds no `package.diff` is a comparison package
++mandate: The comparison is taken before any task group of the change is dispatched, on the candidate present at that time
+# How complete a package is read: a package built from a diff by its verdicts, a
+# comparison package by the `returned` rows that no `failed` row follows. The
+# latter is never resumed at the third step of Step 7 and never dispatched again.
++input: A package built from a diff is complete when every required role has a valid verdict
++input: A comparison package is complete when every required role has a `returned` row that no `failed` row follows
++input: a return found not to stand is recorded `failed` after it (Step 8) and leaves its role without a return
++input: A complete comparison package is never dispatched again and is never resumed at the third step of Step 7
++input: the first paragraph of this step says what an entry does with it
++input: Every rule that asks whether a package is complete or lacks a verdict
++input: A `returned` row followed by a `failed` row is a return or a verdict that did not stand: its role has none
++input: A return stored with its `returned` row and no `failed` or verdict row after it was cut short between the steps of Step 7, unless it belongs to a comparison package
++input: the mandate, the baseline, the spec version, the task package version, the standards sources or the evidence: the next generation
++input: the package of the current generation is not dispatched again
++input: a comparison package is never resumed as a review of a candidate
++input: Every required role has a valid `ACCEPT` on it: continue at the check at the top of Step 9
++input: For each required role that has no valid verdict yet, or no return for a comparison package
+# Re-entering the review after the candidate changed: the observations on the new
+# snapshot decide between going back to firefly-implement and starting at
+# generation 1 (Step 2.6, Step 9, Step 11).
++verdict-or-state: A package built from a diff for another snapshot, not complete, with a different snapshot printed now
++verdict-or-state: its verdicts are `historical` and nothing of it counts here
++verdict-or-state: While the designated verifiers' observations on the snapshot printed now are still incomplete
++verdict-or-state: a standalone review returns that finding, names what it takes to review the snapshot printed now
++verdict-or-state: the review of the snapshot printed now starts at Step 3.2, from generation 1 when it has no package yet; the old package is not resumed
++verdict-or-state: Once those observations are complete, the review of that snapshot starts at Step 3.2, and the old package is not resumed
++input: Run `firefly snapshot`, `firefly snapshot --spec <change>` and `firefly snapshot --tasks <change>`.
++input: When this entry is a comparison review, there is no diff to judge
+# The task package version is fixed into the package: a changed criterion or
+# measurement method is told by it, not by the spec version. A rebuilt generation
+# also records the versions the generation before it fixed, and each observation
+# row carries the expected outcome it was made under.
++input: It covers `## Scenario map`: the criteria and the measurement methods the observations were made under
++input: `firefly snapshot`, `firefly snapshot --spec <change>` and `firefly snapshot --tasks <change>` print the current snapshot, spec version and task package version
++verdict-or-state: Whether a criterion or a measurement method changed is judged by the task package version, not by comparing spec versions
++verdict-or-state: to the task package (the scenario map and its criteria and measurement methods included)
++input: For a rebuilt generation, the `brief.md` of the generation before it under `evidence/<snapshot12>/`
++output: A rebuilt generation records in its `brief.md` the task package version the generation before it fixed
++output: - Task package version the previous generation of this snapshot fixed: [PREVIOUS_PINNED]
++input: The task package version tells whether one changed
++input: where it differs from the version of this package, a criterion or a measurement method may have changed in between
++verdict-or-state: no `ACCEPT` is returned while one of them lacks a usable result
++verdict-or-state: carries the expected outcome and the check its scenario map row named when it was made
++input: Its `Conditions` column carries the conditions observed under, the expected outcome its scenario map row named when it was made, and the check that row named
++verdict-or-state: One whose expected outcome differs from the `Expected` that row reads now, or whose check differs from the `Check` that row reads now, was made under the earlier criterion or measurement method
++output: - Task package version: [TASKS_VERSION]
+# What the candidate is: only the minutes under `openspec/think/` lie outside it.
++input: the minutes lie outside it only under `openspec/think/`
++input: A minutes file the user named elsewhere is part of the candidate, and editing it changes the candidate
+# The affected checks of an axis are observed before the facts are fixed.
++input: Decide this step before the facts are fixed.
++input: The current generation of the snapshot is its highest one
++input: keep its identity, its file and its count
++input: It is also the content digest of the scenarios
++input: the `Minutes:` line under `## Mandate` names the minutes
++input: Require the affected checks on the current candidate. A report with a new date is not a rerun.
++input: Every package built from a diff is judged on two things
++input: An exemption names who approved it, its scope and the substitute evidence.
++input: They hold the findings already returned
++input: An observation counts for the worktree only when its `Candidate` column carries that snapshot and its `Spec` column carries that spec version
++input: The `Spec` column carries it as `spec:<version>`
++input: The baseline is the one the `Preflight` section of the progress record holds
++input: For a candidate that follows a valid `REVISE`, the stored returns of the generation that ended in it
++input: for each prior finding of the package, whether it is fixed
++input: The comparison of the worktree with the recorded snapshots covers the implementation only
++input: The candidate is the implementation
++input: The diff of either form leaves out `openspec/changes/` and `openspec/think/`
++input: the implementation is fully committed: nothing outside `openspec/changes/` and `openspec/think/` differs between the worktree and `HEAD`
++input: It leaves out `openspec/changes/` and `openspec/think/`: read the spec, the tasks and the records from the carriers named above
++input: a branch that passed there is not the integrated candidate
++input: A name (`--agent`, `--reviewer`) begins with a letter or digit and holds letters, digits and `. _ : @ + -` only
++input: it becomes part of the name of the stored return, and the recorder refuses any other character
++input: Rows carried over from a child worktree keep its snapshot: they are evidence about that branch
+
+# The validator's output never reaches a reviewer: a non-zero exit builds no
+# package and dispatches nobody. The package path is the one the tool printed.
++input: build no package and dispatch no reviewer
++input: The validator's file-level output is never put to the reviewers
++input: BASE HEAD openspec/changes/<id>/evidence/<snapshot12>/<generation>/package.diff
+# The `HEAD` form needs a BASE that is a commit; a baseline recorded as a tree
+# takes the `WORKTREE` form.
++input: its Baseline commit when its Worktree snapshot is the tree of that commit, otherwise its Worktree snapshot
++input: So `BASE` is a commit or a tree
++input: Use the `HEAD` form only when both hold
++input: `review-package` stops with "BASE is not a commit" when the `HEAD` form is given a tree
++input: the path printed by `review-package`
+# Evidence observed under a criterion or a measurement method that changed
+# lapses even when the spec version did not (contract, Lapse).
++input: made under a criterion or a measurement method that has changed since, even when the spec version did not
+
+# Outputs and their carriers.
++output: openspec/changes/<id>/evidence/<snapshot12>/<generation>/package.diff
++output: before its first dispatch; none for a comparison package
++output: openspec/changes/<id>/evidence/<snapshot12>/<generation>/brief.md
++output: The facts the package fixed, as sent to every reviewer
+# `brief.md` holds only what the package fixed. A role and a name differ from one
+# reviewer to the next: they are given at dispatch, on a line of the controller's own.
++output: It holds nothing that differs from one reviewer to the next
++output: `brief.md` holds neither, so two required roles share one
++output: The resumption list of `## Inputs`, Step 3.2 and Step 9 read it.
++output: Your role and your name are given in the dispatch message, not in this brief.
++output: Each dispatch message is the `brief.md` of the generation as stored, followed by this one line of the controller's own
++output: Two required roles share one `brief.md`.
++mandate: The name of each reviewer is given at dispatch (Step 6) and carried by the dispatch row, not by `brief.md`
++output: A package of an earlier generation is never overwritten
++output: verdict-<role>-<reviewer>.md
++output: Store the whole return, unchanged
++output: A stored return is never edited
++output: Your return is stored unchanged beside the package
++output: The path must hold no file yet
++output: Record dispatches, failures and verdicts with `firefly record`
++output: Progress record, `## Review verdicts`, through `firefly record verdict`
++output: Observation records, evidence, the package file and the progress record are records about the candidate
++output: A standalone review writes them and nothing else
++output: An old verdict is never rewritten.
+
++output: No row of these tables is written by hand, and no written row is edited
+
+# Verdict values, package generations, reservations and candidate states.
++verdict-or-state: One valid `REVISE` blocks the package, whatever the other roles return
++verdict-or-state: A `REVISE` none of whose findings holds after this check is not a valid `REVISE`
++verdict-or-state: A `REVISE` that carries no finding of the first kind is an invalid return
++verdict-or-state: Keep the findings already returned; the reviews not yet returned are void.
++verdict-or-state: A rebuilt package for an unchanged candidate takes the next generation
++verdict-or-state: rebuild the package as the next generation and review it afresh
++verdict-or-state: Everything recorded for an earlier generation is `historical`
++verdict-or-state: It is never attached to an earlier generation with its verdicts reused.
++verdict-or-state: The first half of the identity changes and the generation starts again at 1 when that snapshot has no package yet
++verdict-or-state: Delivery: the candidate returns through firefly-implement
++verdict-or-state: it does not return here directly
++verdict-or-state: counts only for the generation it names
++verdict-or-state: is `historical` only, whatever its value
++verdict-or-state: An opinion about A, early or late, never approves B.
++verdict-or-state: An accepted verdict becomes `historical` when the mandate, the baseline, the spec version, the task package version or the standards change and the candidate did not
++verdict-or-state: When the candidate changes, the verdict is `historical` and the candidate is back to `in-progress`
++verdict-or-state: This skill does not package it until the designated verifiers' observations on the new snapshot are complete
++verdict-or-state: must be what the brief fixed
++verdict-or-state: Compare versions without the `wt:` prefix, here and in every later step
++verdict-or-state: Versions are compared without the `wt:` prefix: a commit changes only the prefix
++verdict-or-state: the observations and the task mapping that cite the old version lapse together
++verdict-or-state: The observations and the task mapping that cite the old version have lapsed
++verdict-or-state: Other records lapse under the Lapse rule of the contract and under the skill that owns them
++verdict-or-state: an edit to one scenario changes the version of them all
++verdict-or-state: whether or not their own scenario changed
++verdict-or-state: Evidence against another spec version is evidence of that version, whatever scenario it is about
++verdict-or-state: An `ACCEPT` carries its reservation list, even when empty
++verdict-or-state: An `ACCEPT` that leaves one out is invalid
++verdict-or-state: The recorder stores the list as `none`
++verdict-or-state: The recorder refuses an `ACCEPT` that carries an item marked `touches-required=yes` (exit 3) and writes nothing
++verdict-or-state: Standalone review: return `RECHECK` with the checks to rerun and stop
++verdict-or-state: Delivery: return to firefly-implement for one rerun of the agreed check on the current candidate
++verdict-or-state: No usable result is `INSUFFICIENT_EVIDENCE`
++verdict-or-state: No repair round is consumed
+# A verdict the controller finds to stand on nothing keeps its record, gets a
+# failed row and leaves its role without a valid verdict.
++verdict-or-state: An `ACCEPT` that the observation record contradicts, or leaves without support, does not stand either
++verdict-or-state: so does a required scenario whose agreed checks lack an observation of its designated verifier on the candidate snapshot
++verdict-or-state: A verdict that does not stand keeps its stored return and its recorded rows
++verdict-or-state: A return that names an identity no `sent` row carries is an invalid return
++verdict-or-state: A structurally valid return that names a package the ledger shows as dispatched
+# The equivalence comparison of a mandate that is itself a module-wide
+# simplification: a comparison package. It judges the existing behavior of the
+# module, proposes no simplification, writes no verdict row, and hands over only
+# an equivalence that can be stated.
++verdict-or-state: The equivalence can be stated: `ACCEPT`, with its reservations
++verdict-or-state: It cannot be stated, because what consumers rely on conflicts or the existing behavior cannot be determined: `REVISE`
++verdict-or-state: The verdict follows the comparison, and there is no `RECHECK`.
++verdict-or-state: the verdict is `ACCEPT`, `REVISE` or `INSUFFICIENT_EVIDENCE`, never `RECHECK`
++verdict-or-state: A comparison package fixes no candidate: the snapshot it compares keeps its state
++verdict-or-state: an `ACCEPT` goes to firefly-implement, a `REVISE` back to the requester, an `INSUFFICIENT_EVIDENCE` to escalation
++verdict-or-state: No simplification is proposed here: the implementer of firefly-implement proposes it
++mandate: No simplification is proposed to you
++mandate: that is the maintenance cost a simplification has to reduce
++output: Maintenance cost: <what the module costs today to keep in step, to test and to understand>
++verdict-or-state: The reviewer states what any simplification of the module has to keep
++verdict-or-state: the dispatch rows (`sent`, then `returned`) and the stored return
++verdict-or-state: A complete package is never dispatched again; what an entry does with it is decided by Step 2 of `SKILL.md`
++verdict-or-state: A reservation of the comparison touches required behavior when it concerns an output that must stay equal or an invariant
++verdict-or-state: A return of a comparison package is held to `references/simplification.md` instead
++verdict-or-state: each return is recorded `failed` with that reason, so that the package is no longer complete
++verdict-or-state: Returns that conflict are decided from the evidence; a `REVISE` that stands decides the outcome
++verdict-or-state: Everything from `## The review package is the change` up to `## Read-only`
++verdict-or-state: Everything from `## What to judge` up to `## Return`
++verdict-or-state: The second and third sentences of the first line
++verdict-or-state: For a comparison package the rule for it after the table applies, whether the change is committed or not
++verdict-or-state: In either case an `ACCEPT` that relies on it does not stand, and the check is rerun on the current candidate.
++verdict-or-state: A return without the package identity, with a value outside the three
++verdict-or-state: or the `returned` row for a comparison package
++verdict-or-state: its change is not packaged here as a candidate of this package and is not reverted here
++verdict-or-state: no verdict row is written for it
++verdict-or-state: One that is not fixed is a finding
++verdict-or-state: Present the findings attached to a `REVISE` in severity order, most severe first: `P0` before `P1`
+
+# What makes a finding a REVISE finding, and what makes it a reservation.
++verdict-or-state: Sort each finding by what it shows
++verdict-or-state: so the candidate can be accepted unchanged
++verdict-or-state: List the findings most severe first: `P0` before `P1`
++verdict-or-state: Severity orders the presentation
++verdict-or-state: The candidate stays `pending-verdict`. Nothing is inferred from the silence
++verdict-or-state: the candidate returns to `in-progress`
++verdict-or-state: The verdict is `RECHECK`. Name the check
++verdict-or-state: The verdict is `REVISE`, for the missing observation
++verdict-or-state: kind `non-blocking-finding`, marked `touches-required=no`. It does not block acceptance.
++verdict-or-state: unless the current complexity itself makes a required behavior wrong or unverifiable
+
+# Handoffs. The joint review before a ready decision is dispatched under the
+# rule of Step 10, but it belongs to firefly-propose.
++handoff: its dispatches are recorded with `--package <change-name>@ready.<spec12>.<tasks12>`
++handoff: hand the findings to firefly-implement
++handoff: The repaired candidate gets a new package and a fresh independent review
++handoff: its first package hands their findings to the fresh independent reviewers
++handoff: the new candidate, back to `in-progress`
++handoff: with the `failed` dispatch rows that name a change a reviewer made
++handoff: its review then starts from generation 1 when the snapshot has no package yet
++handoff: when the mandate is itself a module-wide simplification and the comparison package ended in `ACCEPT`
++handoff: Only that return is implemented, incrementally.
++handoff: when a comparison package ended in `REVISE`
++handoff: Nothing is handed to firefly-implement.
++handoff: takes its unverified items from that list, item by item
++handoff: as a separate proposal with its expected benefit and its rollback path
+
+# Stops and escalation.
++stop: Stop and return an `ESCALATE` with the current conclusion, the missing evidence or authority, and the responsible owner
++stop: at most two additional fresh independent reviewers
++stop: each `sent` row is one, whether or not a `returned` or `failed` row follows it
++stop: Repackaging identical content does not restart the count
++stop: Repackaging unchanged content starts no new generation
++stop: Two generations of one snapshot that pin the same content are one package for the count
++stop: The same rule serves every review dispatch
++stop: A reviewer dispatched again under the same identity goes by a different name
++stop: On resumption look for that reviewer's return first; when there is none, record it as failed
++stop: look for that reviewer's return first (Step 7); when there is none, record it `failed`
++stop: Found by a reviewer after the dispatch, it is the failure of that dispatch
++stop: Step 2.6 and Step 2.7 run again
++stop: What is missing is a compliant spec package
++verdict-or-state: what its `brief.md` fixed is no longer current, or a `## Mandate` row is newer than its last `returned` row
++verdict-or-state: A row whose `Conditions` column lacks either of them supports no conclusion
++trigger: The mandate in force is the newest row of `## Mandate`
++stop: or no recorded baseline of the candidate exists
++stop: A dispatched generation has no `brief.md`
++stop: A package version cannot be obtained when a step needs it
++stop: No version is derived by hand
++stop: or without the return of a comparison package
++stop: of a comparison package included
++stop: Change no product code
++stop: A missing, late or invalid return is never read as acceptance
++stop: A `REVISE` is a result, not an escalation
+
+# The two questions to the requester are escalations, not side conversations.
++stop: is settled with the requester through an `ESCALATE` before anything is done
++stop: confirm with the requester through an `ESCALATE` before packaging them
+# A standalone review returns its findings and stops.
++stop: Standalone review: return the findings and stop
+
+# Forbidden. The last two keep a withdrawn rule about editing `tasks.md` out of the skill.
+-: APPROVE
+-: subagent-driven-development
+-: repairs the candidate it is judging
+-: by majority
+-: `tasks.md` is not edited
+-: A `RECHECK` is not that verdict
+# Withdrawn wordings of earlier revisions: a comparison package writes no
+# verdict row, and a reviewer's name is never a field of `brief.md`.
+-: the stored return and the verdict row
+-: [REVIEWER_NAME]
