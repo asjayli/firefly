@@ -17,19 +17,19 @@ const UNSUPPORTED_CHINESE_STRUCTURE = [
 ];
 
 function parseOptions(args) {
-  const values = new Map();
-  for (let i = 0; i < args.length; i += 2) {
-    const [option, value] = args.slice(i, i + 2);
-    if (!['--root', '--change'].includes(option) || values.has(option) || !value || value.startsWith('--')) {
-      throw new Error(`无效参数：${option}；用法：validate [--root DIR] [--change ID]`);
+  let root;
+  let change;
+  for (let i = 0; i < args.length; i += 1) {
+    const arg = args[i];
+    if (arg === '--root' && root === undefined && args[i + 1] && !args[i + 1].startsWith('-')) {
+      root = args[++i];
+    } else if (change === undefined && /^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(arg) && arg !== 'archive') {
+      change = arg;
+    } else {
+      throw new Error(`无效参数：${arg}。请运行 firefly validate --help。`);
     }
-    values.set(option, value);
   }
-  const change = values.get('--change');
-  if (change && (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(change) || change === 'archive')) {
-    throw new Error(`无效变更名称：${change}`);
-  }
-  return { root: path.resolve(values.get('--root') ?? '.'), change };
+  return { root: path.resolve(root ?? '.'), change };
 }
 
 function specFiles(directory) {
@@ -282,7 +282,15 @@ function runNativeValidation(stagingRoot, change) {
 }
 
 function main() {
-  const { root, change } = parseOptions(process.argv.slice(2));
+  const args = process.argv.slice(2);
+  if (args.length === 1 && ['--help', '-h'].includes(args[0])) {
+    console.log(`用法：firefly validate [变更ID] [--root 目录]
+  [变更ID]  可选。用 firefly list 查询。提供后校验该变更及对应主规格，省略则校验整个项目。
+  --root    可选。项目目录，默认当前目录。
+示例：firefly validate export-report（export-report 是示例变更 ID）。`);
+    return 0;
+  }
+  const { root, change } = parseOptions(args);
   const stagingRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'firefly-openspec-cn-'));
   try {
     stageInputs(root, stagingRoot, change);

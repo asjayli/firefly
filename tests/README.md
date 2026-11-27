@@ -21,7 +21,7 @@
 | `test-runtime-scripts.sh` | snapshot/record/task-brief/review-package 行为 | 临时 git 仓库 | ~8s |
 | `test-script-size.sh` | 脚本行数上限 | 无桩 | ~1s |
 | `test-skill-contracts.sh` | 独立入口、能力文档结构与契约锚点 | 无桩 | ~6s |
-| `test-standalone-install.sh` | 无宿主安装、符号链接、诊断、修复和基线损坏 | 无桩 | ~2s |
+| `test-standalone-install.sh` | 无宿主安装、首次引导、符号链接、诊断、修复和基线损坏 | 无桩 | ~2s |
 | `test-validate-openspec-cn.sh` | 中文严格校验适配器 | 临时项目 | ~2s |
 
 - 锚点格式见 `tests/contracts/README.md`；`tests/cases/` 下是被 source 的用例体（`moved-scripts.sh`、`snapshot-retention.sh`、`boundary-cases.sh`），不单独运行。

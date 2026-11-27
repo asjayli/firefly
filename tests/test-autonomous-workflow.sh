@@ -112,6 +112,11 @@ assert_controller_lifecycle() {
 
 assert_controller_lifecycle "$ROOT_DIR/firefly/references/continuation.md"
 assert_file_contains "$ROOT_DIR/firefly/SKILL.md" 'Before a completion or escalation reply, run the gate and carry out its decision.'
+assert_file_in_order "$ROOT_DIR/firefly/SKILL.md" \
+  '## First use' \
+  'bash "<skill-root>/scripts/manage.sh" bootstrap' \
+  'continue the requested capability in the same turn' \
+  '## When to use'
 
 assert_obsolete_reviewer_lifecycle() {
   local path="$1"

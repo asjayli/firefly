@@ -60,7 +60,7 @@
 +mandate: Record the requester's decision on an existing failure of the baseline as a minutes entry under `openspec/think/`
 
 # Inputs: the change is resolved, never guessed; the dispatch package is complete.
-+input: openspec status --change "<change>" --json
++input: "<skill-root>/scripts/firefly.sh" status "<change>" --json
 +input: A change that is not found, is archived or has no `tasks.md` is not entered.
 +input: The dispatch package carries four things: scenario IDs, spec and source pointers, the allowed modification scope, and the acceptance commands.
 

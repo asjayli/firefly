@@ -40,8 +40,8 @@ metadata:
 
 ### Run the repair
 
-1. Run the installed runtime's `repair` command: `"<skill-root>/scripts/firefly.sh" repair`.
-   If the runtime is missing or cannot start, use a complete Firefly source package: `bash firefly/scripts/manage.sh repair --skills-dir <absolute-skill-parent>` from its repository root.
+1. Run `repair` with the absolute managed command returned by the first-use check.
+   If the runtime is missing or cannot start, run `bash "<skill-root>/scripts/manage.sh" repair --skill-dir "<absolute-managed-directory>"` using the managed directory identified by bootstrap or supplied by the user. A complete source bundle can run the same command from its own location.
 2. It refuses to repair OpenSpec overrides when the upstream OpenSpec version differs from the override snapshot version, to avoid downgrading upstream.
 
 ## Outputs

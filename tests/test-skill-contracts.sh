@@ -328,7 +328,7 @@ lint_route_coverage() {
   for name in "${dirs[@]}"; do
     [[ "${named[$name]:-}" == 1 ]] || fail firefly route-coverage "skill directory firefly-$name is not named in ## Commands"
   done
-  local runtime=' next init doctor config repair validate tasks diagram snapshot record '
+  local runtime=' next init doctor config repair validate tasks diagram snapshot record new list show status spec '
   for ref in "${!named[@]}"; do
     [[ "${dirset[$ref]:-}" == 1 ]] && continue
     [[ "$runtime" == *" $ref "* ]] && continue

@@ -49,7 +49,7 @@ export function verifyBundle(root, entrypoint = 'SKILL.md') {
   requireFile(path.join(root, 'references', 'upstreams.json'));
   requireFile(path.join(root, 'scripts', 'record-markdown.sh'));
   for (const script of scripts) requireFile(path.join(root, 'scripts', script), true);
-  for (const script of ['manage.mjs', 'bundle.mjs', 'continuation.mjs', 'project-config.mjs', 'validate-openspec-cn.mjs']) {
+  for (const script of ['manage.mjs', 'bundle.mjs', 'continuation.mjs', 'project-config.mjs', 'spec-commands.mjs', 'validate-openspec-cn.mjs']) {
     requireFile(path.join(root, 'scripts', script));
   }
   for (const directory of directories) {

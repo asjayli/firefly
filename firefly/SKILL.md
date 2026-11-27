@@ -14,6 +14,10 @@ Firefly is the entry point for all of its capabilities. The user decides what is
 
 Use the absolute directory containing this `SKILL.md` as `<skill-root>` in shell commands. Resolve paths inside a guide against the guide's directory unless it specifies `<skill-root>` or a project path. Give dispatched agents the absolute guide path and mandate. A named capability `firefly <name>` in the skill registry loads `references/abilities/firefly-<name>/guide.md` directly. `next` is defined here. For `init` and `repair`, read the matching guide under the same path.
 
+## First use
+
+On explicit invocation, the controller runs `bash "<skill-root>/scripts/manage.sh" bootstrap` once before entering the requested capability. It checks or installs the user-level command and repair baseline from the bundled files and prints the command's absolute path. Then continue the requested capability in the same turn using the runtime beside this guide. Use the returned command for installation diagnosis and repair. If bootstrap fails, report the exact issue and continue using the bundled runtime where possible. For an explicit request forbidding user-directory writes, use the bundled runtime directly.
+
 ## When to use
 
 - The user explicitly asks for firefly: `use firefly`, `run this through firefly`, or `use the firefly workflow`.
@@ -139,10 +143,14 @@ The two lists below are the registry, the single source of what exists. `firefly
 ### Runtime subcommands
 
 - `firefly init [project-dir]` — initialize missing OpenSpec project metadata with `openspec init --tools none`.
+- `firefly new <change-id>` — scaffold the named change. The ID identifies the change directory and uses lowercase kebab case.
+- `firefly list [--json]` — list active changes and their IDs.
+- `firefly status [change-id] [--json]` and `firefly show [change-id] [--json]` — inspect artifact progress or change content. Pass the real change ID when known from the mandate. With no ID, either command selects the only active change. An empty or ambiguous list requires resolution. Read `firefly <command> --help` for argument meanings and examples.
+- `firefly spec [arguments]` — access instructions, templates, schemas, and other operations of the installed specification backend, currently OpenSpec. Within Firefly workflows, run commands through `"<skill-root>/scripts/firefly.sh"`. Use `init` and `validate` for project initialization and Chinese-compatible strict validation, and follow the `firefly docs` and `firefly archive` guides for spec sync and archive. The command prefix grants no additional effects.
 - `firefly doctor` — inspect this skill package and report `OK`, `MISS` or `DRIFT` against its installation baseline. The command is read-only.
 - `firefly config [--root PROJECT]` — verify project playbook anchors and resolve model preferences.
 - `firefly repair` — repair missing or drifted firefly-managed assets from firefly-owned copies, preserving backups before replacement.
-- `firefly validate [--root <project-root>] [--change <id>]` — strictly validate one change and its matching main specs, or the whole project when no change is specified.
+- `firefly validate [change-id] [--root <project-root>]` — strictly validate one change and its matching main specs, or the whole project when no change is specified.
 - `firefly tasks [arguments]` — list unfinished tasks across all active, unarchived changes; the read-only task overview.
 - `firefly diagram <feature-name> <output-directory>` — produce a timestamped Mermaid source and rendered SVG using the [Mermaid guide](references/abilities/mermaid-diagram-specialist/guide.md). Place workflow diagrams under `openspec/think/` to keep them outside the candidate snapshot.
 - `firefly snapshot` — print the candidate snapshot of the worktree; with `--spec <id>` and `--tasks <id>`, the spec package version and the task package version.
@@ -150,7 +158,7 @@ The two lists below are the registry, the single source of what exists. `firefly
 
 ### Skill subcommands
 
-- `firefly next` — propose the next step, read-only (see `### firefly next`). Fixed end: the proposal returned; no file changed.
+- `firefly next` — propose the next step, read-only for the project (see `### firefly next`). Fixed end: the proposal returned with the project unchanged.
 - `firefly think` — clarify a requirement before any proposal, one question at a time, for the trade-offs only the owner who carries their consequences may settle. Fixed end: the minutes under `openspec/think/` returned with a next-step recommendation.
 - `firefly draw` — settle which first user behavior is worth delivering when questions cannot: a one-page comparison, a sequence diagram, a disposable probe. Fixed end: the concept handoff — selected behavior, rejected interpretations, counterexamples, evidence pointers, first testable slice — on record; a diagram-only mandate ends with the diagram and its open boundaries.
 - `firefly bounds` — agree the quality constraints beside the scenarios before implementation, and run the affected checks of a constraint axis when a review dispatches them. Fixed end: the constraint entries returned to the proposal; dispatched checks return their results to the review.

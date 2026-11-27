@@ -40,6 +40,7 @@ trap 'rm -rf "$tmp_dir"' EXIT
 runtime_dir="$tmp_dir/runtime"
 mkdir -p "$runtime_dir"
 cp "$ROOT_DIR/firefly/scripts/firefly.sh" "$runtime_dir/firefly"
+cp "$ROOT_DIR/firefly/scripts/spec-commands.mjs" "$runtime_dir/spec-commands.mjs"
 
 cat > "$runtime_dir/validate-openspec-cn.mjs" <<'EOF'
 console.log(`validate ${process.argv.slice(2).join(' ')}`);
@@ -74,6 +75,79 @@ assert_contains "$record_output" "firefly-record observe --change c1 --scenario 
 
 assert_contains "$("$runtime_dir/firefly" doctor)" "manage doctor"
 assert_contains "$("$runtime_dir/firefly" repair)" "manage repair"
+
+mkdir "$tmp_dir/bin"
+cat > "$tmp_dir/bin/openspec" <<'EOF'
+#!/usr/bin/env bash
+if [[ "$*" == 'list --json' && -v CHANGES ]]; then
+  printf '%s\n' "$CHANGES"
+  exit 0
+fi
+printf '<%s>\n' "$@"
+printf 'upstream stderr\n' >&2
+exit 42
+EOF
+chmod +x "$tmp_dir/bin/openspec"
+status=0
+wrapped_output="$(PATH="$tmp_dir/bin:$PATH" "$runtime_dir/firefly" spec schema validate 'path with spaces' '' -- --help 2> "$tmp_dir/stderr")" || status=$?
+assert_exit_code "$status" 42
+expected=$'<schema>\n<validate>\n<path with spaces>\n<>\n<-->\n<--help>'
+if [[ "$wrapped_output" != "$expected" ]]; then
+  echo "unexpected OpenSpec arguments: $wrapped_output" >&2
+  exit 1
+fi
+assert_contains "$(cat "$tmp_dir/stderr")" 'upstream stderr'
+
+export PATH="$tmp_dir/bin:$PATH"
+check_forwarding() {
+  local expected="$1" status=0 output
+  shift
+  output="$("$runtime_dir/firefly" "$@" 2> "$tmp_dir/stderr")" || status=$?
+  assert_exit_code "$status" 42
+  if [[ "$output" != "$expected" ]]; then
+    echo "unexpected specification arguments: $output" >&2
+    exit 1
+  fi
+}
+check_forwarding $'<new>\n<change>\n<report-export>' new report-export
+check_forwarding $'<list>\n<--json>' list --json
+check_forwarding $'<status>\n<--change>\n<report-export>\n<--json>' status report-export --json
+check_forwarding $'<show>\n<report-export>\n<--type>\n<change>\n<--json>' show report-export --json
+
+for command in status show; do
+  status=0
+  output="$(CHANGES='{"changes":[]}' "$runtime_dir/firefly" "$command" --json 2>&1)" || status=$?
+  assert_exit_code "$status" 2
+  assert_contains "$output" '当前没有活跃变更'
+  status=0
+  output="$(CHANGES='{"changes":[{"name":"one"},{"name":"two"}]}' "$runtime_dir/firefly" "$command" --json 2>&1)" || status=$?
+  assert_exit_code "$status" 2
+  assert_contains "$output" $'  one\n  two'
+  status=0
+  output="$(CHANGES='{"changes":[{"name":"only-change"},{"name":"old","archived":true}]}' "$runtime_dir/firefly" "$command" 2>&1)" || status=$?
+  assert_exit_code "$status" 42
+  assert_contains "$output" '当前变更：only-change'
+  assert_contains "$output" '<only-change>'
+done
+
+mkdir "$tmp_dir/no-openspec"
+ln -s "$(command -v bash)" "$tmp_dir/no-openspec/bash"
+ln -s "$(command -v dirname)" "$tmp_dir/no-openspec/dirname"
+status=0
+missing_output="$(PATH="$tmp_dir/no-openspec" "$runtime_dir/firefly" spec --version 2>&1)" || status=$?
+assert_exit_code "$status" 127
+assert_contains "$missing_output" 'openspec is not installed or not on PATH'
+
 assert_exit_code "$(set +e; "$runtime_dir/firefly" unknown >/dev/null 2>&1; echo "$?")" 1
+assert_exit_code "$(set +e; "$runtime_dir/firefly" openspec --help >/dev/null 2>&1; echo "$?")" 1
+assert_exit_code "$(set +e; "$runtime_dir/firefly" sc --help >/dev/null 2>&1; echo "$?")" 1
+assert_contains "$("$runtime_dir/firefly" --help)" 'spec --help'
 assert_not_contains "$("$runtime_dir/firefly" --help)" "--platform"
+for command in new list status show; do
+  assert_contains "$("$runtime_dir/firefly" "$command" --help)" "firefly $command"
+done
+assert_contains "$("$runtime_dir/firefly" status --help)" 'firefly list'
+assert_contains "$("$runtime_dir/firefly" status --help)" '示例变更 ID'
+assert_contains "$("$ROOT_DIR/firefly/scripts/firefly.sh" validate --help)" '省略则校验整个项目'
+assert_exit_code "$(set +e; "$runtime_dir/firefly" help status >/dev/null 2>&1; echo "$?")" 2
 echo "firefly command test passed"

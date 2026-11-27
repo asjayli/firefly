@@ -278,7 +278,7 @@ mkdir -p "$scoped_project/openspec/changes/archive" "$scoped_project/openspec/ch
 ln -s . "$scoped_project/openspec/changes/archive/loop"
 ln -s . "$scoped_project/openspec/changes/unrelated/specs/loop"
 cp "$project_dir/openspec/changes/change/proposal.md" "$scoped_project/openspec/changes/unrelated/proposal.md"
-scoped_output="$(FAKE_OPENSPEC_SCOPED=1 PATH="$bin_dir:$PATH" node "$VALIDATOR" --root "$scoped_project" --change change)"
+scoped_output="$(FAKE_OPENSPEC_SCOPED=1 PATH="$bin_dir:$PATH" node "$VALIDATOR" --root "$scoped_project" change)"
 assert_contains "$scoped_output" "Validation input SHA-256:"
 assert_contains "$(cat "$log_file")" 'validate change --type change --strict --no-interactive'
 if loop_output="$(PATH="$bin_dir:$PATH" node "$VALIDATOR" --root "$scoped_project" 2>&1)"; then

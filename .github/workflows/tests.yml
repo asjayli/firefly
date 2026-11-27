@@ -27,6 +27,13 @@ jobs:
       - name: Design projection check
         run: python3 docs/skill-proof/tools/verify-flynext.py
 
+      - name: Skills distribution and first-use bootstrap
+        run: bash tests/cases/skills-distribution.sh
+
+      - name: Default-branch skills installation
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: bash tests/cases/skills-distribution.sh asjayli/firefly latest
+
       - name: Run test suite
         run: |
           status=0

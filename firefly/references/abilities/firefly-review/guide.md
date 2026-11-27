@@ -56,7 +56,7 @@ When the user explicitly requests `firefly review <change> --panel` for a candid
 
 ### 1. Validate strictly
 
-Run `"<skill-root>/scripts/firefly.sh" validate --root <project-root> --change <id>` before anything else. A non-zero exit means that the spec package is not compliant; the validator as shipped reads the spec package and not `tasks.md`. That is not a defect of the candidate, and no verdict value carries it: build no package and dispatch no reviewer. Return an `ESCALATE` (`## Stop and escalate`). The validator's file-level output is never put to the reviewers.
+Run `"<skill-root>/scripts/firefly.sh" validate --root <project-root> <id>` before anything else. A non-zero exit means that the spec package is not compliant; the validator as shipped reads the spec package and not `tasks.md`. That is not a defect of the candidate, and no verdict value carries it: build no package and dispatch no reviewer. Return an `ESCALATE` (`## Stop and escalate`). The validator's file-level output is never put to the reviewers.
 
 ### 2. Rebuild the state
 
@@ -294,7 +294,7 @@ The first five rows are records about the candidate. A standalone review writes 
 Stop and return an `ESCALATE` with the current conclusion, the missing evidence or authority, and the responsible owner when:
 
 - A required role returns `INSUFFICIENT_EVIDENCE`, of a comparison package included, or a rerun agreed under `RECHECK` still yields no usable result.
-- `"<skill-root>/scripts/firefly.sh" validate --root <project-root> --change <id>` exits non-zero (Step 1). The current conclusion is the file-level output of the validator. What is missing is a compliant spec package. Owner: the spec author, reached through firefly-propose.
+- `"<skill-root>/scripts/firefly.sh" validate --root <project-root> <id>` exits non-zero (Step 1). The current conclusion is the file-level output of the validator. What is missing is a compliant spec package. Owner: the spec author, reached through firefly-propose.
 - No mandate of the change states the review and its permitted effects, or no recorded baseline of the candidate exists. Owner: the requester.
 - A dispatched generation has no `brief.md`. Its fixed facts have nothing to be compared with. Owner: the controller.
 - A package version cannot be obtained when a step needs it. `firefly snapshot --spec <change>` or `firefly snapshot --tasks <change>` fails, for example because the change has no `specs/` directory or no `tasks.md`. No version is derived by hand. Owner: the requester.

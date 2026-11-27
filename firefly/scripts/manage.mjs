@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 import { directories, entries, inventory, stat, verifyBundle, within } from './bundle.mjs';
@@ -10,6 +11,7 @@ const sourceRoot = process.argv[2];
 
 function usage() {
   console.log('Usage: manage.sh install --skills-dir DIR [--bin-dir DIR] [--references-dir DIR] [--scripts-dir DIR]');
+  console.log('       manage.sh bootstrap [--bin-dir DIR]');
   console.log('       manage.sh doctor|repair [--skills-dir DIR]');
 }
 
@@ -96,8 +98,12 @@ function transact(changes) {
   function ensureDirectory(directory) {
     if (stat(directory)) return;
     ensureDirectory(path.dirname(directory));
-    fs.mkdirSync(directory);
-    madeDirectories.push(directory);
+    try {
+      fs.mkdirSync(directory);
+      madeDirectories.push(directory);
+    } catch (error) {
+      if (error.code !== 'EEXIST' || !stat(directory)?.isDirectory()) throw error;
+    }
   }
   try {
     for (const change of changes) {
@@ -110,6 +116,7 @@ function transact(changes) {
     }
     for (const step of staged) {
       const current = stat(step.target);
+      if (step.createOnly && current) throw new Error(`Destination already exists: ${step.target}`);
       if (Boolean(current) !== Boolean(step.original) ||
           (current && (current.dev !== step.original.dev || current.ino !== step.original.ino))) {
         throw new Error(`Destination changed during preparation: ${step.target}`);
@@ -167,6 +174,103 @@ function matchesInventory(target, entry, expected) {
   }
 }
 
+function prepareBaseline(destination) {
+  fs.mkdirSync(destination);
+  for (const entry of entries) {
+    fs.cpSync(path.join(sourceRoot, entry), path.join(destination, storedName(entry)), { recursive: true });
+  }
+  verifyBundle(destination, storedName('SKILL.md'));
+}
+
+function writeReceipt(destination, record) {
+  fs.writeFileSync(destination, JSON.stringify(record, null, 2) + '\n');
+}
+
+function requireHealthyRuntime(root) {
+  const record = receipt(root);
+  if (!record) throw new Error(`Runtime is not a managed Firefly installation: ${root}`);
+  knownBaseline(root, record);
+  const targets = entryTargets(root, record.links);
+  if (!entries.every((entry, index) => matchesInventory(targets[index], entry, record.inventory[index]))) {
+    throw new Error(`Firefly assets have drifted: ${root}. Run the managed command with repair.`);
+  }
+}
+
+function requireManagedCommand(command) {
+  if (!stat(command)?.isSymbolicLink()) throw new Error(`Command already exists: ${command}`);
+  const launcher = path.resolve(path.dirname(command), fs.readlinkSync(command));
+  const discovery = path.dirname(path.dirname(launcher));
+  if (path.basename(discovery) !== 'firefly' || path.join(discovery, 'scripts', 'firefly.sh') !== launcher) {
+    throw new Error(`Command already exists: ${command}`);
+  }
+  requireHealthyRuntime(physical(discovery));
+}
+
+function reportCommand(command) {
+  const first = (process.env.PATH ?? '').split(path.delimiter).map(directory => path.resolve(directory, 'firefly'))
+    .find(candidate => {
+      try {
+        fs.accessSync(candidate, fs.constants.X_OK);
+        return fs.statSync(candidate).isFile();
+      } catch {
+        return false;
+      }
+    });
+  if (!first) console.error(`firefly: add ${path.dirname(command)} to PATH or use the absolute command path.`);
+  else if (physical(first) !== physical(command)) console.error(`firefly: ${first} takes precedence on PATH; use ${command}.`);
+  console.log(command);
+}
+
+function bootstrap(options) {
+  const home = os.homedir();
+  if (!path.isAbsolute(home)) throw new Error('An absolute user home directory is required');
+  const command = path.join(physical(options.get('--bin-dir') ?? path.join(home, '.local', 'bin')), 'firefly');
+  if (stat(command)) {
+    requireManagedCommand(command);
+    reportCommand(command);
+    return;
+  }
+
+  const dataHome = process.env.XDG_DATA_HOME;
+  const discovery = path.join(dataHome && path.isAbsolute(dataHome) ? dataHome : path.join(home, '.local', 'share'),
+    'firefly', 'runtime', 'firefly');
+  const root = physical(discovery);
+  if (overlap(root, sourceRoot) || overlap(root, command) || overlap(sourceRoot, command)) {
+    throw new Error('Bootstrap runtime, skill source and command paths must be separate');
+  }
+
+  if (stat(root)) {
+    requireHealthyRuntime(root);
+  } else {
+    verifyBundle(sourceRoot);
+    const record = { version: 1, links: {}, inventory: entries.map(entry => inventory(sourceRoot, entry)) };
+    try {
+      transact([{
+        target: root,
+        createOnly: true,
+        prepare(destination) {
+          fs.mkdirSync(destination);
+          for (const entry of entries) fs.cpSync(path.join(sourceRoot, entry), path.join(destination, entry), { recursive: true });
+          prepareBaseline(path.join(destination, baselineName));
+          writeReceipt(path.join(destination, receiptName), record);
+          requireHealthyRuntime(destination);
+        },
+      }]);
+    } catch (error) {
+      if (!stat(root)) throw error;
+      requireHealthyRuntime(root);
+    }
+  }
+
+  try {
+    transact([{ target: command, createOnly: true, link: path.join(discovery, 'scripts', 'firefly.sh') }]);
+  } catch (error) {
+    if (!stat(command)) throw error;
+    requireManagedCommand(command);
+  }
+  reportCommand(command);
+}
+
 function install(options) {
   const skills = options.get('--skills-dir');
   if (!skills) throw new Error('--skills-dir is required');
@@ -200,23 +304,14 @@ function install(options) {
   const changes = entries.flatMap((entry, index) =>
     matchesInventory(targets[index], entry, contents[index]) ? [] : [copy(targets[index], path.join(sourceRoot, entry))]);
   if (!previousBaselineValid || !isDeepStrictEqual(previous?.inventory, contents)) {
-    changes.push({
-      target: path.join(root, baselineName),
-      prepare(destination) {
-        fs.mkdirSync(destination);
-        for (const entry of entries) {
-          fs.cpSync(path.join(sourceRoot, entry), path.join(destination, storedName(entry)), { recursive: true });
-        }
-        verifyBundle(destination, storedName('SKILL.md'));
-      },
-    });
+    changes.push({ target: path.join(root, baselineName), prepare: prepareBaseline });
   }
   const next = { version: 1, links, inventory: contents };
   if (!isDeepStrictEqual(previous, next)) {
     changes.push({
       target: path.join(root, receiptName),
       prepare(destination) {
-        fs.writeFileSync(destination, JSON.stringify(next, null, 2) + '\n');
+        writeReceipt(destination, next);
       },
     });
   }
@@ -274,6 +369,8 @@ try {
   const [mode, ...args] = process.argv.slice(3);
   if (mode === '--help' || mode === '-h' || args.length === 1 && args[0] === '--help') {
     usage();
+  } else if (mode === 'bootstrap') {
+    bootstrap(parse(args, ['--bin-dir']));
   } else if (mode === 'install') {
     install(parse(args, ['--skills-dir', '--bin-dir', '--references-dir', '--scripts-dir']));
   } else if (mode === 'doctor' || mode === 'repair') {

@@ -29,7 +29,17 @@ firefly 把用户的委托转成可验收的交付物：调查给出有依据的
 
 ## 安装
 
-将 [firefly/](firefly/) 作为一个技能目录加载，入口为 [SKILL.md](firefly/SKILL.md)。需要安装基线和命令入口时，在仓库根运行：
+先安装技能，再在宿主中调用一次 Firefly。
+
+```bash
+npx skills@latest add asjayli/firefly
+```
+
+首次调用时，Agent 会从技能包安装 `~/.local/bin/firefly` 和修复基线，然后继续当前任务。受管运行时保存在 `${XDG_DATA_HOME:-$HOME/.local/share}/firefly/runtime/firefly`。已有健康的受管命令会直接复用。如果宿主限制写入用户目录，可在终端手动执行 `bash <技能目录>/scripts/manage.sh bootstrap`。命令目录需要在 `PATH` 中，也可以直接执行 `~/.local/bin/firefly doctor`。
+
+### 手动受管安装
+
+需要指定技能和命令位置时，从独立源码副本运行：
 
 ```bash
 bash firefly/scripts/manage.sh install --skills-dir /path/to/skills --bin-dir "$HOME/.local/bin"
@@ -45,7 +55,7 @@ bash firefly/scripts/manage.sh install --skills-dir /path/to/skills --bin-dir "$
 bash firefly/scripts/manage.sh repair --skills-dir /path/to/skills
 ```
 
-安装和修复只操作指定的 Firefly 安装。旧版平台安装需自行移出技能搜索路径，并自行移除旧的全局命令后再使用相同目标。
+通过 `npx skills` 更新或卸载时，操作的是宿主技能目录。已安装的全局运行时会继续保留。要更新首次调用生成的全局运行时，从新版源码运行原生安装命令，把 `--skills-dir` 指向 `${XDG_DATA_HOME:-$HOME/.local/share}/firefly/runtime`，把 `--bin-dir` 指向当前命令目录。要卸载这份运行时，移除它的命令链接和受管运行时目录。对于自行指定位置的原生安装，使用原来的对应目录。
 
 ## 技能能力
 
@@ -95,6 +105,10 @@ bash firefly/scripts/manage.sh repair --skills-dir /path/to/skills
 firefly init                  # 检查全局环境；项目缺 OpenSpec 初始化时才执行 openspec init
 firefly tasks                 # 只读列出所有活跃变更的未完成任务
 firefly validate --root <目录> # 中文 OpenSpec 严格校验（见下节）
+firefly list --json           # 列出变更
+firefly status                # 查看唯一活跃变更的制品状态
+firefly status --help         # 查看变更 ID 的含义、来源和省略规则
+firefly spec --help           # 查看规格后端的命令和参数
 firefly diagram <功能> <目录>   # 生成带时间戳的 .mmd 与渲染 .svg
 firefly doctor                # 检查当前平台受管资产（OK/MISS/DRIFT），不改文件
 firefly repair                # 修复缺失或漂移的受管资产，替换前保留备份
@@ -103,6 +117,10 @@ firefly record <子命令>        # 向交接载体追加一条经校验的记�
 ```
 
 `firefly next` 是技能侧的只读入口：从会话与项目中提取已完成、未兑现与待展开的信号，按风险清障、兑现承诺、续作、推进、清债的次序提出 3–5 项建议，每项带证据来源、完成标准与对应的 firefly 入口；无信号时如实报告，不编造条目。
+
+用 `firefly --help` 查看入口，`firefly <命令> --help` 查看参数。变更 ID 是一项变更的标识，可从 `firefly list` 获取。用 `firefly new <变更ID>` 创建变更骨架。`firefly status` 和 `firefly show` 自动选中唯一活跃变更，有多个时会列出候选。Agent 已知委托的变更 ID 时显式传入。
+
+`firefly init` 初始化项目，`firefly validate` 校验整个项目。同步规格和归档走 Agent 的 `firefly docs`、`firefly archive`。制品指令、模板和其他后端操作通过 `firefly spec …` 调用。当前后端 OpenSpec 可独立使用。
 
 ### 裁决与升级
 
@@ -129,7 +147,7 @@ firefly validate --root <项目根目录>
 
 适配器同时校验主规格和活跃变更，且只支持 `spec-driven` schema；不支持中文章节或标题，必须继续使用 `## Requirements`、`### Requirement:` 和 `#### Scenario:` 等 OpenSpec 结构关键字。
 
-加 `--change <id>` 可只校验该活跃变更和对应主规格。校验在同一临时副本中完成，成功时输出注入前的输入 SHA-256。受管基线损坏时，从完整源包重新运行安装命令即可重建。记录命令使用 `flock` 串行更新同一目录中的账本。
+用 `firefly validate <变更ID>` 只校验该活跃变更和对应主规格。校验在同一临时副本中完成，成功时输出注入前的输入 SHA-256。受管基线损坏时，从完整源包重新运行安装命令即可重建。记录命令使用 `flock` 串行更新同一目录中的账本。
 
 ## 运行依赖
 

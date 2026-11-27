@@ -29,7 +29,17 @@ firefly turns each user mandate into an acceptable deliverable: an investigation
 
 ## Installation
 
-Load [firefly/](firefly/) as one skill directory using [SKILL.md](firefly/SKILL.md). To install a baseline and a command entry point, run from the repository root:
+Install the skill and invoke Firefly once in your agent host.
+
+```bash
+npx skills@latest add asjayli/firefly
+```
+
+On first use, the agent installs `~/.local/bin/firefly` and its repair baseline from the skill bundle, then continues the requested task. The managed runtime lives under `${XDG_DATA_HOME:-$HOME/.local/share}/firefly/runtime/firefly`. Firefly reuses any healthy managed command at the destination. If the host restricts writes to the user directory, run `bash <skill-directory>/scripts/manage.sh bootstrap` in a terminal. Add the command directory to `PATH` or run `~/.local/bin/firefly doctor` directly.
+
+### Manual managed installation
+
+To choose the skill and command locations, run from a separate source checkout:
 
 ```bash
 bash firefly/scripts/manage.sh install --skills-dir /path/to/skills --bin-dir "$HOME/.local/bin"
@@ -45,7 +55,7 @@ If the runtime scripts are missing, run recovery from a complete Firefly source 
 bash firefly/scripts/manage.sh repair --skills-dir /path/to/skills
 ```
 
-The installer manages the selected Firefly installation only. Move any older installation out of your skill search path and remove its old global command before reusing the same destination.
+Updates and uninstalls through `npx skills` affect the host's skill directory. The global runtime remains installed. To update the first-use runtime, run the native installer from the new source with `--skills-dir` set to `${XDG_DATA_HOME:-$HOME/.local/share}/firefly/runtime` and `--bin-dir` set to the current command directory. To uninstall that runtime, remove its command symlink and managed runtime directory. For a manual installation with custom paths, use its original locations.
 
 ## Skills
 
@@ -94,6 +104,10 @@ The user chooses the deliverable and the permitted effects; firefly chooses the 
 firefly init                  # check the global environment; run openspec init only when missing
 firefly tasks                 # list unfinished tasks across active changes, read-only
 firefly validate --root <dir> # Chinese OpenSpec strict validation (see below)
+firefly list --json           # list changes
+firefly status                # show artifact status for the only active change
+firefly status --help         # explain the change ID and how to find or omit it
+firefly spec --help           # list specification backend commands and options
 firefly diagram <feature> <dir> # generate a timestamped .mmd and a rendered .svg
 firefly doctor                # inspect managed assets on this platform (OK/MISS/DRIFT); modifies nothing
 firefly repair                # restore missing or drifted managed assets, preserving backups
@@ -102,6 +116,10 @@ firefly record <subcommand>   # append one validated row to a handoff carrier
 ```
 
 `firefly next` is the read-only skill entry: it extracts finished, promised-but-undone and unfolded goals from the session and the project, and proposes 3–5 items ordered by risk clearance, promise keeping, resumption, planned advance and debt cleanup — each with its evidence source, completion standard and matching firefly entry. When no signal exists, the gap is reported as is; no item is invented.
+
+Run `firefly --help` for an overview and `firefly <command> --help` for parameters. A change ID identifies a change listed by `firefly list`. Use `firefly new <change-id>` to create a change scaffold. `firefly status` and `firefly show` select the only active change automatically or list candidates when several are active. Agents should pass the change ID when the mandate identifies it.
+
+`firefly init` initializes a project and `firefly validate` validates the whole project. Follow the `firefly docs` and `firefly archive` agent guides for spec sync and archive. Use `firefly spec …` for artifact instructions, templates, and other backend operations. The current backend, OpenSpec, can run independently.
 
 ### Verdicts and escalation
 
@@ -130,7 +148,7 @@ The installer places a platform-neutral command at `~/.local/bin/firefly`; ensur
 
 ## Runtime dependencies
 
-Pass `--change <id>` to validate one active change and its corresponding main specs. Successful validation prints the SHA-256 of the staged input before adapting modal verbs. Reinstall from a complete source package to rebuild a damaged installation baseline. The record command uses `flock` to serialize updates to carriers in the same directory.
+Run `firefly validate <change-id>` to validate one active change and its corresponding main specs. Successful validation prints the SHA-256 of the staged input before adapting modal verbs. Reinstall from a complete source package to rebuild a damaged installation baseline. The record command uses `flock` to serialize updates to carriers in the same directory.
 
 Use `firefly review <change> --panel` for an independent panel and `firefly verify-formal` for a named invariant. Set model preferences in `.firefly/models.json` and project-specific checks in `.firefly/playbooks/`. Use `firefly config` to validate configuration and `firefly doctor --upstreams` to inspect upstream versions and adaptations. [Project configuration](firefly/references/project-configuration.md)
 

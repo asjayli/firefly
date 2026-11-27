@@ -33,7 +33,7 @@ The controller runs this skill. The spec package is written as spec author, the 
 
 - A proposal-only mandate ends with the change ready to start. Three facts then hold:
   1. The newest row of `## Ready decision` in `openspec/changes/<change>/tasks.md` is an `ACCEPT` whose spec package version and task package version are the current ones (step 10).
-  2. The complete change passes `"<skill-root>/scripts/firefly.sh" validate --root <project-root> --change <id>`.
+  2. The complete change passes `"<skill-root>/scripts/firefly.sh" validate --root <project-root> <id>`.
   3. The reply names `firefly implement <change>` as the next command.
 - The mandate also ends by `ESCALATE` (see "Stop and escalate").
 - Under a mandate that continues into delivery (contract, Mandate record) the same facts are reached, and the change is handed to `firefly-implement` inside the same flow.
@@ -123,7 +123,7 @@ The system MUST keep one job for one submission and MUST NOT merge a new submiss
 
 ### 4. Validate strictly
 
-1. Run `"<skill-root>/scripts/firefly.sh" validate --root <project-root> --change <id>` after the spec package is written, after every repair of it, and again after the task package returns, before the joint review is dispatched.
+1. Run `"<skill-root>/scripts/firefly.sh" validate --root <project-root> <id>` after the spec package is written, after every repair of it, and again after the task package returns, before the joint review is dispatched.
 2. A non-zero exit blocks the start. While the command fails, dispatch no review and report the change neither as strictly valid nor as ready to start.
    Record the validated input SHA-256 and the spec and task package versions with the evidence. If either package changes during validation, validate again before recording a ready decision.
 3. If the command fails, repair the artifact of this change that it names and rerun the same command. A failure in `tasks.md` goes to the planner. An artifact it names outside `openspec/changes/<change>/` is not repaired here: the next step needs an effect the mandate does not permit.

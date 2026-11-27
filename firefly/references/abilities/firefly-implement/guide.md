@@ -28,7 +28,7 @@ Decide each from the records, never from the conversation:
 
 - **No change is named** and no open mandate identifies one.
 - **No mandate in force covers the delivery.** The mandate in force is proposal-only, or there is no mandate row, and the request does not name `firefly implement <change>`. `ESCALATE` (`## Stop and escalate`); nothing is dispatched.
-- **The change is not an active, unarchived change with a `tasks.md`.** `openspec status --change "<change>" --json` does not resolve it, reports it archived, or its `changeRoot` has no `tasks.md`.
+- **The change is not an active, unarchived change with a `tasks.md`.** `"<skill-root>/scripts/firefly.sh" status "<change>" --json` does not resolve it, reports it archived, or its `changeRoot` has no `tasks.md`.
 - **No ready decision is in force.** `## Ready decision` has no row, its newest row is not `ACCEPT`, or its two package versions differ from what `firefly snapshot --spec <change>` and `firefly snapshot --tasks <change>` print now. The change returns to `firefly-propose`; nothing is dispatched (`### Resolve and read`).
 - **The request asks for another deliverable**: a proposal without implementation (`firefly-propose`), the cause of a failure (`firefly-debug`), a verdict on a candidate (`firefly-review`). A root cause returned by `firefly-debug` does not authorize implementation.
 - **A repair scenario from `firefly-debug` has no ready decision.** It enters here only after the spec author wrote it into the spec, the planner built its minimal task group and the joint review passed.
@@ -60,18 +60,18 @@ Decide each from the records, never from the conversation:
 
 ## Inputs
 
-- The change id, from the request or from the open mandate. `openspec status --change "<change>" --json` resolves its `changeRoot`.
+- The change id, from the request or from the open mandate. `"<skill-root>/scripts/firefly.sh" status "<change>" --json` resolves its `changeRoot`.
 - `openspec/changes/<id>/proposal.md`, section `## Mandate`: mandate id, objective, permitted effects, terminal condition, and the `Minutes: <path>` line below the table.
 - `openspec/changes/<id>/tasks.md`: the task groups (`## N. <Group>` with its scenarios, spec path, dependencies and allowed scope), `## Scenario map` (the baseline, targeted and integrated commands, and for each scenario × check or branch its task group, verifier, expected outcome, time and candidate), and `## Ready decision`.
 - `openspec/changes/<id>/specs/**/spec.md`: the scenarios with their stable IDs and decision sources.
 - For a mandate in progress: `openspec/changes/<id>/verification.md`, the progress record `.superpowers/sdd/progress.md` (`Preflight`, `## Repair budget`, review package, dispatch and verdict rows), and Git.
-- The runtime: `"<skill-root>/scripts/firefly.sh"` with `snapshot` (the candidate, `--spec <change>` and `--tasks <change>`) and `record`, `"<skill-root>/scripts/task-brief"`, `"<skill-root>/scripts/review-package"`, and `openspec`.
+- The runtime: `"<skill-root>/scripts/firefly.sh"` with `snapshot` (the candidate, `--spec <change>` and `--tasks <change>`), `record` and `status`, plus `"<skill-root>/scripts/task-brief"` and `"<skill-root>/scripts/review-package"`.
 
 ## Procedure
 
 ### Resolve and read
 
-1. Run `openspec status --change "<change>" --json` and take `changeRoot` as the change directory. A change that is not found, is archived or has no `tasks.md` is not entered.
+1. Run `"<skill-root>/scripts/firefly.sh" status "<change>" --json` and take `changeRoot` as the change directory. A change that is not found, is archived or has no `tasks.md` is not entered.
 2. Read the mandate, the task groups, the scenario map and the ready decision. The mandate in force is the newest row of `## Mandate` (contract, Mandate record).
    - **What a delivery mandate is.** Its terminal condition is the `accepted` candidate, and its permitted effects are the delivery effects below. A proposal-only mandate, whose terminal condition is a change ready to start, is not one.
    - **The delivery effects** are the same whoever records the mandate and whenever it is recorded: what the request's words grant; the modification scopes the task package declares for its task groups, written out group by group in the row; the external side effects it declares that `## Mandate` does not withhold; the write-back of a `firefly-debug` return to the task record; and the record writes of `## Mandate`. Spec sync, archive, push, merge, release, a destructive removal, a child worktree, a local checkpoint commit and a merge into the target baseline are among them only when the request names them.

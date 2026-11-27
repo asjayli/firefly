@@ -7,8 +7,8 @@ Use this reference from [Firefly propose](../firefly-propose/guide.md). It provi
 From the Firefly project's root, create a repo-local change with the name selected by Firefly propose.
 
 ```bash
-openspec new change "<name>"
-openspec status --change "<name>" --json
+"<skill-root>/scripts/firefly.sh" new "<name>"
+"<skill-root>/scripts/firefly.sh" status "<name>" --json
 ```
 
 Confirm the reported `schemaName` is `spec-driven` and the `changeRoot` is the project's `openspec/changes/<name>`. If the layout differs, stop and report the unsupported planning location. If the change already exists, return its status to the caller's resumption step.
@@ -20,7 +20,7 @@ Return after scaffolding so the caller can record the mandate before writing art
 When the caller is ready to write an artifact, read its status and instructions.
 
 ```bash
-openspec instructions <artifact-id> --change "<name>" --json
+"<skill-root>/scripts/firefly.sh" spec instructions <artifact-id> --change "<name>" --json
 ```
 
-Use the template, structured output path and dependency files as inputs. Apply project context and rules as constraints. Follow the caller's stage order. The planning handoff owns `tasks.md`, and the caller runs Firefly's strict validation with its Chinese requirement support.
+Use the template, structured output path and dependency files as inputs. Apply project context and rules as constraints. Follow the caller's stage order and the command routing in Firefly's entry guide. The planning handoff owns `tasks.md`, and the caller runs Firefly's strict validation with its Chinese requirement support.

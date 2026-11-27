@@ -4,8 +4,8 @@ The mechanical steps of one sync: applying a change's delta specs to the main sp
 
 ## 1. Resolve the change and its planning root
 
-- The mandate or the request names the change. When none does, run `openspec list --json` and keep the active changes that carry delta specs. Conversation and repository evidence identify the target first. One plausible target is taken as named. When several remain equally plausible, report them back instead of applying anything: the `ESCALATE` carries the candidates, the evidence and a recommended default.
-- Run `openspec status --change "<name>" --json` and read `planningHome.root` from it. It is the authoritative planning root of the change: every main spec path below derives from it, never from the current working directory.
+- The mandate or the request names the change. When none does, run `"<skill-root>/scripts/firefly.sh" list --json` and keep the active changes that carry delta specs. Conversation and repository evidence identify the target first. One plausible target is taken as named. When several remain equally plausible, report them back instead of applying anything: the `ESCALATE` carries the candidates, the evidence and a recommended default.
+- Run `"<skill-root>/scripts/firefly.sh" status "<name>" --json` and read `planningHome.root` from it. It is the authoritative planning root of the change: every main spec path below derives from it, never from the current working directory.
 
 ## 2. Take the delta specs
 
@@ -85,7 +85,7 @@ The delta states intent, not a wholesale replacement: a scenario is added by inc
 
 ## 7. Validate and check idempotency
 
-- Run the strict spec validation: `"<skill-root>/scripts/firefly.sh" validate --root "<planningHome.root>" --change "<id>"`. It fails: repair the applied result inside the mandate's permitted effects and rerun the same failed validation. A repair that changes what the comparison states — a commitment moved, renamed or dropped — returns the plan to step 5 before it is applied again.
+- Run the strict spec validation: `"<skill-root>/scripts/firefly.sh" validate --root "<planningHome.root>" "<id>"`. It fails: repair the applied result inside the mandate's permitted effects and rerun the same failed validation. A repair that changes what the comparison states — a commitment moved, renamed or dropped — returns the plan to step 5 before it is applied again.
 - Check idempotency and preservation by rereading the applied main specs against the plan: applying the same plan again changes nothing, and every clause the delta does not mention is unchanged. A difference is repaired as above.
 - Validation or idempotency that cannot be made to pass inside the permitted effects stops the sync under `../guide.md`, `## Stop and escalate`.
 

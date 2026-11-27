@@ -46,7 +46,7 @@ The shared rules are in `<skill-root>/references/handoff-contract.md`. This skil
 **Permitted effects**
 
 - Planning entry: write `openspec/changes/<id>/tasks.md`, and nothing else.
-- Planning entry: run `"<skill-root>/scripts/firefly.sh" validate --root <project-root> --change <id>` and `"<skill-root>/scripts/firefly.sh" snapshot --spec <id>`; neither writes a carrier.
+- Planning entry: run `"<skill-root>/scripts/firefly.sh" validate --root <project-root> <id>` and `"<skill-root>/scripts/firefly.sh" snapshot --spec <id>`; neither writes a carrier.
 - Query entry: none.
 
 **Not granted**
@@ -227,7 +227,7 @@ The joint decision checks a task package for failure branches, cycles, non-repla
 12. Under a proposal-only mandate, the return lists the writes and the side effects the task groups need, as the task package declares them, and says whether a task group needs a child worktree, a local commit or a merge into the target baseline; those three are granted only by the request's words. The delivery mandate is recorded from the request's words plus what the task package declares (`firefly-implement`).
 13. No field, command or row is left as a placeholder.
 
-Before the handover, run `"<skill-root>/scripts/firefly.sh" validate --root <project-root> --change <id>`. The validator as shipped reads the spec package and not `tasks.md`: the task package is judged by the list above. A failure that names this change's `tasks.md` is repaired here and the command is rerun. A failure that names anything else is returned to the controller as it is: it is not this skill's to repair.
+Before the handover, run `"<skill-root>/scripts/firefly.sh" validate --root <project-root> <id>`. The validator as shipped reads the spec package and not `tasks.md`: the task package is judged by the list above. A failure that names this change's `tasks.md` is repaired here and the command is rerun. A failure that names anything else is returned to the controller as it is: it is not this skill's to repair.
 
 ### List tasks (query entry)
 
