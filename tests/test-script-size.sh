@@ -32,7 +32,7 @@ oversized() {
 }
 
 # 1. The real scripts.
-result="$(oversized "$ROOT_DIR/scripts" "$ROOT_DIR/")"
+result="$(oversized "$ROOT_DIR/firefly/scripts" "$ROOT_DIR/")"
 assert_eq 0 "${result##*$'\n'}"
 echo "ok scripts: every .sh and .mjs is within $LIMIT lines"
 

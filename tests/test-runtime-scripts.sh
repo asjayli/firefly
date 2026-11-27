@@ -14,7 +14,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=lib.sh
 source "$ROOT_DIR/tests/lib.sh"
 
-SCRIPTS="$ROOT_DIR/scripts"
+SCRIPTS="$ROOT_DIR/firefly/scripts"
 # The superpowers overlay scripts were removed in phase 10; the runtime
 # copies under scripts/ are the only ones now.
 # The three paths below are used by the sourced cases/moved-scripts.sh, which
@@ -215,12 +215,23 @@ output_has "$(cd "$snap_repo/src" && "$REVIEW_PACKAGE" HEAD WORKTREE "$snap_repo
 assert_eq "diff --git a/a.txt b/a.txt" "$(grep '^diff --git' "$snap_repo/$package")"
 output_lacks "$(cat "$snap_repo/$package")" 'openspec/'
 assert_eq "$snapshot" "$(cd "$snap_repo" && "$SNAPSHOT")"
+printf 'later work\n' >> a.txt
+pinned_package="openspec/changes/c1/evidence/${snapshot:0:12}/1/pinned.diff"
+"$REVIEW_PACKAGE" HEAD "$snapshot" "$pinned_package" >/dev/null
+output_has "$(cat "$pinned_package")" "+code change"
+output_lacks "$(cat "$pinned_package")" "+later work"
 # The same for a package between two commits: the planning directory tracked
 # in them shows up neither as added nor as deleted.
 git -C "$snap_repo" add -A
 git -C "$snap_repo" commit -qm more
-output_has "$(cd "$snap_repo" && "$REVIEW_PACKAGE" HEAD~1 HEAD "$snap_repo/between.diff")" "wrote $snap_repo/between.diff"
-output_lacks "$(cat "$snap_repo/between.diff")" 'openspec/'
+output_has "$("$REVIEW_PACKAGE" HEAD~1 HEAD "$snap_repo/openspec/changes/c1/between.diff")" "wrote $snap_repo/openspec/changes/c1/between.diff"
+output_lacks "$(cat "$snap_repo/openspec/changes/c1/between.diff")" 'openspec/'
+spec_before_ignore="$("$SNAPSHOT" --spec c1)"
+printf '/openspec/changes/\n' >> "$(git -C "$snap_repo" rev-parse --git-path info/exclude)"
+assert_eq "$spec_before_ignore" "$("$SNAPSHOT" --spec c1)"
+touch openspec/changes/c1/specs/ignored.md
+spec_with_ignored_file="$("$SNAPSHOT" --spec c1)"
+[[ "$spec_with_ignored_file" == wt:* && "$spec_before_ignore" != "${spec_with_ignored_file#wt:}" ]]
 cd "$ROOT_DIR"
 echo "ok review-package: --snapshot equals firefly snapshot; packages name the implementation only, planning products never appear"
 
@@ -307,7 +318,7 @@ test_record() {
   assert_eq "$(git rev-parse "HEAD:$change/specs" | cut -c1-12)" "$spec_version"
   snapshot="$("$SNAPSHOT")"
   "$RECORD" observe --change c1 --scenario S-1 --check file-content --result fail --observer verifier:amy \
-    --evidence "$change/evidence/e1.txt" --note "chrome 120, 1280x720" > /dev/null
+    --candidate "$snapshot" --spec "$spec_version" --evidence "$change/evidence/e1.txt" --note "chrome 120, 1280x720" > /dev/null
   first="$(rows "$change/verification.md")"
   output_has "$first" " | $snapshot | spec:$spec_version | verifier:amy | no | chrome 120, 1280x720 | fail | $change/evidence/e1.txt |"
   assert_eq 1 "$(rows "$change/verification.md" | wc -l)"
@@ -316,19 +327,26 @@ test_record() {
   assert_eq "$snapshot" "$("$SNAPSHOT")"
   echo "ok record observe: the snapshot taken after the write still equals the recorded candidate"
 
-  "$RECORD" observe --change c1 --scenario S-1 --check retry --result unverified --observer implementer:dan --implemented-by-observer > /dev/null
+  "$RECORD" observe --change c1 --scenario S-1 --check retry --result unverified --observer implementer:dan --implemented-by-observer \
+    --candidate "$snapshot" --spec "$spec_version" > /dev/null
   assert_eq 2 "$(rows "$change/verification.md" | wc -l)"
   assert_eq "$first" "$(rows "$change/verification.md" | sed -n 1p)"
   row_has "$change/verification.md" 2 '| implementer:dan | yes |  | unverified |  |  |'
   echo "ok record observe: a second call appends a row and leaves the first row unchanged"
 
   printf '#### Scenario: owner recovers (S-1)\n\n- edited\n' > "$change/specs/x/spec.md"
+  old_snapshot="$snapshot"
+  touch later-implementation.txt
   snapshot="$("$SNAPSHOT")"
   dirty_spec="$("$SNAPSHOT" --spec c1)"
   [[ "$dirty_spec" =~ ^wt:[0-9a-f]{12}$ && "$dirty_spec" != "wt:$spec_version" ]] || { echo "FAIL: dirty spec version is $dirty_spec" >&2; exit 1; }
-  "$RECORD" observe --change c1 --scenario S-1 --check ui --result not-applicable --observer reviewer:bo --rule "no UI change" > /dev/null
+  "$RECORD" observe --change c1 --scenario S-1 --check ui --result not-applicable --observer reviewer:bo --rule "no UI change" \
+    --candidate "$snapshot" --spec "$dirty_spec" > /dev/null
   row_has "$change/verification.md" 3 " | $snapshot | spec:$dirty_spec | reviewer:bo | no |  | not-applicable |  | no UI change |"
   echo "ok record observe: spec is the spec package version with its wt: prefix while the specs have uncommitted changes; not-applicable carries its rule"
+  "$RECORD" observe --change c1 --scenario S-1 --check delayed --result pass --observer verifier:amy \
+    --candidate "$old_snapshot" --spec "$spec_version" --evidence "$change/evidence/e1.txt" > /dev/null
+  row_has "$change/verification.md" 4 " | $old_snapshot | spec:$spec_version | verifier:amy | no |  | pass |"
 
   "$RECORD" ready --change c1 --spec 1111111 --tasks 2222222 --reviewer rev --verdict ACCEPT --note "both packages pass" > /dev/null
   assert_contains "$change/tasks.md" '## Ready decision'
@@ -396,6 +414,8 @@ test_record() {
   rejected 2 observe "invalid observer: amy" observe --change c1 --scenario S-1 --check k --result unverified --observer amy
   rejected 2 observe "scenario is required for observe" observe --change c1 --check k --result unverified --observer verifier:a
   rejected 2 observe "invalid change: nope" observe --change nope --scenario S-1 --check k --result unverified --observer verifier:a
+  rejected 2 observe "candidate is required for observe" observe --change c1 --scenario S-1 --check k --result unverified --observer verifier:a
+  rejected 2 observe "spec is required for observe" observe --change c1 --scenario S-1 --check k --result unverified --observer verifier:a --candidate "$snapshot"
   rejected 2 verdict "invalid verdict: MAYBE" verdict --change c1 --package p --reviewer r --role reviewer --scenarios S-1 --verdict MAYBE
   rejected 2 verdict "invalid role: owner" verdict --change c1 --package p --reviewer r --role owner --scenarios S-1 --verdict REVISE
   rejected 2 verdict "invalid reservation: bogus-kind:x:touches-required=no" verdict --change c1 --package p --reviewer r --role reviewer --scenarios S-1 --verdict REVISE --reservation "bogus-kind:x:touches-required=no"
@@ -443,7 +463,8 @@ git -C "$fresh" config user.name "firefly Test"
   "$RECORD" ready --change c1 --spec "$spec_version" --tasks "$tasks_version" --reviewer rev --verdict ACCEPT > /dev/null
   assert_eq "$tasks_version" "$("$SNAPSHOT" --tasks c1)"
   before="$("$SNAPSHOT")"
-  "$RECORD" observe --change c1 --scenario S-1 --check k --result fail --observer verifier:amy --evidence openspec/changes/c1/evidence/e1.txt > /dev/null
+  "$RECORD" observe --change c1 --scenario S-1 --check k --result fail --observer verifier:amy \
+    --candidate "$before" --spec "$spec_version" --evidence openspec/changes/c1/evidence/e1.txt > /dev/null
   assert_eq "$before" "$("$SNAPSHOT")"
   # The tree holds the implementation only: the change's specs, tasks and
   # proposal are out, like the observation record and the evidence.

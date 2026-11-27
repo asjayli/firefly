@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Content contract of assets/shared/references/handoff-contract.md.
+# Content contract of firefly/references/handoff-contract.md.
 #
 # The handoff contract is the one shared statement of carriers, identities,
 # observation records, candidate states, verdicts and vocabulary that every
@@ -14,7 +14,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=lib.sh
 source "$ROOT_DIR/tests/lib.sh"
 
-CONTRACT="$ROOT_DIR/assets/shared/references/handoff-contract.md"
+CONTRACT="$ROOT_DIR/firefly/references/handoff-contract.md"
 
 [[ -f "$CONTRACT" ]] || { echo "missing $CONTRACT" >&2; exit 1; }
 
@@ -136,7 +136,7 @@ for text in \
   'A `--round` that is not a positive integer' \
   'quoting verbatim words' \
   'A reviewer dispatched again under one identity goes by a different name' \
-  'A dispatch row with `sent` and no `returned` or `failed` row is an interrupted dispatch' \
+  'A dispatch with `sent` and no `returned`, `failed` or `obsolete` row still needs reconciliation' \
   'Write it after the first mandate row' \
   'None of them changes the index or the worktree' \
   "stores each reviewer's whole return, unchanged" \
@@ -192,20 +192,6 @@ expect_absent() {
   count=$((count + 1))
 }
 
-# 4. The contract carries no platform token, so both rendered copies equal
-#    the source byte for byte.
-if grep -q '{{PLATFORM_' "$CONTRACT"; then
-  echo "FAIL: handoff contract must not contain a platform token" >&2
-  exit 1
-fi
-for platform in codex claude; do
-  rendered="$ROOT_DIR/assets/$platform/references/handoff-contract.md"
-  if ! cmp "$CONTRACT" "$rendered"; then
-    echo "FAIL: $rendered differs from the shared source" >&2
-    exit 1
-  fi
-done
-echo "handoff contract: rendered copies identical to the source"
 
 # 5. Rules that were tried and withdrawn stay out.
 for retired_rule in 'the window' 'is not edited' 'before the candidate snapshot of the implementation is fixed' 'kept at their committed state' 'the records that cite the old version lapse together' 'What counts as affected is read from the versions a record cites'; do

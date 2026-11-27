@@ -29,9 +29,8 @@ assert_contains() {
   }
 }
 
-for platform in codex claude; do
-  implement="$ROOT_DIR/assets/$platform/skills/firefly-implement/SKILL.md"
-  apply="$ROOT_DIR/assets/$platform/skills/openspec-apply-change/SKILL.md"
+{
+  implement="$ROOT_DIR/firefly/references/abilities/firefly-implement/guide.md"
 
   # firefly-implement (v2): same items, wording of its Preflight section.
   # Once, before the first candidate modification.
@@ -51,25 +50,6 @@ for platform in codex claude; do
   assert_contains "$implement" "known-red"
   assert_contains "$implement" "stays visible in the final report"
 
-  skill="$apply"
-    # Once, before the first candidate modification.
-    assert_contains "$skill" "baseline verification once"
-    # Recorded under a Preflight section in the SDD progress ledger.
-    assert_contains "$skill" "Preflight"
-    assert_contains "$skill" ".superpowers/sdd/progress.md"
-    # Identified by HEAD + worktree + Verification Contract; resumption skips rerun.
-    assert_contains "$skill" "Verification Contract"
-    assert_contains "$skill" "already completed, do not rerun"
-    # Four-way red classification.
-    assert_contains "$skill" "in-scope-red"
-    assert_contains "$skill" "unrelated-red"
-    assert_contains "$skill" "user-worktree-red"
-    # Known-red stays visible in the final report.
-    assert_contains "$skill" "known-red"
-    assert_contains "$skill" "stays visible in the final report"
-done
-
-# Rendered copies must stay in sync with the shared source.
-node "$ROOT_DIR/scripts/sync-platform-assets.mjs" --check
+}
 
 echo "preflight contract test passed"

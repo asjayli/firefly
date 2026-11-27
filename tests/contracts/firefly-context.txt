@@ -38,7 +38,7 @@
 +input: After integration they are read in the target baseline
 +input: a candidate in a child worktree has its observation rows and evidence in that worktree
 +input: open the return beside the package
-+input: on resumption look for that reviewer's return first
++input: whether a return is available and whether the host confirms running, finished or unknown
 +input: reads there what the joint review found wrong
 +input: A task group that is integrated on the target baseline but not ticked counts as incomplete
 +input: nothing is implemented again
@@ -65,7 +65,7 @@
 +verdict-or-state: Continue from the first task group that is incomplete and whose dependencies are satisfied
 +verdict-or-state: only once its check scheduled at `integrated` has the observation row of the designated verifier
 +verdict-or-state: An uncommitted candidate is located by the content digest of its fixed snapshot
-+verdict-or-state: a candidate with no surviving verdict record is not `accepted`
++verdict-or-state: A candidate without a surviving verdict record still needs independent acceptance
 +verdict-or-state: Only the highest generation of a candidate counts
 +verdict-or-state: A record marked `historical` supports no conclusion
 +verdict-or-state: Every version comparison in this skill ignores the `wt:` prefix

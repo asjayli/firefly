@@ -20,9 +20,9 @@ assert_contains() {
   }
 }
 
-for platform in codex claude; do
-  think="$ROOT_DIR/assets/$platform/skills/firefly-think/SKILL.md"
-  propose="$ROOT_DIR/assets/$platform/skills/firefly-propose/SKILL.md"
+{
+  think="$ROOT_DIR/firefly/references/abilities/firefly-think/guide.md"
+  propose="$ROOT_DIR/firefly/references/abilities/firefly-propose/guide.md"
 
   # Requirement completeness matrix (greenfield).
   assert_contains "$think" "Check requirement completeness"
@@ -44,7 +44,7 @@ for platform in codex claude; do
   assert_contains "$propose" "Read project memory read-only"
 
   # Group 4: producer self-critique (7 items) before review.
-  openspec_propose="$ROOT_DIR/assets/$platform/skills/openspec-propose/SKILL.md"
+  openspec_propose="$ROOT_DIR/firefly/references/abilities/openspec-propose/guide.md"
 
   # firefly-propose runs the 7-item producer self-critique before its reviewer.
   assert_contains "$propose" "producer self-critique"
@@ -52,15 +52,9 @@ for platform in codex claude; do
   assert_contains "$propose" "acyclic"
   assert_contains "$propose" "user-authorized scope"
 
-  # openspec-propose carries the same 7-item self-critique on both platforms.
-  assert_contains "$openspec_propose" "producer self-critique"
-  assert_contains "$openspec_propose" "falsifiable"
-  assert_contains "$openspec_propose" "acyclic"
+  assert_contains "$openspec_propose" "Return after scaffolding so the caller can record the mandate"
+  assert_contains "$openspec_propose" "The planning handoff owns `tasks.md`"
 
-done
-
-# The single hand-edited source is assets/shared; rendered copies must stay in
-# sync (guarded by the platform-asset parity gate, asserted here too).
-node "$ROOT_DIR/scripts/sync-platform-assets.mjs" --check
+}
 
 echo "planning contract test passed"

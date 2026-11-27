@@ -2,7 +2,7 @@
 
 # firefly
 
-### A workflow for Codex, Claude agent coding delivery
+### A standalone agent skill
 
 [中文](README.md) | English
 
@@ -29,37 +29,23 @@ firefly turns each user mandate into an acceptable deliverable: an investigation
 
 ## Installation
 
-### Prerequisites
-
-- Node and npm: the installer always installs the verified OpenSpec `1.6.0` (`npm install -g @fission-ai/openspec@1.6.0`), replacing any local version.
-- ripgrep (`rg`) is optional: `firefly tasks` uses it to speed up task scanning and falls back to grep when absent.
-- As of 0.2.0 firefly ships every workflow skill itself; superpowers is no longer needed, and firefly neither installs nor overlays any superpowers skill.
-
-### Install For Codex
-
-Tell Codex:
-
-```text
-Fetch and follow instructions from https://raw.githubusercontent.com/asjayli/Forgevia/refs/heads/main/INSTALL.codex.md
-```
-
-### Install For Claude
-
-Tell Claude:
-
-```text
-Fetch and follow instructions from https://raw.githubusercontent.com/asjayli/Forgevia/refs/heads/main/INSTALL.claude.md
-```
-
-### After installing
-
-The installer places a platform-neutral `firefly` command at `~/.local/bin/firefly` and mirrors a firefly source baseline into the platform directory for diffing. Ensure `~/.local/bin` is on PATH, then run:
+Load [firefly/](firefly/) as one skill directory using [SKILL.md](firefly/SKILL.md). To install a baseline and a command entry point, run from the repository root:
 
 ```bash
-firefly doctor
+bash firefly/scripts/manage.sh install --skills-dir /path/to/skills --bin-dir "$HOME/.local/bin"
 ```
 
-`doctor` inspects the firefly-managed assets of the platform it runs from (Codex or Claude), reports `OK` / `MISS` / `DRIFT` per asset and modifies nothing. When it finds a problem, `firefly repair` restores the assets from firefly-owned copies, preserving backups before replacement.
+Set `--skills-dir` to the skill directory's parent, as configured in your host. Omit `--bin-dir` to use `scripts/firefly.sh` directly from the skill directory. Run `firefly doctor` to check the installation and `firefly repair` to restore it from its own baseline. Replaced assets are backed up beside the destination under `.firefly-backup.*/previous`.
+
+The skill discovery path can be a symlink. The CLI uses that stable path. After moving `references` or `scripts` and linking it back into the skill, rerun the installation with `--references-dir` or `--scripts-dir` to register the corresponding target. Installation preserves the links and repairs use their registered targets.
+
+If the runtime scripts are missing, run recovery from a complete Firefly source package:
+
+```bash
+bash firefly/scripts/manage.sh repair --skills-dir /path/to/skills
+```
+
+The installer manages the selected Firefly installation only. Move any older installation out of your skill search path and remove its old global command before reusing the same destination.
 
 ## Skills
 
@@ -132,13 +118,6 @@ When new authority is needed, evidence is unavailable, retries make no progress 
 
 A candidate travels from build to launch on one shared state table: **in progress → pending integration → pending verdict → accepted → releasing → live** (and **archived** once archive authority is granted). Passing verification moves it to pending integration; integration with a fixed review package moves it to pending verdict; acceptance to accepted; release authority advances it per the plan; the final stage verified against the original scenarios makes it live. A change to specs, standards or the candidate demotes affected observations and verdicts to history — an old verdict never clears a new candidate.
 
-## Upgrading From 0.1.0
-
-- Re-run the installer; it performs the whole migration.
-- The installer and `firefly repair` move the assets left by firefly 0.1.0 (old skill directories and the six superpowers overlays), hash-checked, into `~/.codex/firefly/retired/<timestamp>/` or `~/.claude/firefly/retired/<timestamp>/` backups — nothing is deleted.
-- After the old overlays are moved away, reinstall or update superpowers to restore the upstream superpowers skills.
-- The CLI subcommand `firefly draw` is renamed to `firefly diagram`.
-
 ## Chinese OpenSpec Strict Validation
 
 firefly provides Chinese-compatible OpenSpec strict validation through `firefly validate` for requirements whose body uses the Chinese normative terms `必须`, `不得`, `禁止`, or `应当`, without changing source specs. It checks those terms, injects `MUST` only in a temporary copy, and then runs native strict validation:
@@ -149,24 +128,10 @@ firefly validate --root <project-root>
 
 The installer places a platform-neutral command at `~/.local/bin/firefly`; ensure that directory is on PATH to run `firefly validate --root <project-root>`. The command dispatcher supports the runtime subcommands `init`, `tasks`, `validate`, `diagram`, `doctor`, `repair`, `snapshot` and `record`. The adapter validates main specs and active changes, supports only the `spec-driven` schema, and does not support Chinese section or heading keywords: keep `## Requirements`, `### Requirement:`, and `#### Scenario:` in English.
 
-## Third-Party Assets & Licensing
+## Runtime dependencies
 
-- `playwright-interactive`: sourced from upstream, Apache License 2.0 (© Microsoft Corporation). firefly redistributes it with its original `LICENSE.txt` and `NOTICE.txt` retained.
-- OpenSpec (`@fission-ai/openspec`, MIT): the installer pins `1.6.0` and layers managed override files over the upstream installation (skipped protectively on version mismatch).
-- Six skills derived from superpowers (MIT): `firefly-draw`, `firefly-tasks`, `firefly-implement`, `firefly-context`, `firefly-tdd` and `firefly-review` evolved from the corresponding superpowers skills; the words are firefly's own. firefly 0.2.0 no longer installs or maintains any superpowers overlay.
-- `mermaid-diagram-specialist`: a firefly-original skill.
+Pass `--change <id>` to validate one active change and its corresponding main specs. Successful validation prints the SHA-256 of the staged input before adapting modal verbs. Reinstall from a complete source package to rebuild a damaged installation baseline. The record command uses `flock` to serialize updates to carriers in the same directory.
 
-See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for details.
+Use `firefly review <change> --panel` for an independent panel and `firefly verify-formal` for a named invariant. Set model preferences in `.firefly/models.json` and project-specific checks in `.firefly/playbooks/`. Use `firefly config` to validate configuration and `firefly doctor --upstreams` to inspect upstream versions and adaptations. [Project configuration](firefly/references/project-configuration.md)
 
-## Upstream Dependencies
-
-The only upstream that must be installed and overlaid with managed overrides is OpenSpec; the rest are runtime tools or skills distributed with firefly.
-
-| Upstream | Purpose | firefly baseline | URL |
-|----------|---------|-------------------|-----|
-| OpenSpec (`@fission-ai/openspec`) | spec-driven change workflow CLI | override targets and pins `1.6.0` | https://www.npmjs.com/package/@fission-ai/openspec |
-| playwright-interactive | browser interaction verification skill | vendored (distributed with the repo) | see `LICENSE.txt` / `NOTICE.txt` inside the skill (Apache-2.0, © Microsoft Corporation) |
-| mermaid-cli (`mmdc`) | runtime dependency for `firefly diagram` SVG rendering | runtime tool | https://github.com/mermaid-js/mermaid-cli |
-| ripgrep (`rg`) | runtime dependency for `firefly tasks` scanning (optional, falls back to grep) | runtime tool | https://github.com/BurntSushi/ripgrep |
-
-> Note: firefly's OpenSpec override is a content snapshot taken against `1.6.0`, and the installer pins that version. When the local OpenSpec version differs from the snapshot, the installer and doctor skip the overlay protectively to avoid downgrading upstream. Upgrade the override snapshot, installation version, and `overrideTargetVersion` in `manifests/*.json` together.
+Installation, health checks and repair require Node.js 20 or later. OpenSpec 2.2.0 requires Node.js 22.20.0 or later. Git supports candidate snapshots and review. Install OpenSpec separately. `firefly init` runs `openspec init --tools none` in an isolated directory and imports the OpenSpec project config. Browser checks require an isolated browser automation tool. Mermaid rendering uses `mmdc` and task scanning can use `rg`. [Third-party notices](THIRD_PARTY_NOTICES.md)

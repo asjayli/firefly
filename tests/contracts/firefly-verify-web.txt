@@ -11,7 +11,7 @@
 +trigger: names a check that runs in a browser session not replayable by a command
 +trigger: The execution happens during the delivery, on the candidate snapshot
 +trigger: The user names `firefly verify-web` for a standalone investigation
-+trigger: Route to `playwright-interactive`
++trigger: use the available browser automation tool
 +trigger: web behavior, UI interaction, visual verification, and browser-facing regressions
 # The who-observes split: a non-replayable session is the verifier's; a saved
 # replayable check that needs none of the three may be the implementer's.

@@ -1,4 +1,6 @@
 @design 16,17
++trigger: `firefly review <change> --panel`
++verdict-or-state: All must validly accept
 
 # Entry. firefly-review judges one fixed candidate. It is neither the joint
 # review before a ready decision, nor repair, nor a release decision.
@@ -40,8 +42,8 @@
 +input: validate --root <project-root>
 +input: A non-zero exit means that the spec package is not compliant; the validator as shipped reads the spec package and not `tasks.md`
 +input: Dispatch only after the printed path exists and is readable
-+input: BASE WORKTREE openspec/changes/<id>/evidence/<snapshot12>/<generation>/package.diff
-+input: `review-package --snapshot` prints the same SHA
++input: BASE <full-candidate-tree-sha> openspec/changes/<id>/evidence/<snapshot12>/<generation>/package.diff
++input: `review-package` reads the fixed tree
 +input: The package identity is `<change-name>@<snapshot12>.<generation>`
 # Which review an entry is: the comparison of a mandate that is itself a
 # module-wide simplification is made once, before the incremental
@@ -127,8 +129,7 @@
 +input: for each prior finding of the package, whether it is fixed
 +input: The comparison of the worktree with the recorded snapshots covers the implementation only
 +input: The candidate is the implementation
-+input: The diff of either form leaves out `openspec/changes/` and `openspec/think/`
-+input: the implementation is fully committed: nothing outside `openspec/changes/` and `openspec/think/` differs between the worktree and `HEAD`
++input: The diff leaves out `openspec/changes/` and `openspec/think/`
 +input: It leaves out `openspec/changes/` and `openspec/think/`: read the spec, the tasks and the records from the carriers named above
 +input: a branch that passed there is not the integrated candidate
 +input: A name (`--agent`, `--reviewer`) begins with a letter or digit and holds letters, digits and `. _ : @ + -` only
@@ -139,13 +140,10 @@
 # package and dispatches nobody. The package path is the one the tool printed.
 +input: build no package and dispatch no reviewer
 +input: The validator's file-level output is never put to the reviewers
-+input: BASE HEAD openspec/changes/<id>/evidence/<snapshot12>/<generation>/package.diff
-# The `HEAD` form needs a BASE that is a commit; a baseline recorded as a tree
-# takes the `WORKTREE` form.
+# The recorded baseline can be a commit or a tree.
 +input: its Baseline commit when its Worktree snapshot is the tree of that commit, otherwise its Worktree snapshot
 +input: So `BASE` is a commit or a tree
-+input: Use the `HEAD` form only when both hold
-+input: `review-package` stops with "BASE is not a commit" when the `HEAD` form is given a tree
++input: with the tree SHA from step 3.1
 +input: the path printed by `review-package`
 # Evidence observed under a criterion or a measurement method that changed
 # lapses even when the spec version did not (contract, Lapse).
@@ -170,7 +168,7 @@
 +output: Store the whole return, unchanged
 +output: A stored return is never edited
 +output: Your return is stored unchanged beside the package
-+output: The path must hold no file yet
++output: Resume at the first missing row for a matching valid return
 +output: Record dispatches, failures and verdicts with `firefly record`
 +output: Progress record, `## Review verdicts`, through `firefly record verdict`
 +output: Observation records, evidence, the package file and the progress record are records about the candidate
@@ -183,9 +181,9 @@
 +verdict-or-state: One valid `REVISE` blocks the package, whatever the other roles return
 +verdict-or-state: A `REVISE` none of whose findings holds after this check is not a valid `REVISE`
 +verdict-or-state: A `REVISE` that carries no finding of the first kind is an invalid return
-+verdict-or-state: Keep the findings already returned; the reviews not yet returned are void.
++verdict-or-state: Keep the findings already returned. Reconcile remaining dispatches
 +verdict-or-state: A rebuilt package for an unchanged candidate takes the next generation
-+verdict-or-state: rebuild the package as the next generation and review it afresh
++verdict-or-state: A usable result is new evidence for the next generation
 +verdict-or-state: Everything recorded for an earlier generation is `historical`
 +verdict-or-state: It is never attached to an earlier generation with its verdicts reused.
 +verdict-or-state: The first half of the identity changes and the generation starts again at 1 when that snapshot has no package yet
@@ -210,8 +208,8 @@
 +verdict-or-state: An `ACCEPT` that leaves one out is invalid
 +verdict-or-state: The recorder stores the list as `none`
 +verdict-or-state: The recorder refuses an `ACCEPT` that carries an item marked `touches-required=yes` (exit 3) and writes nothing
-+verdict-or-state: Standalone review: return `RECHECK` with the checks to rerun and stop
-+verdict-or-state: Delivery: return to firefly-implement for one rerun of the agreed check on the current candidate
++verdict-or-state: Standalone review: return `RECHECK` with the unresolved checks and stop
++verdict-or-state: Only a new unresolved check is rerun
 +verdict-or-state: No usable result is `INSUFFICIENT_EVIDENCE`
 +verdict-or-state: No repair round is consumed
 # A verdict the controller finds to stand on nothing keeps its record, gets a
@@ -237,7 +235,7 @@
 +output: Maintenance cost: <what the module costs today to keep in step, to test and to understand>
 +verdict-or-state: The reviewer states what any simplification of the module has to keep
 +verdict-or-state: the dispatch rows (`sent`, then `returned`) and the stored return
-+verdict-or-state: A complete package is never dispatched again; what an entry does with it is decided by Step 2 of `SKILL.md`
++verdict-or-state: A complete package is never dispatched again; what an entry does with it is decided by Step 2 of `../guide.md`
 +verdict-or-state: A reservation of the comparison touches required behavior when it concerns an output that must stay equal or an invariant
 +verdict-or-state: A return of a comparison package is held to `references/simplification.md` instead
 +verdict-or-state: each return is recorded `failed` with that reason, so that the package is no longer complete
@@ -259,7 +257,7 @@
 +verdict-or-state: so the candidate can be accepted unchanged
 +verdict-or-state: List the findings most severe first: `P0` before `P1`
 +verdict-or-state: Severity orders the presentation
-+verdict-or-state: The candidate stays `pending-verdict`. Nothing is inferred from the silence
++verdict-or-state: Keep `pending-verdict` and continue dispatch reconciliation
 +verdict-or-state: the candidate returns to `in-progress`
 +verdict-or-state: The verdict is `RECHECK`. Name the check
 +verdict-or-state: The verdict is `REVISE`, for the missing observation
@@ -291,8 +289,8 @@
 +stop: Two generations of one snapshot that pin the same content are one package for the count
 +stop: The same rule serves every review dispatch
 +stop: A reviewer dispatched again under the same identity goes by a different name
-+stop: On resumption look for that reviewer's return first; when there is none, record it as failed
-+stop: look for that reviewer's return first (Step 7); when there is none, record it `failed`
++stop: On resumption reconcile outstanding dispatches
++stop: A dispatched reviewer that the host still reports active keeps its slot
 +stop: Found by a reviewer after the dispatch, it is the failure of that dispatch
 +stop: Step 2.6 and Step 2.7 run again
 +stop: What is missing is a compliant spec package

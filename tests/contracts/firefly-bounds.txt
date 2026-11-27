@@ -42,7 +42,7 @@
 +output: grounds a baseline, with its workload and variation
 +output: --observer verifier:firefly-bounds
 +output: `--note` is never omitted
-+output: The recorder fills in the candidate snapshot and the spec version; nobody reports them by hand
++output: Before the check, capture the inputs with `firefly snapshot` and `firefly snapshot --spec <id>`
 +output: Never written by this skill: the project owner keeps them there through firefly-docs
 
 # Verdicts and states: method before number, then the four-way order, standing

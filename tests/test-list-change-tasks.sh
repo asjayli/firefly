@@ -3,7 +3,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-SCRIPT="$ROOT_DIR/scripts/list-change-tasks.sh"
+SCRIPT="$ROOT_DIR/firefly/scripts/list-change-tasks.sh"
 
 assert_contains() {
   local haystack="$1"

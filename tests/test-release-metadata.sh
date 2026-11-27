@@ -58,58 +58,11 @@ sed -i "s/\[$version\]/[0.0.0-tampered]/" "$ROOT_DIR/CHANGELOG.md"
 expect_check_failure "CHANGELOG.md"
 cp "$BACKUP_DIR/CHANGELOG.md" "$ROOT_DIR/CHANGELOG.md"
 
-# 4. A manifest fireflyVersion that disagrees with VERSION is rejected.
-tamper manifests/codex.json
-sed -i "s/\"fireflyVersion\": \"$version\"/\"fireflyVersion\": \"0.0.0-tampered\"/" \
-  "$ROOT_DIR/manifests/codex.json"
-expect_check_failure "manifests/codex.json"
-cp "$BACKUP_DIR/codex.json" "$ROOT_DIR/manifests/codex.json"
+# The distributable license must equal the repository license.
+tamper firefly/LICENSE
+printf 'different license\n' > "$ROOT_DIR/firefly/LICENSE"
+expect_check_failure "package license"
+cp "$BACKUP_DIR/LICENSE" "$ROOT_DIR/firefly/LICENSE"
 
-# 5. THIRD_PARTY_NOTICES without a declared override component is rejected.
-tamper THIRD_PARTY_NOTICES.md
-sed -i '/superpowers/d' "$ROOT_DIR/THIRD_PARTY_NOTICES.md"
-expect_check_failure "THIRD_PARTY_NOTICES.md"
-cp "$BACKUP_DIR/THIRD_PARTY_NOTICES.md" "$ROOT_DIR/THIRD_PARTY_NOTICES.md"
-
-# 6. Everything restored: the tree is clean again.
 bash "$CHECK"
-
-restore_all
-trap - EXIT
-
-BACKUP2="$(mktemp -d)"
-
-# 7. retiredAssets structure damage is caught.
-tamper_retired_structure() {
-  python3 - "$1" <<'PY'
-import json, sys
-m = json.load(open(sys.argv[1]))
-m["retiredAssets"][0]["handling"] = "delete-forever"
-json.dump(m, open(sys.argv[1], "w"))
-PY
-}
-cp "$ROOT_DIR/manifests/claude.json" "$BACKUP2/claude.json"
-tamper_retired_structure "$ROOT_DIR/manifests/claude.json"
-if bash "$CHECK" >/dev/null 2>&1; then
-  echo "expected tampered retiredAssets handling to fail" >&2
-  exit 1
-fi
-cp "$BACKUP2/claude.json" "$ROOT_DIR/manifests/claude.json"
-echo "negative: blocked (retiredAssets structure)"
-
-# 8. retiredAssets entry ids that differ across manifests are caught.
-python3 - "$ROOT_DIR/manifests/claude.json" <<'PY'
-import json, sys
-m = json.load(open(sys.argv[1]))
-m["retiredAssets"][0]["id"] = "renamed-retired-entry"
-json.dump(m, open(sys.argv[1], "w"))
-PY
-if bash "$CHECK" >/dev/null 2>&1; then
-  echo "expected mismatched retiredAssets ids to fail" >&2
-  exit 1
-fi
-cp "$BACKUP2/claude.json" "$ROOT_DIR/manifests/claude.json"
-echo "negative: blocked (retiredAssets id mismatch)"
-
-
 echo "release metadata test passed"

@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+- 串行记录同目录观察事实，按固定候选检查差异，归档保留共享树引用。中文校验支持单变更并在同一输入副本中执行，损坏的安装基线可从源包重建。
+- 实现和验证派发记录工作项、工作树及宿主句柄。等待超时继续查询原派发，账本丢失或重试预算耗尽时自动推进仍可执行的工作。
+- 明确连续执行期间的派发恢复、评审作废收尾和跨代际复验去重，保留原有进度账本格式。
+- 新增可选独立评审小组、形式化验证、项目模型偏好与 playbook 锚点检查，并统一子代理的证据规则。
+- 新增上游适配清单和 `firefly doctor --upstreams`，独立技能包检查宿主专属占位符。
+- 将 OpenSpec 验证基线升级至 2.2.0，并吸收 Superpowers 7.0.2 的澄清与任务简报改进。
+- Firefly 改为单一技能包，自带运行时、安装和修复入口。
+- 移除旧平台发行副本和迁移入口。OpenSpec 作为独立依赖，项目初始化使用 `--tools none`。
+- 安装记录受管链接目标，保留用户目录布局。安装和修复提前验证并准备替换内容，提交失败时恢复原状。
+- OpenSpec 初始化在隔离目录运行。包内提案按阶段生成制品，并统一使用 Firefly 中文严格校验。
+
 ## [0.2.0] - 2026-11-25
 
 0.2.0 以 firefly 自有的技能面重写了工作流：裁决扩为四值，总控成为单源注册表，superpowers 不再是依赖。

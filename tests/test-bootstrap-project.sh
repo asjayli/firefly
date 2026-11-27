@@ -3,7 +3,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-BOOTSTRAP="$ROOT_DIR/scripts/bootstrap-project.sh"
+BOOTSTRAP="$ROOT_DIR/firefly/scripts/bootstrap-project.sh"
 
 assert_contains() {
   local haystack="$1"
@@ -51,9 +51,11 @@ cat > "$bin_dir/openspec" <<EOF
 #!/usr/bin/env bash
 set -euo pipefail
 echo "\$*" >> "$fake_log"
+echo "\$PWD" >> "$fake_log"
 target_dir="\${@: -1}"
-mkdir -p "\$target_dir/openspec" "\$target_dir/.codex"
+mkdir -p "\$target_dir/openspec"
 printf 'schema: spec-driven\n' > "\$target_dir/openspec/config.yaml"
+touch "\$target_dir/upstream-extra"
 EOF
 chmod +x "$bin_dir/openspec"
 
@@ -61,47 +63,46 @@ help_output="$("$BOOTSTRAP" --help)"
 assert_contains "$help_output" "Bootstrap OpenSpec in the current project"
 
 default_output="$(PATH="$bin_dir:$PATH" "$BOOTSTRAP" "$project_dir")"
-assert_contains "$default_output" "Running openspec init --tools codex,claude"
+assert_contains "$default_output" "Running openspec init --tools none"
 assert_file_exists "$project_dir/openspec"
 assert_file_exists "$fake_log"
-assert_contains "$(cat "$fake_log")" "init --tools codex,claude $project_dir"
+assert_contains "$(cat "$fake_log")" "init --tools none ."
+assert_contains "$(cat "$fake_log")" "firefly-bootstrap."
+test ! -e "$project_dir/upstream-extra"
 
 line_count="$(wc -l < "$fake_log" | tr -d ' ')"
-if [[ "$line_count" != "1" ]]; then
+if [[ "$line_count" != "2" ]]; then
   echo "expected default openspec init to run exactly once" >&2
   exit 1
 fi
 
-second_output="$(PATH="$bin_dir:$PATH" "$BOOTSTRAP" --tools codex,claude "$project_dir")"
+second_output="$(PATH="$bin_dir:$PATH" "$BOOTSTRAP" "$project_dir")"
 assert_contains "$second_output" "OpenSpec already initialized"
 
 incomplete_project_dir="$tmp_dir/project-incomplete"
 mkdir -p "$incomplete_project_dir/openspec"
 
 incomplete_output="$(PATH="$bin_dir:$PATH" "$BOOTSTRAP" "$incomplete_project_dir")"
-assert_contains "$incomplete_output" "Running openspec init --tools codex,claude"
-assert_contains "$(cat "$fake_log")" "init --tools codex,claude $incomplete_project_dir"
+assert_contains "$incomplete_output" "Running openspec init --tools none"
+test -f "$incomplete_project_dir/openspec/config.yaml"
 
-second_project="$tmp_dir/project-explicit"
-mkdir -p "$second_project"
+yml_project="$tmp_dir/project-yml"
+mkdir -p "$yml_project/openspec"
+printf 'schema: spec-driven\n' > "$yml_project/openspec/config.yml"
+assert_contains "$(PATH="$bin_dir:$PATH" "$BOOTSTRAP" "$yml_project")" "OpenSpec already initialized"
+test ! -e "$yml_project/openspec/config.yaml"
 
-bootstrap_output="$(PATH="$bin_dir:$PATH" "$BOOTSTRAP" --tools codex,claude "$second_project")"
-assert_contains "$bootstrap_output" "Running openspec init --tools codex,claude"
-assert_contains "$(cat "$fake_log")" "init --tools codex,claude $second_project"
-
-second_project_dir="$tmp_dir/project-claude"
-mkdir -p "$second_project_dir"
-
-claude_output="$(PATH="$bin_dir:$PATH" "$BOOTSTRAP" --tools claude "$second_project_dir")"
-assert_contains "$claude_output" "Running openspec init --tools claude"
-assert_contains "$(cat "$fake_log")" "init --tools claude $second_project_dir"
-
-third_project_dir="$tmp_dir/project-normalized"
-mkdir -p "$third_project_dir"
-
-normalized_output="$(PATH="$bin_dir:$PATH" "$BOOTSTRAP" --tools claude,codex "$third_project_dir")"
-assert_contains "$normalized_output" "Running openspec init --tools codex,claude"
-assert_contains "$(cat "$fake_log")" "init --tools codex,claude $third_project_dir"
+if command -v openspec >/dev/null 2>&1; then
+  real_project="$tmp_dir/real-project"
+  mkdir -p "$real_project/.claude/commands/openspec" "$tmp_dir/user-home"
+  touch "$real_project/.claude/commands/openspec/retained.md"
+  HOME="$tmp_dir/user-home" "$BOOTSTRAP" "$real_project"
+  test -f "$real_project/.claude/commands/openspec/retained.md"
+  test -f "$real_project/openspec/config.yaml"
+  test -d "$real_project/openspec/specs"
+  test -d "$real_project/openspec/changes"
+  test ! -e "$real_project/.codex"
+fi
 
 # Robustness: a symbolic link anywhere in the project_dir path is refused.
 real_parent="$tmp_dir/real-parent"
@@ -129,12 +130,6 @@ symlink_inside_project="$tmp_dir/project-openspec-inside"
 mkdir -p "$symlink_inside_project/openspec"
 ln -s "$tmp_dir" "$symlink_inside_project/openspec/changes"
 run_fail "symlinked openspec internal entry" "refusing symlinked initializer output" "$BOOTSTRAP" "$symlink_inside_project"
-
-# Robustness: a symlinked platform output root is refused before initialization.
-symlink_root_project="$tmp_dir/project-root-symlink"
-mkdir -p "$symlink_root_project"
-ln -s "$tmp_dir" "$symlink_root_project/.codex"
-run_fail "symlinked platform output root" "refusing symlinked initializer output" "$BOOTSTRAP" "$symlink_root_project"
 
 # Robustness: an unknown option is refused.
 run_fail "unknown option" "unsupported option" "$BOOTSTRAP" "--bogus" "$tmp_dir/project-bogus"

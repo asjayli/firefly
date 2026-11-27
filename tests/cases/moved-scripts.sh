@@ -19,9 +19,11 @@ cat > "$repo_dir/tasks.md" <<'EOF'
 
 - [ ] 1.1 Add the workspace helper
 
-```markdown
+ ````markdown
 ## 99. This fenced heading belongs to task 1
 ```
+## 98. This also belongs to task 1
+ ````
 
 ## 2. Review changes
 
@@ -35,8 +37,18 @@ file_exists "$brief_path"
 brief_contents="$(<"$brief_path")"
 output_has "$brief_contents" "## 1. Prepare workspace"
 output_has "$brief_contents" "## 99. This fenced heading belongs to task 1"
+output_has "$brief_contents" "## 98. This also belongs to task 1"
 output_lacks "$brief_contents" "## 2. Review changes"
 echo "ok task-brief extracts one task group, fenced headings included"
+
+unclosed_plan="$(dirname "$brief_path")/unclosed-plan.md"
+printf '## 1. Unclosed example\n\n~~~markdown\n## 2. Hidden heading\n' > "$unclosed_plan"
+if unclosed_output="$(cd "$repo_dir" && "$TASK_BRIEF" "$unclosed_plan" 1 2>&1)"; then
+  echo "expected task-brief to reject an unclosed fence" >&2
+  exit 1
+fi
+output_has "$unclosed_output" "unclosed code fence"
+output_has "$(<"$brief_path")" "## 1. Prepare workspace"
 
 outside_brief="$tmp_dir/outside-brief.md"
 if (cd "$repo_dir" && "$TASK_BRIEF" tasks.md 1 "$outside_brief") >/dev/null 2>&1; then
@@ -84,6 +96,17 @@ output_has "$review_contents" "## Diff"
 output_has "$review_contents" "change.txt"
 echo "ok review-package BASE HEAD lists both commits and the diff"
 
+# The fixed tree includes an untracked file that a worktree diff omits.
+printf 'trailing whitespace \n' > "$repo_dir/untracked-whitespace.txt"
+fixed_tree="$(cd "$repo_dir" && "$REVIEW_PACKAGE" --snapshot)"
+git -C "$repo_dir" diff --check HEAD
+if git -C "$repo_dir" diff --check HEAD "$fixed_tree" > "$repo_dir/.superpowers/sdd/whitespace.log"; then
+  echo 'expected a fixed-tree check to reject whitespace in the new file' >&2
+  exit 1
+fi
+output_has "$(<"$repo_dir/.superpowers/sdd/whitespace.log")" 'untracked-whitespace.txt'
+rm -f "$repo_dir/untracked-whitespace.txt"
+
 workspace_path="$(cd "$repo_dir" && "$SDD_WORKSPACE")"
 if [[ "$workspace_path" != "$repo_dir/.superpowers/sdd" ]]; then
   echo "unexpected SDD workspace path: $workspace_path" >&2
@@ -128,13 +151,21 @@ output_lacks "$task_two_contents" "task one untracked"
 echo "ok review-package BASE WORKTREE isolates consecutive uncommitted tasks"
 
 custom_review_path="$repo_dir/review.diff"
+if (cd "$repo_dir" && "$REVIEW_PACKAGE" "$task_two_base" WORKTREE "$custom_review_path") >/dev/null 2>&1; then
+  echo "expected review-package to reject an output that would enter the candidate" >&2
+  exit 1
+fi
+printf '/review.diff\n' >> "$repo_dir/.git/info/exclude"
+before_report="$(cd "$repo_dir" && "$REVIEW_PACKAGE" --snapshot)"
 custom_review_output="$(cd "$repo_dir/nested" && "$REVIEW_PACKAGE" "$task_two_base" WORKTREE "$custom_review_path")"
 output_has "$custom_review_output" "wrote $custom_review_path"
 file_exists "$custom_review_path"
 custom_review_contents="$(<"$custom_review_path")"
 output_lacks "$custom_review_contents" "review.diff (untracked)"
 output_lacks "$custom_review_contents" "diff --git a/review.diff b/review.diff"
-echo "ok review-package accepts a custom OUTFILE inside the repo"
+output_lacks "$custom_review_contents" ".review-package."
+assert_eq "$before_report" "$(cd "$repo_dir" && "$REVIEW_PACKAGE" --snapshot)"
+echo "ok review-package accepts an ignored custom OUTFILE without changing the snapshot"
 
 existing_output_base="$(cd "$repo_dir/nested" && "$REVIEW_PACKAGE" --snapshot)"
 existing_output="$(cd "$repo_dir/nested" && "$REVIEW_PACKAGE" "$existing_output_base" WORKTREE "$custom_review_path")"

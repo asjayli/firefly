@@ -61,7 +61,7 @@
 +stop: the current conclusion, the missing evidence or authority, and the responsible owner
 +stop: The conclusion goes in the reply and nothing goes on disk
 +stop: the candidates, the evidence and a recommended default
-+stop: stops the sync under `SKILL.md`
++stop: stops the sync under `../guide.md`
 +stop: Owner: the requester, who grants the mandate
 +stop: Owner: requirement owner
 

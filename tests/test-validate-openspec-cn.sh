@@ -3,7 +3,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-VALIDATOR="$ROOT_DIR/scripts/validate-openspec-cn.mjs"
+VALIDATOR="$ROOT_DIR/firefly/scripts/validate-openspec-cn.mjs"
 
 assert_contains() {
   local haystack="$1"
@@ -96,6 +96,13 @@ cat > "$bin_dir/openspec" <<EOF
 #!/usr/bin/env bash
 set -euo pipefail
 echo "\$*" >> "$log_file"
+if [[ "\${FAKE_OPENSPEC_SCOPED:-}" == 1 ]]; then
+  test ! -e openspec/changes/unrelated
+  test ! -e openspec/changes/archive
+  test ! -e openspec/specs/main
+  grep -q '^MUST 系统不得修改源规格文件' openspec/changes/change/specs/capability/spec.md
+  exit 0
+fi
 grep -q '^MUST 系统必须保留中文正文' openspec/specs/main/spec.md
 grep -q '^MUST 系统必须在后续正文行中保留强制词' openspec/specs/main/spec.md
 grep -q '^MUST 系统不得修改源规格文件' openspec/changes/change/specs/capability/spec.md
@@ -115,6 +122,7 @@ set -e
 assert_exit_code "$status" "0"
 assert_contains "$(cat "$log_file")" "validate --specs --strict --no-interactive"
 assert_contains "$(cat "$log_file")" "validate --changes --strict --no-interactive"
+assert_contains "$_output" "Validation input SHA-256:"
 if grep -q '^MUST ' "$project_dir/openspec/specs/main/spec.md"; then
   echo "validator modified the source main spec" >&2
   exit 1
@@ -263,5 +271,29 @@ if grep -q '^MUST ' "$symlink_project/openspec/specs/main/spec.md"; then
   echo "validator modified the source symlink file" >&2
   exit 1
 fi
+
+scoped_project="$tmp_dir/scoped-project"
+cp -R "$project_dir" "$scoped_project"
+mkdir -p "$scoped_project/openspec/changes/archive" "$scoped_project/openspec/changes/unrelated/specs"
+ln -s . "$scoped_project/openspec/changes/archive/loop"
+ln -s . "$scoped_project/openspec/changes/unrelated/specs/loop"
+cp "$project_dir/openspec/changes/change/proposal.md" "$scoped_project/openspec/changes/unrelated/proposal.md"
+scoped_output="$(FAKE_OPENSPEC_SCOPED=1 PATH="$bin_dir:$PATH" node "$VALIDATOR" --root "$scoped_project" --change change)"
+assert_contains "$scoped_output" "Validation input SHA-256:"
+assert_contains "$(cat "$log_file")" 'validate change --type change --strict --no-interactive'
+if loop_output="$(PATH="$bin_dir:$PATH" node "$VALIDATOR" --root "$scoped_project" 2>&1)"; then
+  echo 'expected a cycle in an active change spec tree to fail validation' >&2
+  exit 1
+fi
+assert_contains "$loop_output" '目录循环'
+
+staged_spec="$project_dir/openspec/changes/change/specs/capability/spec.md"
+if staged_output="$(FIREFLY_STAGING_TEST_SPEC="$staged_spec" \
+  NODE_OPTIONS="--import=$ROOT_DIR/tests/fixtures/validation-staging-change.mjs" \
+  PATH="$bin_dir:$PATH" node "$VALIDATOR" --root "$project_dir" 2>&1)"; then
+  echo 'expected the adapter to inspect the staged content before injecting' >&2
+  exit 1
+fi
+assert_contains "$staged_output" 'Requirement 缺少强制词'
 
 echo "chinese OpenSpec validator test passed"

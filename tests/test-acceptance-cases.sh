@@ -27,7 +27,7 @@ for f in "$ACC"/*.md; do
   seen_pos[$pos]=1
   grep -q "^Position: $pos$" "$f" || { echo "$base: Position field mismatch" >&2; exit 1; }
   skill="$(sed -n 's/^Skill: //p' "$f")"
-  [[ -d "$ROOT_DIR/assets/shared/skills/$skill" ]] || { echo "$base: unknown skill $skill" >&2; exit 1; }
+  [[ "$skill" == firefly || -f "$ROOT_DIR/firefly/references/abilities/$skill/guide.md" ]] || { echo "$base: unknown skill $skill" >&2; exit 1; }
   grep -q '^Design: DESIGN.md ' "$f" || { echo "$base: missing Design line" >&2; exit 1; }
   blocks="$(grep -c '^Expected:$' "$f")"
   [[ "$blocks" -eq 2 ]] || { echo "$base: expected 2 Expected blocks, got $blocks" >&2; exit 1; }

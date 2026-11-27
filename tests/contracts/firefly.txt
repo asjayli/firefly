@@ -25,20 +25,21 @@
 
 # Inputs: the request, the records read on resumption, the preconditions.
 +input: the specs, `tasks.md`, Git and the verification records
-+input: checked with `firefly doctor`
-+input: `playwright-interactive` is available when the work touches web behavior
++input: `firefly doctor` checks this installation
++input: Use an isolated browser automation tool when web behavior needs observation
 
 # Outputs: the mandate recorded before dispatch, the ledger rows written as
 # they happen, and the completion conditions of a delivery summary.
 +output: through `firefly record mandate`, at entry, before any work is dispatched
 +output: Dispatches, verdicts and budget rounds
++output: A completion summary of a delivery requires `complete` from the finish gate
 +output: every observation the scenario map schedules has its row from the designated verifier on the integrated candidate
 +output: never use completion language or a final delivery format while an implementation task remains unchecked or in progress
 
 # Verdict and state usage: the review entry's terminal condition, the
 # delivery's accepted end, the doctor states.
 +verdict-or-state: The terminal condition is one of the four verdicts, not a repair
-+verdict-or-state: the integrated candidate is `accepted`
++verdict-or-state: the integrated candidate is `accepted` by independent review
 +verdict-or-state: report `OK`, `MISS` or `DRIFT`
 
 # Handoffs: the four rows of the handoff table, the nine targets of the

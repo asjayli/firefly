@@ -1,0 +1,8 @@
+{
+  "controller": "standard",
+  "planner": "standard",
+  "implementer": "standard",
+  "verifier": "standard",
+  "reviewer": "top",
+  "researcher": "cheap"
+}

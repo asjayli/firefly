@@ -1,0 +1,180 @@
+#!/usr/bin/env bash
+# Generate a review package: commit list, stat summary, and the net
+# diff with extended context, written to a file the reviewer reads in one
+# call. Using the recorded per-task BASE (not HEAD~1) keeps multi-commit
+# tasks intact.
+#
+# Usage: review-package --snapshot
+#        review-package BASE HEAD|WORKTREE|TREE-SHA [OUTFILE]
+# Default OUTFILE: <repo-root>/.superpowers/sdd/review-<base7>..<head7>.diff
+# Custom outputs must be Git-ignored or in openspec/changes/ or openspec/think/.
+# WORKTREE packages compare a task-start tree snapshot with a fresh tree
+# snapshot, isolating consecutive uncommitted tasks without touching the real
+# index or worktree.
+#
+# The candidate tree is the one firefly-snapshot.sh defines, so `--snapshot`
+# prints the same SHA as `firefly snapshot`. Pass that full SHA as TREE-SHA
+# to use a candidate that was captured earlier. The diff of every package leaves
+# out openspec/changes/ and openspec/think/: a change's spec package, task
+# package and records are judged on their own and never show up as candidate
+# changes, not even as deletions when BASE is a commit that tracks them.
+set -euo pipefail
+
+repo_root=$(git rev-parse --show-toplevel)
+script_dir=$(cd "$(dirname "$0")" && pwd)
+workspace=$("$script_dir/sdd-workspace")
+
+is_inside() {
+  local child="$1"
+  local parent="$2"
+  case "$child" in
+    "$parent"|"$parent"/*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+resolve_outfile() {
+  local raw="$1"
+  local out_dir
+  local real_out
+
+  case "$raw" in
+    /*) ;;
+    *) raw="$(pwd)/$raw" ;;
+  esac
+
+  out_dir=$(dirname "$raw")
+  if [ ! -d "$out_dir" ]; then
+    echo "missing OUTFILE directory: $out_dir" >&2
+    return 1
+  fi
+
+  if [ -L "$raw" ] || [ -L "$out_dir" ]; then
+    echo "OUTFILE path must not contain symlinks: $raw" >&2
+    return 1
+  fi
+
+  real_out=$(cd "$out_dir" && pwd -P)/$(basename "$raw")
+
+  if ! is_inside "$real_out" "$repo_root" && ! is_inside "$real_out" "$workspace"; then
+    echo "OUTFILE must be inside the repository or the SDD workspace: $real_out" >&2
+    return 1
+  fi
+
+  if [ -L "$real_out" ]; then
+    echo "OUTFILE must not be a symlink: $real_out" >&2
+    return 1
+  fi
+
+  printf '%s' "$real_out"
+}
+
+if [ $# -eq 1 ] && [ "$1" = "--snapshot" ]; then
+  exec "$script_dir/firefly-snapshot.sh"
+fi
+
+if [ $# -lt 2 ] || [ $# -gt 3 ]; then
+  echo "usage: review-package --snapshot | BASE HEAD|WORKTREE|TREE-SHA [OUTFILE]" >&2
+  exit 2
+fi
+
+base=$1
+head=$2
+
+git -C "$repo_root" cat-file -e "${base}^{tree}" 2>/dev/null || { echo "bad BASE tree: $base" >&2; exit 2; }
+if [ "$head" = "WORKTREE" ]; then
+  candidate=$("$script_dir/firefly-snapshot.sh")
+elif [[ "$head" =~ ^([0-9a-f]{40}|[0-9a-f]{64})$ ]] &&
+  [[ "$(git -C "$repo_root" cat-file -t "$head" 2>/dev/null)" == tree ]]; then
+  candidate="$head"
+else
+  candidate=
+  git -C "$repo_root" cat-file -e "${base}^{commit}" 2>/dev/null || { echo "BASE is not a commit: $base" >&2; exit 2; }
+  git -C "$repo_root" cat-file -e "${head}^{commit}" 2>/dev/null || { echo "bad HEAD commit: $head" >&2; exit 2; }
+fi
+
+if [ $# -eq 3 ]; then
+  out=$(resolve_outfile "$3") || exit 2
+else
+  if [ -n "$candidate" ]; then
+    out=$(mktemp "$workspace/review-$(git -C "$repo_root" rev-parse --short "$base")..${candidate:0:12}.XXXXXX")
+  else
+    out="$workspace/review-$(git -C "$repo_root" rev-parse --short "$base")..$(git -C "$repo_root" rev-parse --short "$head").diff"
+  fi
+fi
+
+out_dir=$(dirname "$out")
+[ -d "$out_dir" ] || { echo "missing OUTFILE directory: $out_dir" >&2; exit 2; }
+
+exclude=
+case "$out" in
+  "$repo_root"/*)
+    exclude=${out#"$repo_root"/}
+    if git -C "$repo_root" --literal-pathspecs ls-files --error-unmatch -- "$exclude" >/dev/null 2>&1; then
+      echo "OUTFILE must not overwrite a tracked file: $exclude" >&2
+      exit 2
+    fi
+    case "$exclude" in
+      openspec/changes/*|openspec/think/*) ;;
+      *)
+        if ! git -C "$repo_root" check-ignore -q -- "$exclude"; then
+          echo "OUTFILE must be ignored by Git or under openspec/changes or openspec/think: $exclude" >&2
+          exit 2
+        fi
+        ;;
+    esac
+    ;;
+esac
+
+tmp_out=$(mktemp "$workspace/.review-package.XXXXXX")
+trap 'rm -f "$tmp_out"' EXIT
+
+# What the diff never shows, on top of the package file itself when it sits
+# inside the repository.
+diff_pathspec=(-- . ":(top,exclude)openspec/changes" ":(top,exclude)openspec/think")
+if [ -n "$exclude" ]; then
+  diff_pathspec+=(":(top,exclude,literal)$exclude")
+fi
+
+if [ -n "$candidate" ]; then
+  {
+    echo "# Review package: ${base}..${head}"
+    echo "Candidate tree: $candidate"
+    echo
+    echo "## Commits"
+    if [ "$head" = "WORKTREE" ] && git -C "$repo_root" cat-file -e "${base}^{commit}" 2>/dev/null; then
+      git -C "$repo_root" log --oneline "${base}..HEAD"
+    else
+      echo "Baseline: $base"
+    fi
+    echo
+    echo "## Files changed"
+    git -C "$repo_root" diff --stat "$base" "$candidate" "${diff_pathspec[@]}"
+    echo
+    echo "## Diff"
+    git -C "$repo_root" diff -U10 "$base" "$candidate" "${diff_pathspec[@]}"
+  } > "$tmp_out"
+else
+  {
+    echo "# Review package: ${base}..${head}"
+    echo
+    echo "## Commits"
+    git -C "$repo_root" log --oneline "${base}..${head}"
+    echo
+    echo "## Files changed"
+    git -C "$repo_root" diff --stat "${base}..${head}" "${diff_pathspec[@]}"
+    echo
+    echo "## Diff"
+    git -C "$repo_root" diff -U10 "${base}..${head}" "${diff_pathspec[@]}"
+  } > "$tmp_out"
+fi
+
+mv -f "$tmp_out" "$out"
+trap - EXIT
+
+if [ -n "$candidate" ]; then
+  echo "wrote ${out}: worktree snapshot diff, $(wc -c < "$out" | tr -d ' ') bytes"
+else
+  commits=$(git -C "$repo_root" rev-list --count "${base}..${head}")
+  echo "wrote ${out}: ${commits} commit(s), $(wc -c < "$out" | tr -d ' ') bytes"
+fi

@@ -2,7 +2,7 @@
 # README workflow assertions for the 0.2.0 skill surface.
 #
 # lint_readme <path> <zh|en> checks one README:
-#   skills      all 23 skill subcommands are named
+#   skills      the skill subcommands are named
 #   verdicts    the four verdict values and ESCALATE are documented
 #   entries     the four commissioning entries each carry an example
 #   runtime     firefly doctor, firefly next and the runtime subcommands
@@ -21,9 +21,9 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=lib.sh
 source "$ROOT_DIR/tests/lib.sh"
 
-SKILLS=(next think draw bounds source doubt arch docs ui tdd verify-web debug guard perf trace propose tasks implement context review pr archive retro)
+SKILLS=(next think draw bounds source doubt arch docs ui tdd verify-web verify-formal debug guard perf trace propose tasks implement context review pr archive retro)
 VERDICTS=(ACCEPT REVISE RECHECK INSUFFICIENT_EVIDENCE)
-RUNTIME=(init doctor repair validate tasks diagram snapshot record)
+RUNTIME=(init doctor config repair validate tasks diagram snapshot record)
 RETIRED=(firefly-doctor openspec-sync-specs)
 
 FAILURES=0

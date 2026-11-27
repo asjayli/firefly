@@ -1,0 +1,8 @@
+@design 27
++trigger: requests `firefly verify-formal`
++mandate: only when the mandate permits it
++input: the tool version
++output: assumptions, model bounds
++verdict-or-state: timeout or incomplete proof is `unverified`
++handoff: The existing Firefly review owns any candidate verdict
++stop: when the chosen tool is unavailable

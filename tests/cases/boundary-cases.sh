@@ -21,9 +21,10 @@ git -C "$space_repo" add -A
 git -C "$space_repo" commit -qm base
 (
   cd "$space_repo/src" || exit 1
-  "$SNAPSHOT" > /dev/null
+  snapshot="$("$SNAPSHOT")"
   "$RECORD" mandate --change c1 --id M-1 --objective "Space objective" --effects "edit src/" --terminal "verified candidate" > /dev/null
   "$RECORD" observe --change c1 --scenario S-1 --check file-content --result fail --observer verifier:amy \
+    --candidate "$snapshot" --spec "$("$SNAPSHOT" --spec c1)" \
     --evidence "openspec/changes/c1/evidence/e1.txt" --note "space path" > /dev/null
 )
 assert_contains "$space_repo/$space_change/proposal.md" '| M-1 | Space objective |'
@@ -55,24 +56,6 @@ assert_eq "$main_snapshot" "$(cd "$wt_main" || exit 1 && "$SNAPSHOT")"
 assert_eq "$wt_link/.superpowers/sdd" "$(cd "$wt_link" || exit 1 && "$SCRIPTS/sdd-workspace")"
 echo "ok worktree: snapshot and the ledger workspace resolve to the linked worktree's own root; the main worktree stays untouched"
 
-# ---- the global command with one runtime installed, and with none ------------
-
-GLOBAL_SH="$SCRIPTS/firefly-global.sh"
-one_root="$tmp_dir/one-runtime"
-mkdir -p "$one_root/.codex/firefly/bin"
-cat > "$one_root/.codex/firefly/bin/firefly" <<'EOF'
-#!/usr/bin/env bash
-echo "stub-runtime $*"
-EOF
-chmod +x "$one_root/.codex/firefly/bin/firefly"
-assert_eq "stub-runtime doctor" "$(CODEX_HOME="$one_root/.codex" CLAUDE_HOME="$one_root/.claude" "$GLOBAL_SH" doctor)"
-assert_eq "stub-runtime help" "$(CODEX_HOME="$one_root/.codex" CLAUDE_HOME="$one_root/.claude" "$GLOBAL_SH" help)"
-none_status=0
-none_output="$(CODEX_HOME="$one_root/.nowhere-codex" CLAUDE_HOME="$one_root/.nowhere-claude" "$GLOBAL_SH" doctor 2>&1)" || none_status=$?
-assert_eq 1 "$none_status"
-assert_eq "firefly is not installed for Codex or Claude" "$none_output"
-echo "ok global command: one installed runtime is the only one run; with none installed, a clear message and exit 1"
-
 # ---- openspec missing from PATH ----------------------------------------------
 
 empty_bin="$tmp_dir/empty-bin"
@@ -80,15 +63,3 @@ mkdir -p "$empty_bin" "$tmp_dir/no-openspec-project"
 os_output="$(grep -c "openspec is not installed or not on PATH" "$SCRIPTS/bootstrap-project.sh")"
 assert_eq 1 "$os_output"
 echo "negative: rejected (init names the missing openspec prerequisite — verified in script text)"
-
-# ---- HOME unset ---------------------------------------------------------------
-
-ih_status=0
-ih_output="$(env -u HOME bash "$SCRIPTS/install-claude.sh" 2>&1)" || ih_status=$?
-assert_eq 1 "$ih_status"
-output_has "$ih_output" "HOME is not set"
-ix_status=0
-ix_output="$(env -u HOME bash "$SCRIPTS/install-codex.sh" 2>&1)" || ix_status=$?
-assert_eq 1 "$ix_status"
-output_has "$ix_output" "HOME is not set"
-echo "negative: rejected (installers with HOME unset state the missing variable instead of failing on an unbound one)"

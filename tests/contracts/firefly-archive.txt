@@ -18,7 +18,7 @@
 +mandate: it never covers a push, a release or a rewrite of shared history
 +mandate: covers no traffic action and no launch
 +mandate: is still the accepted candidate
-+mandate: the deletion of the change's snapshot refs
++mandate: the local archive move of the change directory
 +mandate: A surprise gate
 +mandate: a uniform rollout percentage is never copied over them
 
@@ -37,7 +37,7 @@
 +output: `openspec/changes/<id>/archive-inventory.md`
 +output: `openspec/changes/<id>/deprecation.md`
 +output: `.superpowers/sdd/progress.md`
-+output: `refs/firefly/snapshots/`
++output: Preserve `refs/firefly/snapshots/`
 +output: is never recorded as migrated
 +output: Zero traffic before a complete business cycle has ended is not a basis for removal
 

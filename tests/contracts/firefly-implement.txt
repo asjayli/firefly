@@ -92,7 +92,7 @@
 +output: the checks to keep passing: the checks of the required scenarios whose observation rows show `pass`
 +output: Run `git diff --check` against the change's BASE
 +output: Nothing is filled in afterwards as tested
-+output: Use `HEAD` in place of the `WORKTREE` only when BASE is a commit and the implementation is fully committed
++output: using the full SHA from step 1
 +output: openspec/changes/<id>/evidence/<snapshot12>/<generation>/package.diff
 +output: The identity of this first package is `<change>@<snapshot12>.1`
 +output: This skill writes only the first package of a candidate
@@ -191,7 +191,7 @@
 # Continuous execution: failures are inputs; only four things end the skill.
 +stop: a first failing check are diagnostic inputs, not requests for a decision
 +stop: Implementation runs continuously by default.
-+stop: Only the fixed end, a return to `firefly-propose` under `## Stop and escalate`, an `ESCALATE` boundary or an explicit stop by the user ends the run of this skill.
++stop: Continue the authorized mandate there.
 # Preflight classifications: an unrelated red is never repaired here; user modifications are kept.
 +stop: Never repair it inside a task group
 +stop: Keep the modifications as user work and write nothing until the user decides

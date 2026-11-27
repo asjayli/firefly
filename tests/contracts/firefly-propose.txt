@@ -113,7 +113,7 @@
 +handoff: Return the missing branch to the planner; the agreed goal is not rewritten
 # The joint review carries both package versions in its identity; a failed reviewer follows firefly-review.
 +handoff: --package <change>@ready.<spec12>.<tasks12>
-+handoff: as `firefly-review` handles an infrastructure failure
++handoff: Apply the `firefly-review` infrastructure retry limit and blocked-path recovery rules
 +handoff: Under a mandate that continues into delivery, enter `firefly-implement` without another joint review
 +handoff: Which mandate is in force is read from the newest row of `## Mandate` (step 4)
 +handoff: Out, after `ACCEPT`, only under a mandate that continues into delivery

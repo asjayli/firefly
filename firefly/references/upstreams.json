@@ -1,0 +1,16 @@
+{
+  "openspec": {
+    "ref": "v2.2.0",
+    "since": "standalone skill",
+    "upstreamUrl": "https://github.com/Fission-AI/OpenSpec",
+    "why": "Use the upstream CLI for repo-local specs. Isolate initialization and adapt strict validation for Chinese modal verbs without changing source specs.",
+    "verification": "tests/test-bootstrap-project.sh and tests/test-chinese-openspec-workflow.sh"
+  },
+  "superpowers": {
+    "ref": "v7.0.2",
+    "since": "standalone skill",
+    "upstreamUrl": "https://github.com/obra/superpowers",
+    "why": "Apply relevant clarification and task extraction improvements within one skill. Firefly uses numbered OpenSpec task groups and its own candidate snapshots.",
+    "verification": "tests/test-planning-contract.sh and tests/test-runtime-scripts.sh"
+  }
+}

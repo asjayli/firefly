@@ -1,35 +1,12 @@
 #!/usr/bin/env bash
-# Skill structure lint and contract anchors.
-#
-# Lints every firefly-* skill under assets/shared/skills/ and applies the
-# anchor file tests/contracts/<skill>.txt, when present, to both rendered
-# platform copies (format: tests/contracts/README.md).
-#
-#   basic     every skill: frontmatter with name and description; name equals
-#             the directory name.
-#   v2        skills whose frontmatter has metadata.version "2.0":
-#             frontmatter fields, fixed section order, vocabulary, retired
-#             skill names, platform neutrality, line limit.
-#   anchors   + / - entries of the anchor file against the rendered copies.
-#
-# A skill that passes every rule prints "ok <skill>". A failed rule prints
-# "FAIL <skill> <rule>: <detail>" on stderr and the script exits 1.
-#
-# FIREFLY_SKILLS_ROOT, FIREFLY_RENDERED_ROOT and FIREFLY_CONTRACTS_ROOT point
-# the lint at a temporary tree, which is how this test checks its own rules:
-# each rule gets a bad skill that it must block (FIREFLY_LINT_ONLY=1 runs the
-# lint alone, without that self-check).
-
+# Lint the standalone entry and the bundled capability guides.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-# shellcheck source=lib.sh
-source "$ROOT_DIR/tests/lib.sh"
 
-SKILLS_ROOT="${FIREFLY_SKILLS_ROOT:-$ROOT_DIR/assets/shared/skills}"
-RENDERED_ROOT="${FIREFLY_RENDERED_ROOT:-$ROOT_DIR/assets}"
+SKILL_ROOT="$ROOT_DIR/firefly"
+SKILLS_ROOT="$SKILL_ROOT/references/abilities"
 CONTRACTS_ROOT="${FIREFLY_CONTRACTS_ROOT:-$ROOT_DIR/tests/contracts}"
-PLATFORMS=(codex claude)
 
 V2_VERSION='2.0'
 MAX_LINES=500
@@ -148,9 +125,9 @@ strip_html_comments() {
 # skill_text <skill-dir> — print SKILL.md followed by every references/*.md.
 skill_text() {
   local dir="$1"
-  local ref
-  [[ -f "$dir/SKILL.md" ]] || return 1
-  cat "$dir/SKILL.md"
+  local ref guide="$2"
+  [[ -f "$guide" ]] || return 1
+  cat "$guide"
   for ref in "$dir"/references/*.md; do
     [[ -f "$ref" ]] && cat "$ref"
   done
@@ -171,9 +148,9 @@ in_list() {
 lint_basic() {
   local skill="$1"
   local dir="$2"
-  local fm name
-  [[ -f "$dir/SKILL.md" ]] || { fail "$skill" basic "missing SKILL.md"; return 0; }
-  fm="$(read_frontmatter "$dir/SKILL.md")"
+  local fm name file="$3"
+  [[ -f "$file" ]] || { fail "$skill" basic "missing SKILL.md"; return 0; }
+  fm="$(read_frontmatter "$file")"
   [[ -n "$fm" ]] || { fail "$skill" basic "SKILL.md has no frontmatter"; return 0; }
   name="$(strip_quotes "$(fm_scalar "$fm" name)")"
   [[ -n "$name" ]] || fail "$skill" basic "frontmatter has no name"
@@ -187,6 +164,7 @@ lint_v2() {
   local dir="$2"
   local fm="$3"
   local file text listing want idx last license author design
+  local guide="$4"
   local literal retired
 
   license="$(strip_quotes "$(fm_scalar "$fm" license)")"
@@ -196,7 +174,7 @@ lint_v2() {
   design="$(strip_quotes "$(fm_scalar "$fm" metadata.design)")"
   [[ "$design" =~ ^[0-9]{2}(,[0-9]{2})?$ ]] || fail "$skill" frontmatter "metadata.design must be NN or NN,MM, got: ${design:-<none>}"
 
-  listing="$(h2_titles "$dir/SKILL.md")"
+  listing="$(h2_titles "$guide")"
   last=0
   for want in "${REQUIRED_SECTIONS[@]}"; do
     idx="$(printf '%s\n' "$listing" | awk -v title="$want" '$0 == title && !found { print NR; found = 1 }')"
@@ -238,10 +216,10 @@ lint_v2() {
 # lint_anchors <skill> <dir> <frontmatter>
 lint_anchors() {
   local skill="$1"
-  local fm="$3"
+  local fm="$3" guide="$4"
   local file="$CONTRACTS_ROOT/$skill.txt"
   [[ -f "$file" ]] || return 0
-  local declared='' design line rest tag phrase platform platform_dir text
+  local declared='' design line rest tag phrase text
   local plus=()
   local minus=()
   while IFS= read -r line || [[ -n "$line" ]]; do
@@ -275,44 +253,34 @@ lint_anchors() {
     fail "$skill" anchors "@design $declared differs from metadata.design $design"
   fi
 
-  for platform in "${PLATFORMS[@]}"; do
-    platform_dir="$RENDERED_ROOT/$platform/skills/$skill"
-    if ! text="$(skill_text "$platform_dir")"; then
-      fail "$skill" "anchor-$platform" "missing rendered copy: $platform_dir"
-      continue
-    fi
+  text="$(skill_text "$2" "$guide")"
     for phrase in ${minus[@]+"${minus[@]}"}; do
       if [[ "$text" == *"$phrase"* ]]; then
-        fail "$skill" "anchor-$platform" "forbidden phrase present: $phrase"
+        fail "$skill" anchors "forbidden phrase present: $phrase"
       fi
     done
     for line in ${plus[@]+"${plus[@]}"}; do
       phrase="${line#*$'\t'}"
       if [[ "$text" != *"$phrase"* ]]; then
-        fail "$skill" "anchor-$platform" "required phrase missing: $phrase"
+        fail "$skill" anchors "required phrase missing: $phrase"
       fi
     done
-  done
 }
 
 # lint_skill <dir>
 lint_skill() {
   local dir="$1"
-  local skill fm version before
+  local skill fm version before file="$2"
   skill="$(basename "$dir")"
   before=${#FAILURES[@]}
-  lint_basic "$skill" "$dir"
-  [[ -f "$dir/SKILL.md" ]] || return 0
-  fm="$(read_frontmatter "$dir/SKILL.md")"
+  lint_basic "$skill" "$dir" "$file"
+  [[ -f "$file" ]] || return 0
+  fm="$(read_frontmatter "$file")"
   version="$(strip_quotes "$(fm_scalar "$fm" metadata.version)")"
   if [[ "$version" == "$V2_VERSION" ]]; then
-    lint_v2 "$skill" "$dir" "$fm"
+    lint_v2 "$skill" "$dir" "$fm" "$file"
   fi
-  # FIREFLY_SKIP_ANCHORS=1 leaves out the anchor file and the rendered copies,
-  # so a skill can be checked on its source alone before it is rendered.
-  if [[ "${FIREFLY_SKIP_ANCHORS:-}" != 1 ]]; then
-    lint_anchors "$skill" "$dir" "$fm"
-  fi
+  lint_anchors "$skill" "$dir" "$fm" "$file"
   if [[ ${#FAILURES[@]} -eq "$before" ]]; then
     echo "ok $skill"
   fi
@@ -321,7 +289,7 @@ lint_skill() {
 # Every firefly-* skill under shared is migrated to v2.
 # Every anchor file covers all seven tags.
 lint_pins_complete() {
-  local skill file tag
+  local dir skill file tag
   for dir in "$SKILLS_ROOT"/*/; do
     [[ -d "$dir" ]] || continue
     skill="$(basename "$dir")"
@@ -334,74 +302,11 @@ lint_pins_complete() {
   done
 }
 
-# references/<file>.md cited by a skill must exist beside it.
-lint_references_resolve() {
-  local dir file ref full
-  for dir in "$SKILLS_ROOT"/*/; do
-    [[ -d "$dir" ]] || continue
-    [[ -f "$dir/SKILL.md" ]] || continue
-    while IFS= read -r full; do
-    # firefly/references/<file>.md is the shared contract installed
-    # under the runtime firefly home, not a skill-local reference.
-    case "$full" in
-      firefly/references/*) continue ;;
-      *) ref="$full" ;;
-    esac
-      [[ -f "$dir/$ref" ]] || fail "$(basename "$dir")" references "$ref is cited but does not exist"
-    done < <(grep -oE "(firefly/)?references/[A-Za-z0-9._-]+\.md" "$dir/SKILL.md" | sort -u)
-  done
-}
-lint_no_unmigrated() {
-  local dir version fm
-  for dir in "$SKILLS_ROOT"/*/; do
-    [[ -d "$dir" ]] || continue
-    case "$(basename "$dir")" in
-      firefly-*) ;;
-      *) continue ;;
-    esac
-    fm="$(read_frontmatter "$dir/SKILL.md" 2>/dev/null || true)"
-    version="$(strip_quotes "$(fm_scalar "$fm" metadata.version)")"
-    [[ "$version" == "$V2_VERSION" ]] || fail "$(basename "$dir")" unmigrated "metadata.version is not \"$V2_VERSION\""
-  done
-}
-
-# The whole shared tree stays platform-neutral: no platform literal may
-# appear outside a token placeholder.
-lint_shared_neutral() {
-  local file text
-  while IFS= read -r file; do
-    text="$(strip_html_comments "$file")"
-    local lit
-    # shellcheck disable=SC2088  # the tildes are literal platform strings to find
-    for lit in '~/.claude' '~/.codex' 'AskUserQuestion' 'TodoWrite' 'spawn_agent' 'wait_agent' 'list_agents'; do
-      if [[ "$text" == *"$lit"* ]]; then
-        fail shared shared-neutral "platform literal $lit in ${file#"$ROOT_DIR"/}"
-      fi
-    done
-  done < <(find "$ROOT_DIR/assets/shared" -type f | LC_ALL=C sort)
-}
-
-# Every rendered skill directory must be registered: shared (rendered copy) or
-# platformSpecific (hand-kept per platform).
-lint_no_stale_copies() {
-  local platform dir name config
-  config="$(cat "$ROOT_DIR/manifests/platform-assets.json")"
-  for platform in claude codex; do
-    for dir in "$ROOT_DIR/assets/$platform/skills"/*/; do
-      [[ -d "$dir" ]] || continue
-      name="$(basename "$dir")"
-      if [[ "$config" != *"\"skills/$name\""* ]]; then
-        fail "$name" stale-copies "assets/$platform/skills/$name is registered in neither shared nor platformSpecific"
-      fi
-    done
-  done
-}
-
 # Route coverage: every firefly-* skill directory must be named as
 # `firefly <name>` in the controller's ## Commands section, and every
 # skill-like reference there must correspond to a directory.
 lint_route_coverage() {
-  local controller="$SKILLS_ROOT/firefly/SKILL.md"
+  local controller="$SKILL_ROOT/SKILL.md"
   [[ -f "$controller" ]] || return 0
   local dir name
   local -a dirs=()
@@ -423,275 +328,30 @@ lint_route_coverage() {
   for name in "${dirs[@]}"; do
     [[ "${named[$name]:-}" == 1 ]] || fail firefly route-coverage "skill directory firefly-$name is not named in ## Commands"
   done
-  local runtime=' next init doctor repair validate tasks diagram snapshot record '
+  local runtime=' next init doctor config repair validate tasks diagram snapshot record '
   for ref in "${!named[@]}"; do
     [[ "${dirset[$ref]:-}" == 1 ]] && continue
     [[ "$runtime" == *" $ref "* ]] && continue
-    fail firefly route-coverage "## Commands names 'firefly $ref' but assets/shared/skills/firefly-$ref does not exist"
+    fail firefly route-coverage "## Commands names 'firefly $ref' but the guide firefly-$ref does not exist"
   done
 }
 
 lint_all() {
   local dir
+  lint_skill "$SKILL_ROOT" "$SKILL_ROOT/SKILL.md"
   for dir in "$SKILLS_ROOT"/*/; do
     [[ -d "$dir" ]] || continue
     case "$(basename "$dir")" in
-      firefly | firefly-*) lint_skill "$dir" ;;
+      firefly-*) lint_skill "$dir" "$dir/guide.md" ;;
     esac
   done
   lint_route_coverage
-  lint_shared_neutral
-  lint_no_stale_copies
-  lint_no_unmigrated
   lint_pins_complete
-  lint_references_resolve
   if [[ ${#FAILURES[@]} -gt 0 ]]; then
     echo "skill contracts: ${#FAILURES[@]} failed rule(s)" >&2
     return 1
   fi
   echo "skill contracts: all skills pass"
-  echo "rules: frontmatter sections line-limit terms retired-names platform-neutral anchors route-coverage shared-neutral stale-copies unmigrated pins references-resolve"
 }
 
-if [[ "${FIREFLY_LINT_ONLY:-}" == '1' ]]; then
-  lint_all
-  exit $?
-fi
-
-# 1. The real tree.
 lint_all
-
-# 2. Self-check: each v2 and anchor rule must block a bad skill. Every bad
-#    skill is linted alone in its own temporary tree.
-# write_skill <tree> <skill-name> <missing-section>
-# Writes one otherwise valid v2 skill, with all eight sections except the
-# missing one, to the tree's shared source and both rendered copies.
-write_skill() {
-  local tree="$1"
-  local name="$2"
-  local skip="$3"
-  local dir="$tree/shared/skills/$name"
-  local section platform
-  mkdir -p "$dir"
-  {
-    echo '---'
-    echo "name: $name"
-    echo 'description: Self-check skill for the structure lint.'
-    echo 'license: MIT'
-    echo 'metadata:'
-    echo '  author: firefly'
-    echo "  version: \"$V2_VERSION\""
-    echo '  design: "01"'
-    echo '---'
-    echo
-    for section in "${REQUIRED_SECTIONS[@]}"; do
-      if [[ "$section" != "$skip" ]]; then
-        echo "## $section"
-        echo
-        echo "Body of $section."
-        echo
-      fi
-    done
-  } > "$dir/SKILL.md"
-  for platform in "${PLATFORMS[@]}"; do
-    mkdir -p "$tree/render/$platform/skills/$name"
-    cp "$dir/SKILL.md" "$tree/render/$platform/skills/$name/SKILL.md"
-  done
-}
-
-# expect_blocked <tree> <skill-name> <rule> — lint the tree and require a
-# "FAIL <skill-name> <rule>:" line and a non-zero exit.
-expect_blocked() {
-  local tree="$1"
-  local skill="$2"
-  local rule="$3"
-  local out status
-  out="$tree/out.txt"
-  set +e
-  FIREFLY_LINT_ONLY=1 FIREFLY_SKILLS_ROOT="$tree/shared/skills" FIREFLY_RENDERED_ROOT="$tree/render" \
-    FIREFLY_CONTRACTS_ROOT="$tree/contracts" bash "$ROOT_DIR/tests/test-skill-contracts.sh" >"$out" 2>&1
-  status=$?
-  set -e
-  if [[ "$status" -eq 0 ]]; then
-    echo "FAIL: rule '$rule' did not block the bad skill '$skill'" >&2
-    cat "$out" >&2
-    exit 1
-  fi
-  if ! grep -Fq -- "FAIL $skill $rule: " "$out"; then
-    echo "FAIL: rule '$rule' did not report '$skill' (exit $status); lint output follows" >&2
-    cat "$out" >&2
-    exit 1
-  fi
-  echo "negative: blocked ($rule)"
-}
-
-# pins complete: removing the only +stop anchor of a skill must fail.
-new_tmp_dir skill-contracts
-tree="$FIREFLY_TMP_DIR"
-cp -r "$ROOT_DIR/tests/contracts" "$tree/contracts"
-sed -i '/^\+stop: /d' "$tree/contracts/firefly-retro.txt"
-out="$tree/out.txt"
-set +e
-FIREFLY_LINT_ONLY=1 FIREFLY_CONTRACTS_ROOT="$tree/contracts" bash "$ROOT_DIR/tests/test-skill-contracts.sh" >"$out" 2>&1
-status=$?
-set -e
-if [[ "$status" -eq 0 ]] || ! grep -Fq "pins incomplete: firefly-retro missing stop" "$out"; then
-  echo "FAIL: rule 'pins' did not block (exit $status)" >&2; cat "$out" >&2; exit 1
-fi
-echo "negative: blocked (pins)"
-
-# references resolve: citing a missing references/x.md must fail.
-new_tmp_dir skill-contracts
-tree="$FIREFLY_TMP_DIR"
-mkdir -p "$tree/shared/skills/firefly-zz-badref" "$tree/contracts" "$tree/render/claude/skills/firefly-zz-badref" "$tree/render/codex/skills/firefly-zz-badref"
-cat > "$tree/shared/skills/firefly-zz-badref/SKILL.md" <<'ZZ'
----
-name: firefly-zz-badref
-description: placeholder
-license: MIT
-metadata:
-  author: firefly
-  version: "2.0"
-  design: "99"
----
-
-## When to use
-## When not to use
-## Mandate
-## Inputs
-## Procedure
-See references/x.md.
-## Outputs
-## Handoffs
-## Stop and escalate
-ZZ
-for pl in claude codex; do cp "$tree/shared/skills/firefly-zz-badref/SKILL.md" "$tree/render/$pl/skills/firefly-zz-badref/SKILL.md"; done
-printf '%s\n' '@design 99' '+trigger: placeholder' > "$tree/contracts/firefly-zz-badref.txt"
-out="$tree/out.txt"
-set +e
-FIREFLY_LINT_ONLY=1 FIREFLY_SKILLS_ROOT="$tree/shared/skills" FIREFLY_RENDERED_ROOT="$tree/render" FIREFLY_CONTRACTS_ROOT="$tree/contracts" bash "$ROOT_DIR/tests/test-skill-contracts.sh" >"$out" 2>&1
-status=$?
-set -e
-if [[ "$status" -eq 0 ]] || ! grep -Fq "references/x.md is cited but does not exist" "$out"; then
-  echo "FAIL: rule 'references' did not block (exit $status)" >&2; cat "$out" >&2; exit 1
-fi
-echo "negative: blocked (references)"
-# no unmigrated skill: a firefly-zz directory without metadata.version fails.
-new_tmp_dir skill-contracts
-tree="$FIREFLY_TMP_DIR"
-mkdir -p "$tree/shared/skills/firefly-zz-unmigrated" "$tree/contracts" \
-  "$tree/render/claude/skills/firefly-zz-unmigrated" "$tree/render/codex/skills/firefly-zz-unmigrated"
-cat > "$tree/shared/skills/firefly-zz-unmigrated/SKILL.md" <<'ZZ'
----
-name: firefly-zz-unmigrated
-description: placeholder
----
-
-## When to use
-## When not to use
-## Mandate
-## Inputs
-## Procedure
-## Outputs
-## Handoffs
-## Stop and escalate
-ZZ
-for pl in claude codex; do cp "$tree/shared/skills/firefly-zz-unmigrated/SKILL.md" "$tree/render/$pl/skills/firefly-zz-unmigrated/SKILL.md"; done
-cat > "$tree/contracts/firefly-zz-unmigrated.txt" <<'ZZ'
-@design 99
-+trigger: placeholder
-ZZ
-out="$tree/out.txt"
-set +e
-FIREFLY_LINT_ONLY=1 FIREFLY_SKILLS_ROOT="$tree/shared/skills" FIREFLY_RENDERED_ROOT="$tree/render" FIREFLY_CONTRACTS_ROOT="$tree/contracts" bash "$ROOT_DIR/tests/test-skill-contracts.sh" >"$out" 2>&1
-status=$?
-set -e
-if [[ "$status" -eq 0 ]] || ! grep -Eq 'FAIL firefly-zz-unmigrated unmigrated: ' "$out"; then
-  echo "FAIL: rule 'unmigrated' did not block (exit $status)" >&2; cat "$out" >&2; exit 1
-fi
-echo "negative: blocked (unmigrated)"
-
-# shared is platform-neutral: a literal AskUserQuestion in a shared file must fail.
-new_tmp_dir skill-contracts
-tree="$FIREFLY_TMP_DIR"
-expect_tree_blocked() {
-  local tree="$1" rule="$2" out status
-  out="$tree/out.txt"
-  set +e
-  FIREFLY_LINT_ONLY=1 bash "$ROOT_DIR/tests/test-skill-contracts.sh" >"$out" 2>&1
-  status=$?
-  set -e
-  if [[ "$status" -eq 0 ]] || ! grep -Eq "FAIL [a-z-]+ $rule: " "$out"; then
-    echo "FAIL: rule '$rule' did not block (exit $status); lint output follows" >&2
-    cat "$out" >&2
-    exit 1
-  fi
-  echo "negative: blocked ($rule)"
-}
-printf 'Use the AskUserQuestion tool here.\n' >> "$ROOT_DIR/assets/shared/skills/firefly-retro/SKILL.md"
-expect_tree_blocked "$tree" shared-neutral
-python3 - "$ROOT_DIR/assets/shared/skills/firefly-retro/SKILL.md" <<'PY'
-import sys
-path = sys.argv[1]
-lines = [l for l in open(path).read().split('\n') if 'AskUserQuestion tool here' not in l]
-open(path, 'w').write('\n'.join(lines))
-PY
-
-# no stale platform copies: an unregistered directory under rendered skills fails.
-mkdir -p "$ROOT_DIR/assets/claude/skills/firefly-zz-stale" "$ROOT_DIR/assets/codex/skills/firefly-zz-stale"
-expect_tree_blocked "$tree" stale-copies
-rmdir "$ROOT_DIR/assets/claude/skills/firefly-zz-stale" "$ROOT_DIR/assets/codex/skills/firefly-zz-stale"
-
-# Route coverage: the controller's ## Commands must name every skill.
-new_tmp_dir skill-contracts
-tree="$FIREFLY_TMP_DIR"
-mkdir -p "$tree/shared/skills" "$tree/contracts" "$tree/render/claude/skills/firefly" "$tree/render/codex/skills/firefly"
-cp -r "$ROOT_DIR/assets/shared/skills/firefly" "$tree/shared/skills/firefly"
-cp -r "$ROOT_DIR/assets/shared/skills/firefly-retro" "$tree/shared/skills/"
-cp -r "$ROOT_DIR/assets/shared/skills/firefly-trace" "$tree/shared/skills/"
-sed -i '/^- `firefly retro`/d' "$tree/shared/skills/firefly/SKILL.md"
-cp "$tree/shared/skills/firefly/SKILL.md" "$tree/render/claude/skills/firefly/SKILL.md"
-cp "$tree/shared/skills/firefly/SKILL.md" "$tree/render/codex/skills/firefly/SKILL.md"
-expect_blocked "$tree" firefly route-coverage
-
-# A v2 skill without the Mandate section.
-new_tmp_dir skill-contracts
-tree="$FIREFLY_TMP_DIR"
-write_skill "$tree" firefly-zz-no-mandate 'Mandate'
-expect_blocked "$tree" firefly-zz-no-mandate sections
-
-# A v2 skill with a 501-line reference file.
-new_tmp_dir skill-contracts
-tree="$FIREFLY_TMP_DIR"
-write_skill "$tree" firefly-zz-long-file ''
-mkdir -p "$tree/shared/skills/firefly-zz-long-file/references" \
-  "$tree/render/claude/skills/firefly-zz-long-file/references" "$tree/render/codex/skills/firefly-zz-long-file/references"
-for ((i = 1; i <= 501; i += 1)); do
-  echo "line $i"
-done > "$tree/shared/skills/firefly-zz-long-file/references/long.md"
-cp "$tree/shared/skills/firefly-zz-long-file/references/long.md" "$tree/render/claude/skills/firefly-zz-long-file/references/long.md"
-cp "$tree/shared/skills/firefly-zz-long-file/references/long.md" "$tree/render/codex/skills/firefly-zz-long-file/references/long.md"
-expect_blocked "$tree" firefly-zz-long-file line-limit
-
-# A v2 skill whose text uses the retired verdict word.
-new_tmp_dir skill-contracts
-tree="$FIREFLY_TMP_DIR"
-write_skill "$tree" firefly-zz-approve ''
-printf '\nReturn APPROVE when green.\n' >> "$tree/shared/skills/firefly-zz-approve/SKILL.md"
-expect_blocked "$tree" firefly-zz-approve terms
-
-# A clean v2 skill whose rendered Claude copy was edited to carry the retired
-# verdict word: only the anchor file can catch that.
-new_tmp_dir skill-contracts
-tree="$FIREFLY_TMP_DIR"
-write_skill "$tree" firefly-zz-anchor-approve ''
-mkdir -p "$tree/contracts"
-{
-  echo '@design 01'
-  echo '+trigger: Self-check skill'
-  echo '-: APPROVE'
-} > "$tree/contracts/firefly-zz-anchor-approve.txt"
-printf '\nReturn APPROVE when green.\n' >> "$tree/render/claude/skills/firefly-zz-anchor-approve/SKILL.md"
-expect_blocked "$tree" firefly-zz-anchor-approve anchor-claude
-
-echo "skill contracts test passed"

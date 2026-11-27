@@ -42,7 +42,7 @@ The lint reads these variables, which exist so the test can lint a temporary tre
 
 | Variable | Default | Effect when set |
 |---|---|---|
-| `FIREFLY_SKILLS_ROOT` | `assets/shared/skills` | |
+| `FIREFLY_SKILLS_ROOT` | `firefly/references/abilities` | |
 | `FIREFLY_RENDERED_ROOT` | `assets` (expects `<root>/<platform>/skills` beneath it) | |
 | `FIREFLY_CONTRACTS_ROOT` | `tests/contracts` | |
 | `FIREFLY_SKIP_ANCHORS` | unset | `1`: skip the anchor file and the rendered copies; lint the source alone. |

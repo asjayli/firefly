@@ -37,7 +37,7 @@
 +output: one directory per measured version, never overwritten
 +output: --observer verifier:firefly-perf
 +output: `--note` is never omitted
-+output: The recorder fills in the candidate snapshot and the spec version; nobody reports them by hand
++output: Before the check, capture the inputs with `firefly snapshot` and `firefly snapshot --spec <id>`
 +output: the configurations, the samples and the reason each was withdrawn
 
 # Verdicts and states: comparable conditions, no cherry-picking, noise, lapse,
