@@ -1,0 +1,80 @@
+@design 25,22
+# firefly-archive: the three separately commissioned endpoints — readiness
+# (read-only), local archive, launch — their non-authorization of each other,
+# the closeout ledger, the snapshot-ref cleanup, and the stops.
+
+# trigger: the three endpoints each need their own commission; acceptance,
+# a finished sync or a readiness conclusion opens none of the others.
++trigger: Three separately commissionable endpoints
++trigger: A readiness assessment
++trigger: the local archive of one named change
++trigger: a launch under its own mandate
++trigger: Commissioned separately after `ACCEPT`
++trigger: The handoff is a route, not a commission
++trigger: No separate commission
+
+# mandate: archive covers the sync and the local move only; no traffic action
+# from readiness or archive; the authorized writes are not a candidate change.
++mandate: it never covers a push, a release or a rewrite of shared history
++mandate: covers no traffic action and no launch
++mandate: is still the accepted candidate
++mandate: the local archive move of the change directory
++mandate: A surprise gate
++mandate: a uniform rollout percentage is never copied over them
+
+# input: a change named by the commission, never from context; reservations of
+# the incrementally accepted candidate only; the drill record on the same
+# candidate; thresholds from service objectives and baselines.
++input: A change is never picked from conversation context
++input: taken item by item from the reservation list
++input: the drill record must name the same candidate
++input: the service objectives and the baselines
++input: When an observation window spans a complete business cycle, its end and its successor are written to the task record
+
+# output: the ledger in the reply with no standalone file; the inventory, the
+# migration decision and the rollout plan on their carriers; refs dropped.
++output: no standalone file
++output: `openspec/changes/<id>/archive-inventory.md`
++output: `openspec/changes/<id>/deprecation.md`
++output: `.superpowers/sdd/progress.md`
++output: Preserve `refs/firefly/snapshots/`
++output: is never recorded as migrated
++output: Zero traffic before a complete business cycle has ended is not a basis for removal
+
+# verdict-or-state: ready, release authorized and live are three different
+# facts; touches-required fails the assessment; the state exits of a launch.
++verdict-or-state: three different facts
++verdict-or-state: marked as touching required behavior fails the readiness assessment
++verdict-or-state: not launch-ready
++verdict-or-state: live and verified
++verdict-or-state: returns it to `accepted`
++verdict-or-state: returns it to `in-progress`
++verdict-or-state: Until the return has arrived and been checked, the item stays open
+
+# handoff: the after-ACCEPT route; the comparison reviewed before anything is
+# applied; the drill record from firefly-trace; no new write authority back.
++handoff: What may follow is commissioned separately
++handoff: before anything is applied
++handoff: The drill record, handed to the release owner
++handoff: brings no new write authority
++handoff: none of them alone establishes that nobody depends on the old entry
+
+# stop: the unresolved change, the missing commission, semantic loss outside
+# the envelope, validation outside the envelope, a launch beyond its plan.
++stop: the current conclusion, the missing evidence or authority, and the responsible owner
++stop: already archived
++stop: Semantic loss
++stop: inside the archive authorization envelope
++stop: escalates immediately
++stop: Owner: the requester
+
+# forbidden: the retired verdict word; the retired review protocol of the old
+# archive skill; the classic overreaches — expanding traffic past a stop
+# threshold, pushing the archived change, inventing gates at the end.
+-: APPROVE
+-: Independent review contract
+-: at most two new independent review agents
+-: subagent-driven-development
+-: expanding traffic after a stop threshold
+-: pushes the archived change
+-: invents acceptance criteria at the end

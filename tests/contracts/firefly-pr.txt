@@ -1,0 +1,67 @@
+@design 20
+
+# Entry. The PR is commissioned separately after the candidate is accepted,
+# or the user names firefly-pr; a mandate without any external write and a
+# change without the review verdict never enter.
++trigger: commissioned separately from firefly-implement's handoff
++trigger: The user names `firefly pr` to draft or improve a PR description
++trigger: The mandate covers no external write at all
++trigger: The change has not passed the verdict of firefly-review
++trigger: The change's candidate must be `accepted`
+
+# Authorization boundary. Five actions, each with its own effect; one never
+# carries the next. The description lives on the PR platform, never in a
+# repository file; a description-only mandate never rewrites history; a
+# merged PR is not a released candidate.
++mandate: One action never carries the next
++mandate: A description-only mandate never authorizes rewriting history
++mandate: Its carrier is the PR platform itself, never a repository file
++mandate: A merged PR is not a released candidate
++mandate: An action the permitted effects do not name is not executed and not prepared
++mandate: never splits a candidate that has already been accepted
+
+# Inputs: the accepted generation's package identity, its brief.md and the
+# ACCEPT rows with their reservation lists; the rerun method handed over by
+# firefly-perf.
++input: the package identity of the accepted generation
++input: with their reservation lists in `## Review verdicts`
++input: the values the description cites are the ones the accepted generation's `brief.md` fixed
++input: The measurement rerun method and its limits, handed over by firefly-perf
+
+# Outputs: the description on the PR platform with pointers in the reply; the
+# actual result of each action as it happens; no repository file added.
++output: The PR platform itself — not a repository file; the reply to the requester carries pointers
++output: As each action happens
++output: No repository file is added for the PR
++output: Do not narrate the diff file by file
+
+# Verdicts and states: the accepted candidate is verified from the ledger; a
+# lapsed verdict sends the package back to review; an empty reservation list
+# is recorded as none.
++verdict-or-state: a valid `ACCEPT` from every required role on its package identity
++verdict-or-state: the verdict has lapsed (contract, Lapse)
++verdict-or-state: an empty list recorded as `none`
++verdict-or-state: a comparison package records no verdict rows
+
+# Handoffs: the split of the post-ACCEPT commissions; lasting trade-offs
+# cited by path through firefly-docs; a finding that shows a required
+# behavior wrong returns through the verdict.
++handoff: this skill takes the pull request, firefly-docs the spec sync and the decision records, firefly-archive readiness, archive and release
++handoff: the decision record is written there, and the PR cites it by path
++handoff: it goes back through the verdict (`REVISE`)
+
+# Stops: an uncovered action stops the chain; an unexplained tree difference
+# stops the cleanup with nothing pushed; nothing is derived by hand.
++stop: The chain stops there; the actions already executed stand
++stop: Push nothing. Owner: the requester.
++stop: Nothing is derived by hand
+
+# Forbidden. APPROVE is retired; a retired skill name must not appear. The
+# overreaches this skill exists to prevent: one action carrying the next,
+# repairing a finding directly on the PR branch, and dressing inaccessible
+# evidence up as tested.
+-: APPROVE
+-: subagent-driven-development
+-: opening the PR authorizes pushing
+-: repaired directly on the PR branch
+-: passed off as tested without a pointer

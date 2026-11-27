@@ -1,0 +1,73 @@
+@design 23
+# firefly-docs: what is kept and where, the carriers, the sync authorization, the non-author review, the stops.
+
+# trigger: the three entries, each needing a mandate that covers the writes; the decidable skip of the design text.
++trigger: the mandate on record must cover the writes
++trigger: to sync a change's delta specs into the main specs
++trigger: Commissioned separately after `ACCEPT`
++trigger: A trade-off with lasting force, a rejected alternative for one, goes to the decision record through this skill
++trigger: to write a standing reference value the project owner has approved
++trigger: No trade-off needs to be kept for the long term
++trigger: a one-off small change, reading the PR is enough
+
+# mandate: the sync is its own authorization; an investigation or an ADR grants none of it; review is owned elsewhere; the change stays active.
++mandate: nothing else is authorized by implication
++mandate: Writing a local investigation or a decision record does not authorize updating the main specs
++mandate: the sync is its own authorization, commissioned separately from the implementation
++mandate: never judged here
++mandate: The change stays active after a sync; archive is a separate commission
++mandate: The main specs without a sync mandate
+
+# input: what each write must be given; the sync reads the change's delta specs against the current main specs and the accepted candidate.
++input: the delta specs of that change, the current main specs, and the implementation and tests of the accepted candidate
++input: the conditions under which the choice should be reconsidered
++input: the term and its meaning as a provider and a consumer have settled it
++input: the value the project owner approved and the capability it belongs to
++input: `planningHome.root`
++input: `artifactPaths.specs.existingOutputPaths`
++input: `ADDED Requirements`
++input: `MODIFIED Requirements`
++input: `REMOVED Requirements`
++input: `RENAMED Requirements`
++input: FROM: `### Requirement: <old>`
+
+# output: one carrier per fact; the glossary, the ADR, the main specs, the standing reference value; the pointer rule.
++output: the glossary the project already keeps, otherwise `docs/glossary.md`
++output: `docs/adr/YYYYMMDD-<slug>.md`, an existing ADR convention in the project winning
++output: `openspec/specs/**/spec.md`
++output: the main spec of the capability, kept by the project owner
++output: the same conclusion is never maintained twice
++output: the capability, the requirement, the operation
++output: Record the old-to-new mapping in the decision record that covers this sync
+
+# verdict-or-state: the sync applies only after the non-author review passes, on an accepted candidate; preservation is proven, not assumed; the merge is idempotent.
++verdict-or-state: a sync applied after its non-author review passed, its strict validation and idempotency check run
++verdict-or-state: for a candidate that is `accepted`
++verdict-or-state: a reviewer who did not produce the sync
++verdict-or-state: Apply only after the review passes
++verdict-or-state: An accessible file is not proof of preservation
++verdict-or-state: applying the same plan again changes nothing
++verdict-or-state: acceptance alone is not
+
+# handoff: the mechanical steps live in the reference file behind one pointer; the comparison goes to firefly-archive; the writes return to the controller; carriers are linked, not copied.
++handoff: The mechanical steps
++handoff: in `references/spec-sync.md`
++handoff: the non-author closeout review of `firefly-archive`
++handoff: The finished writes return to the controller
++handoff: linked, not copied
++handoff: Leave enough primary evidence for a maintainer who disagrees to argue with
+
+# stop: the three escalation items; the uncovered write, the unresolved change, the precondition, the review, the validation.
++stop: the current conclusion, the missing evidence or authority, and the responsible owner
++stop: The conclusion goes in the reply and nothing goes on disk
++stop: the candidates, the evidence and a recommended default
++stop: stops the sync under `../guide.md`
++stop: Owner: the requester, who grants the mandate
++stop: Owner: requirement owner
+
+# forbidden: the retired verdict word; a retired skill name not named in the provenance comment; the two ways this skill would overreach.
+-: APPROVE
+-: openspec-archive-change
+-: syncs the main specs without a mandate
+-: replaces the old requirement with the new one
+-: silently drops history

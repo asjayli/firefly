@@ -1,0 +1,209 @@
+@design 07
+# firefly-implement: entry, authority, carriers, repair budget, integration and stops.
+
+# Entry: named, cleared by a ready decision that is in force, or a resumed mandate.
++trigger: firefly implement <change>
++trigger: The newest row of `## Ready decision` is the current ready decision
++trigger: snapshot --spec <change>
++trigger: snapshot --tasks <change>
++trigger: Versions are compared without the `wt:` prefix
++trigger: Without a valid ready decision nothing is dispatched
++trigger: while its candidate is `in-progress` or `ready-to-integrate`
++trigger: Re-entered after the spec version, the task package version or the standards changed under an `accepted` candidate
++mandate: has its row from the designated verifier on the integrated candidate
+# The entry also needs a mandate that covers the delivery, not only a ready decision: the newest row of ## Mandate is the one in force.
++trigger: The mandate in force is the newest row of `## Mandate`
++trigger: A naming that changes none of it continues the mandate in force and writes no row
++trigger: A comparison return that states `ACCEPT`, for the incremental implementation
+# A resumption that names firefly implement records the delivery mandate first when the one in force is not one; a request that does not is decided by the records.
++trigger: A resumption is read in this order
++trigger: a request that names no such thing leaves the decision to the records
++trigger: to the requester when the mandate in force is proposal-only and to the requirement owner when there is no mandate row
++trigger: Each such row takes the id `<change>-delivery-<n>`, `<n>` being the next free number
++trigger: A candidate that changed after its package was fixed comes back `in-progress`
+
+# Authority: effects the skill grants, and the commit and merge condition.
++mandate: Spec sync, archive, push, merge, release, and a destructive removal. Naming this skill authorizes none of them
++mandate: only when the mandate's permitted effects explicitly allow that write and the branch policy permits it
++mandate: A wider scope, a wider mandate, or a change to a promised behavior.
++mandate: A blocker travels in the `ESCALATE` and in the dispatch and budget rows of the progress record
++mandate: You cannot widen it, and you cannot accept your own candidate.
+# The delivery mandate is recorded as the newest row before anything is dispatched; its effects leave the withheld ones to the request's naming; parallel work needs the integration writes and the branch policy.
++mandate: record mandate --change <id> --id <id> --objective <objective> --effects <the delivery effects, and what the request's words add> --terminal <terminal condition>
++mandate: the modification scopes the task package declares for its task groups
++mandate: the external side effects it declares that `## Mandate` does not withhold
++mandate: the write-back of a `firefly-debug` return to the task record; and the record writes of `## Mandate`
++mandate: Spec sync, archive, push, merge, release, a destructive removal, a child worktree, a local checkpoint commit and a merge into the target baseline are among them only when the request names them
++mandate: A proposal-only mandate, whose terminal condition is a change ready to start, is not one
++mandate: a task group the planner adds, a scope wider than the row names, or an external side effect the row does not name is not covered until the requirement owner has confirmed it under `firefly-propose`
++mandate: Without all three the task groups run one at a time
++mandate: Parallel work also needs three things: that the request names the child worktrees
++mandate: **The delivery effects** are the same whoever records the mandate and whenever it is recorded
++mandate: A row recorded before the task package existed names no task group
++mandate: each of the others needs the request to name it
++output: whenever the permitted effects of the mandate in force differ from the delivery effects: as the newest row, with a new id, before anything is dispatched
++stop: for the requirement owner to confirm it
++mandate: The id is `<change>-delivery` when no row carries it yet
++mandate: a renewed request for the implementation after a comparison ended in `REVISE` is recorded as a new row with the next id
++trigger: except for the observations a changed spec version, task package version or standard calls for
++handoff: a `REVISE` that stands decides otherwise, and a return recorded `failed` counts for nothing
++mandate: the controller brings it up to date directly, with no confirmation, as a new row that writes the modification scopes out group by group
++output: all of them when the spec version or the standards changed, and the checks whose scenario map row changed when only the task package did
++trigger: A task package change also ends the ready decision in force
++handoff: once it is confirmed, the controller records the confirmed scope as a new mandate row (step 2)
++mandate: stays there until the authority is given
+# An existing failure of the baseline is never repaired inside a task group.
++mandate: A check the dispatch names as an existing failure of the baseline
++mandate: unless the context names this task group as the one that
+# The write-back of a debug return is the only permitted effect here that changes the task package version, off the task item lines.
++mandate: the only permitted effect here that changes the task package version
++mandate: Record the requester's decision on an existing failure of the baseline as a minutes entry under `openspec/think/`
+
+# Inputs: the change is resolved, never guessed; the dispatch package is complete.
++input: openspec status --change "<change>" --json
++input: A change that is not found, is archived or has no `tasks.md` is not entered.
++input: The dispatch package carries four things: scenario IDs, spec and source pointers, the allowed modification scope, and the acceptance commands.
+
+# Carriers, and when they are written.
++output: write a `Preflight` section to the progress record
++output: record budget --change <id> --round <n> --scenario <id> --progress <yes|no>
++output: `## Repair budget` rows. It never restarts.
++output: A name given to an implementer or a verifier begins with a letter or digit
++output: they never replace the designated verifier
+# An existing failure the change does not fix starts no repair round and is recorded as the run shows, never `pass` because the baseline was accepted as known-red.
++output: It is recorded as the run shows, never `pass` because the baseline was accepted as known-red: a run that passes is recorded `pass`
++output: starts no repair round while it shows the result the `Preflight` section recorded; it is recorded as the run shows
+# At integration, the integrated observation of a promise a downstream group depends on is made now; a missing row is completed on resumption; the rest before the review.
++output: A downstream task group becomes selectable only once those rows exist
++verdict-or-state: only once the observation of its promise scheduled at `integrated` has its row
++output: the designated verifier makes it now on the target baseline, as step 6 under
+# The implementer's own record command and its limits; the note carries the expected outcome of the map row.
++output: [--rule <text>] --note <conditions, the expected outcome of the row, and the check as it reads in the row>
++output: They land in the row's `Conditions` column
++output: a `--note` that carries the conditions observed under, the expected outcome and the check the scenario map row names
++mandate: A row is read as it is written, never as a reference to the task package
++output: written out group by group in the row
++handoff: for the requirement owner to confirm; once it is confirmed,
++output: `not-applicable` needs `--rule` naming the rule that applies and the reason
+# An accepted known-red check does not keep a task group from being integrated; a snapshot with a package is not packaged here; rows made on an earlier candidate are observed again.
++output: a check recorded as an existing failure the change does not fix does not keep a task group from being integrated
++output: A snapshot that already has a package is not packaged here
++output: every earlier row whose observation on the candidate of step 1 is missing
++output: the checks to keep passing: the checks of the required scenarios whose observation rows show `pass`
++output: Run `git diff --check` against the change's BASE
++output: Nothing is filled in afterwards as tested
++output: using the full SHA from step 1
++output: openspec/changes/<id>/evidence/<snapshot12>/<generation>/package.diff
++output: The identity of this first package is `<change>@<snapshot12>.1`
++output: This skill writes only the first package of a candidate
++output: verdict-<role>-<reviewer>.md
+
+# Preflight: once, before the first edit; the same baseline is recognized and not rerun.
++output: Once, before the first candidate file is modified, run the baseline commands the scenario map names
++output: The same baseline is recognized by the three facts the section holds
++output: On resumption, do not rerun the preflight when
++output: none of them when a baseline command cannot run at all
+# Each task group's baseline goes under the Preflight section, never into tasks.md.
++output: Write `<N>: <sha>` under the `Preflight` section of the progress record of the target baseline, before the dispatch
++output: it is never written into `tasks.md`
+# The requester's acceptance of a baseline failure is on record: a minutes entry under openspec/think and a note in the Preflight section.
++output: as a minutes entry under `openspec/think/`
++output: A file the user named is never edited
++output: accepted as known-red, minutes <path>
++output: the change returns to `firefly-propose` for the planner to split the mapping
+# The completion gate: no completion language while work or the verdict is outstanding.
++output: Never use completion language or a final delivery format while
+
+# Ticks: at integration; a tick, like an appended row, is not part of the candidate snapshot.
++output: the controller ticks the items of a task group at once, as soon as that group is integrated on the target baseline
++output: not part of the candidate snapshot
++output: Nothing but a tick is written into a task item
+# New unticked items in a ticked task group are not integrated: the group is not integrated any more and the ticked items stay.
++output: Only the items integrated on the target baseline are ticked
++verdict-or-state: the task group is not integrated any more
+
+# The candidate is the implementation; candidate state and the repair budget.
++verdict-or-state: The comparison is about the implementation
++verdict-or-state: A spec edit is not a new candidate
++verdict-or-state: A valid `REVISE` sends the candidate back to `in-progress`
++verdict-or-state: a worktree that differs from the snapshot the implementer reported is a new candidate
++verdict-or-state: it is a candidate for integration, not a completed task
++verdict-or-state: one change for that one scenario and a rerun of its original check
++verdict-or-state: three consecutive rounds with `--progress no`
++verdict-or-state: never resets the budget
++verdict-or-state: A `REVISE` recorded for a joint review, `<change>@ready.<spec12>.<tasks12>`
+
++verdict-or-state: The repaired candidate is a new candidate: it is verified and reviewed again on its own first package.
+# Progress needs the rerun of the passing required scenarios; three distinct revised packages stop the repair.
++verdict-or-state: A round whose passing required scenarios were not rerun is not recorded `yes`
++verdict-or-state: three distinct candidate packages of the delivery have each received a valid `REVISE`
++verdict-or-state: The count is of the distinct package identities that carry a `REVISE` row in `## Review verdicts`
+# A debug return is written back by firefly-debug in its handoff, never on a task item; the ready decision lapses and nothing is dispatched until it is in force again.
++verdict-or-state: is written back to the task record by `firefly-debug` in its handoff, never on a task item
++verdict-or-state: no repair round and nothing else is dispatched here
+# A finding that an accepted known-red still shows is never repaired; a repair round reruns the checks to keep passing.
++verdict-or-state: A finding that a baseline accepted as known-red still shows is never repaired
++verdict-or-state: unchanged, rerun the checks to keep passing next
++verdict-or-state: not presented as progress: return `DONE_WITH_CONCERNS`
++verdict-or-state: does not start for a check the dispatch names as an existing failure of the baseline
+# Not repair rounds; reruns; no stacking after a round left the symptom unchanged.
++verdict-or-state: No budget row is written and no product code is changed for it.
++verdict-or-state: never overwrites an earlier candidate's evidence
++verdict-or-state: stop stacking edits on it
+
+# Where work goes next.
++handoff: Hand to `firefly-debug` instead of another round
++handoff: that write-back among them
++handoff: a task group the planner added for the repair is dispatched first
++handoff: Green results from separate branches are never assembled into an integration pass
+
++handoff: the verdict is asked for on the integrated candidate
++handoff: After each merge, rerun the intersecting scenarios
++handoff: The integrated task group is not dispatched again
++handoff: for this skill to complete the designated verifiers' observations on its snapshot
++handoff: Nothing is implemented until that return comes back
+# A return to firefly-propose is a handoff, not an end of the session.
++handoff: This is a handoff, not an end of the session
++handoff: for the review of the task package alone, its intersecting mappings included
++handoff: whole rows copied with no field altered
++handoff: read them there before integration
++handoff: Moving existing rows is not hand-writing them
++handoff: Do not dispatch the task group again or repeat its implementation.
++handoff: When the user names `firefly review` directly, that skill fixes the package itself
++handoff: the simplification of a named module is the objective of the mandate
++handoff: Only a comparison whose return states `ACCEPT` is implemented
++handoff: the return names the snapshot it compared, and the work starts only while that is still the candidate present
+# After a repair, the first package of the repaired candidate carries the previous candidate's REVISE returns.
++handoff: the paths of the previous candidate's stored returns that carry the `REVISE`
+
+# Stops.
++stop: the current conclusion, the missing evidence or authority, and the responsible owner
++stop: The scope is never widened by reading the change as a technical detail
++stop: changes, committed or not, that match no recorded candidate snapshot
++stop: Diagnose, then `ESCALATE`.
++stop: accepting the baseline as known-red, an explicit authorization that stays visible in the final report
++stop: that scenario stays `fail` and the fixed end is out of reach until the planner splits the mapping
++stop: or when a baseline accepted as known-red is on a check the scenario map schedules for a required scenario
++stop: never clean the worktree
++stop: No mandate in force covers the delivery
++stop: Never resend blindly
+
+# Continuous execution: failures are inputs; only four things end the skill.
++stop: a first failing check are diagnostic inputs, not requests for a decision
++stop: Implementation runs continuously by default.
++stop: Continue the authorized mandate there.
+# Preflight classifications: an unrelated red is never repaired here; user modifications are kept.
++stop: Never repair it inside a task group
++stop: Keep the modifications as user work and write nothing until the user decides
+
+# Retired verdict word.
+-: APPROVE
+# Retired skill name (not the two named in the provenance comment).
+-: test-driven-development
+# Typical overreach: widening the scope, branch green read as integration, finishing the branch.
+-: widen the scope and call it a technical detail
+-: green branches mean the integration passed
+-: merge the branch once the verdict is `ACCEPT`
+# Superseded rules: the verdict value read alone; a note on a task item.
+-: the latest `## Ready decision` row must be `ACCEPT` and not `historical`
+-: a blocker note on the unfinished item

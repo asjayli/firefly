@@ -2,107 +2,123 @@
 
 # firefly
 
-### A workflow bundle for Codex, Claude`s agent coding delivery
+### A standalone agent skill
 
 [中文](README.md) | English
 
 </div>
 
-**Current version: 0.1.0** ([CHANGELOG](CHANGELOG.md)) · License: [MIT](LICENSE) · [Third-party notices](THIRD_PARTY_NOTICES.md)
+**Current version: 0.2.0** ([CHANGELOG](CHANGELOG.md)) · License: [MIT](LICENSE) · [Third-party notices](THIRD_PARTY_NOTICES.md)
 
-Forge your agent workflow into steel.
-
-firefly is an opinionated workflow bundle for agent coding.
+firefly turns each user mandate into an acceptable deliverable: an investigation returns a supported explanation, a proposal states what would be built, an implementation delivers a verified change, and a review returns an independent judgment. Not every mandate ends in a code change.
 
 ## Scope
 
 ### What firefly does
 
-- Integrates OpenSpec, superpowers, code review, and browser validation into one coherent workflow from requirement to archive.
-- Manages global managed assets via `init` / `doctor` / `repair`: skills, commands, and managed override files layered on upstreams.
-- Provides explicit command orchestration: `draw` / `think` / `propose` / `implement` / `tasks` / `review` / `verify-web` / `archive`, plus the standalone `openspec-sync-specs` skill.
+- Turns a mandate into an acceptable deliverable: four commissioning entries (find out why / propose without implementing / implement the approved design / review this candidate), each with a fixed terminal condition and evidence requirements.
+- Treats subcommands as the authorization boundary: a named entry such as `firefly think` or `firefly implement <change>` enters that capability's skill directly; the command name fixes the terminal condition and grants no unrelated effects — an investigation is never upgraded to edits.
+- Provides 23 skills plus a set of runtime subcommands (`init` / `doctor` / `repair` / `validate` / `tasks` / `diagram` / `snapshot` / `record`), and manages installation, health checks and repair of the global managed assets.
 
 ### What firefly does not do
 
-- Does not replace OpenSpec, superpowers, or playwright-interactive — it only orchestrates; the underlying capabilities still come from them.
-- Does not take over your project source: it only invokes `openspec init` when missing and never edits business code.
-- Does not auto-trigger: it works only when the user explicitly asks; it will not step in just because a coding request exists.
-- Pins OpenSpec to the verified `1.6.0` release; other upstream dependencies retain their own installation flows. The installer skips overlays protectively on version mismatch instead of downgrading upstream.
+- Does not take over your project source: it writes only specs, task records and verification records within the command boundary, and never silently overlays project files.
+- Does not make trade-offs on your behalf: options with different consequences go back to the user and the owner; a worker cannot widen the mandate or approve its own candidate.
+- Does not build a second scheduler: resumption reuses the existing specs, `tasks.md`, Git and verification records — no state kernel, no cross-process dispatcher.
+- Does not auto-trigger: it works only when the user explicitly asks for firefly or names a subcommand; a coding request alone is not a trigger.
 
-## Install For Codex
+## Installation
 
-Tell Codex:
+Load [firefly/](firefly/) as one skill directory using [SKILL.md](firefly/SKILL.md). To install a baseline and a command entry point, run from the repository root:
 
-```text
-Fetch and follow instructions from https://raw.githubusercontent.com/asjayli/Forgevia/refs/heads/main/INSTALL.codex.md
+```bash
+bash firefly/scripts/manage.sh install --skills-dir /path/to/skills --bin-dir "$HOME/.local/bin"
 ```
 
-## Install For Claude
+Set `--skills-dir` to the skill directory's parent, as configured in your host. Omit `--bin-dir` to use `scripts/firefly.sh` directly from the skill directory. Run `firefly doctor` to check the installation and `firefly repair` to restore it from its own baseline. Replaced assets are backed up beside the destination under `.firefly-backup.*/previous`.
 
-Tell Claude:
+The skill discovery path can be a symlink. The CLI uses that stable path. After moving `references` or `scripts` and linking it back into the skill, rerun the installation with `--references-dir` or `--scripts-dir` to register the corresponding target. Installation preserves the links and repairs use their registered targets.
 
-```text
-Fetch and follow instructions from https://raw.githubusercontent.com/asjayli/Forgevia/refs/heads/main/INSTALL.claude.md
+If the runtime scripts are missing, run recovery from a complete Firefly source package:
+
+```bash
+bash firefly/scripts/manage.sh repair --skills-dir /path/to/skills
 ```
+
+The installer manages the selected Firefly installation only. Move any older installation out of your skill search path and remove its old global command before reusing the same destination.
 
 ## Skills
 
-- `firefly`: General entry for the firefly workflow.
-- `firefly-init`: Prepare the current project for the firefly workflow.
-- `firefly-think`: Clarify and shape a requirement before implementation.
-- `firefly-propose`: Turn a requirement description or file into a new change proposal.
-- `firefly-implement`: Implement one named active change with a structured workflow.
-- `firefly-tasks`: List unfinished tasks across active changes.
-- `firefly-review`: Run a focused review checkpoint for current work.
-- `firefly-verify-web`: Verify web-facing behavior in a browser.
-- `firefly-draw`: Generate interaction sequence diagrams for a feature, flow, or interface.
-- `openspec-sync-specs`: Sync one change's delta specs to main specs while keeping the change active and unarchived.
-- `firefly-archive`: Archive one completed active change.
-- `firefly-doctor`: Inspect whether the firefly environment is healthy.
-- `firefly-repair`: Repair missing or drifted firefly-managed assets.
+The table lists firefly's 23 skill subcommands, matching the controller's registry one to one. "Design position" is the number of the engineering judgment in the design document (17 simplification merges into `firefly review`, 21 pipeline gates into `firefly guard`, 22 legacy retirement into `firefly archive`).
+
+| Subcommand | Position | One-line duty | Entry condition |
+|---|---|---|---|
+| `firefly next` | 01 controller | Propose the next 3–5 steps read-only, each with evidence source and completion standard | When you want to know what is next |
+| `firefly think` | 02 clarify | Clarify a requirement one question at a time before any proposal; minutes land under `openspec/think/` | The user must choose between options with different consequences |
+| `firefly draw` | 03 concept | Settle the first user behavior worth delivering via a one-page comparison, a sequence diagram or a disposable probe | Questions cannot settle it, or request/job/file lifetimes are unclear |
+| `firefly propose` | 04 spec | Turn a requirement into an OpenSpec change and take both packages through the joint ready decision | Part of the full delivery path |
+| `firefly bounds` | 05 quality bar | Agree quality constraints beside the scenarios before implementation; run affected checks when a review dispatches them | The change touches service objectives, compatibility or data boundaries |
+| `firefly tasks` | 06 tasks | Divide a ready spec into independently verifiable tasks with a two-way scenario map; the query entry lists unfinished tasks read-only | Part of the full delivery path |
+| `firefly implement` | 07 implement | Deliver one change that passed its ready decision: one implementer per task group, fixed candidate snapshots, integrated delivery | Part of the full delivery path |
+| `firefly source` | 08 sources | Record what a third-party dependency promises at the installed version and what the environment actually does, as two conclusions | Uncertain what a dependency promises at the installed version and configuration |
+| `firefly doubt` | 09 dissent | Run one independent investigation in a fresh context against a consequential untested assumption | A costly decision rests on an unverified assumption |
+| `firefly context` | 10 context | Rebuild working context on demand and compress handoffs for a successor | On resumption or session handoff |
+| `firefly ui` | 11 interface | Specify the UI states of a change before implementation and observe them on the real page | The change touches page states and interaction |
+| `firefly arch` | 12 contract | Settle the interface a public promise rests on and write the contract back into the spec scenarios | A scenario changes a public interface, or two sides develop independently |
+| `firefly tdd` | 13 tests | Carry the test discipline: a test worth writing first is watched failing on the unchanged baseline | Every dispatched test group during implementation |
+| `firefly verify-web` | 14 browser | Verify browser-visible behavior in a fresh isolated session, one observation row per check | The change affects pages, interaction or visual output |
+| `firefly debug` | 15 debugging | Obtain a signal that distinguishes faulty from normal behavior before diagnosing one failure | The failure cannot be reproduced reliably, or one repair left the symptom unchanged |
+| `firefly review` | 16 verdict | Reviewers who did not produce the candidate judge the fixed package and return one of the four verdicts | Part of the full delivery path; separately commissionable |
+| `firefly guard` | 18 security | Run a read-only check of a named scope's trust boundaries; mount gates into CI under write authority | A permission boundary changes, or a quality bar should become a pipeline check |
+| `firefly perf` | 19 performance | Measure whether a change shortens the time a user actually waits, against a baseline under recorded conditions | A decision needs performance evidence |
+| `firefly pr` | 20 delivery | Deliver an accepted candidate as a PR description written for the merge decider, and execute authorized actions | The candidate is accepted and a PR is needed |
+| `firefly docs` | 23 records | Maintain the carriers a maintainer cannot recover from code: team vocabulary, decision records, main specs | Information worth keeping cannot be recovered from code |
+| `firefly trace` | 24 signals | Agree runtime signal requirements with the spec and drill them on a candidate before release | A scenario promises users obtain a result, or the service has an on-call promise |
+| `firefly archive` | 25 archive | Own three separately commissioned endpoints after `ACCEPT`: read-only readiness assessment, local archive, launch under its own mandate | After a delivery is accepted |
+| `firefly retro` | 26 retro | Review an actual failure or repeated rework, locate the cause at one layer, propose revocable improvements | After a delivered change fails or needs rework |
 
 ## How it works
 
-### Full workflow
+### Four entries
 
-`firefly` is the top-level entry. Use an explicit subcommand to control one phase, or provide a delivery requirement directly and let firefly orchestrate proposal, implementation, review, and verification.
+The user chooses the deliverable and the permitted effects; firefly chooses the entry and the next step. Four mandates about the same "month-end export restarts after refresh" problem end at four different endpoints:
 
-An explicit subcommand stops at that command's documented terminal condition. A delivery request without a subcommand runs the complete delivery workflow by default in this order: `propose → implement → browser verification when relevant → final independent review`, without step-by-step confirmation between phases. Browser findings are repaired and reverified before final review. Read-only, exploratory, status, and review intent is never upgraded to implementation. firefly requests a user decision only for material ambiguity, missing authorization, unauthorized external side effects, or a blocker that cannot converge. Archive, spec synchronization, commit, push, merge, and release still require separate explicit authorization.
+- **"Find out why refresh starts the export over."** Enter an investigation: distinguish whether disconnecting ends computation or the page lost a still-running job ID. Return observations, cause or missing evidence; do not change the product even if the remedy is known.
+- **"Propose recovery; do not implement it."** Enter spec and planning: clarify only unresolved intent, probe only consequential unknowns. Deliver scenarios that distinguish correct from incorrect behavior, task dependencies and checks; stop when the proposal is ready to start.
+- **"Implement the recovery design that passed the ready decision."** Start at the first task with satisfied dependencies rather than repeating intake. The implementer supplies a candidate, verification checks affected behavior, independent review judges the integrated candidate. Deliver the verified change or an evidenced blocker; pushing, archiving and launching are not implied.
+- **"Review this candidate."** Send the fixed candidate, spec and evidence directly to independent review. The terminal condition is one of the four verdicts, not a repair.
 
-1. `firefly init`
-   Use this when starting in a new repository. It checks whether the project is ready for the firefly workflow and creates the required project-side workflow files only when they are missing. If the repository should work from both Codex and Claude, initialize the project with `codex,claude`.
-2. `firefly doctor`
-   Use this to inspect the global environment. It reports whether the installed firefly assets are healthy, missing, or out of sync.
-3. `firefly repair`
-   Use this when `doctor` finds problems. It restores missing or drifted firefly-managed files so the workflow can run consistently again.
-4. `firefly draw`
-   Use this when the team needs a visual design aid before implementation. It can generate sequence diagrams, UML-style diagrams, and swimlane diagrams for a specific feature, interface, or flow. The generated `.mmd` file can be used as reference input for the later thinking and planning steps, and firefly also renders an SVG vector diagram that can be opened in Chrome and used as a visual reference during development. When a feature, interface, or flow changes, update the design diagram, `.mmd`, and SVG promptly so the visual design stays aligned with implementation.
-5. `firefly think`
-   Use this before building to clarify the request. You can start with a rough idea, provide a more detailed description, attach the `.mmd` flow produced by `draw`, or supply a full requirements document. In general, the more concrete the input is, the more precise the resulting analysis and direction will be. firefly first produces a restatement and scope for an independent review; after approval, it writes the result directly to a Markdown file under `openspec/think/` without waiting for user confirmation. Filenames start with the current date, and repeated iterations of the same requirement continue as `v2`, `v3`, and so on.
-6. `firefly propose`
-   Use this to generate a new change from a requirement or an input file. You can feed in the result you are happy with after `think`, or skip that step and provide a request that you already consider complete and ready. That choice is up to you. The output is a named implementation unit with clear scope, documentation, and executable task breakdown.
-7. `firefly tasks`
-   Use this when you want a read-only view of unfinished work. It lists pending tasks across active changes and helps decide what to do next.
-8. `firefly implement <change>`
-   Use this to execute one named active change. It drives development through a structured task flow, keeps progress aligned with the change definition, and expects disciplined test-first execution rather than ad-hoc coding.
-9. `firefly review`
-   Use this at review checkpoints. It requests a focused review of the current work, preferably against a clear commit range, and reports findings in strict severity order so the highest-risk issues are handled first.
-10. `firefly verify-web`
-   Use this when the change affects web pages, browser behavior, UI interaction, or visual output. It validates the user-facing result in a real browser before completion.
-11. `openspec-sync-specs <change>`
-   Use this to merge one change's delta specs into main specs without archiving it. It authorizes spec synchronization only, not archive, commit, push, or release.
-12. `firefly archive <change>`
-   Use this after implementation, review, and verification are complete. It closes the finished change, syncs its final documentation, and keeps the project history clean.
+### Runtime subcommands
 
-### Simple workflow
+```bash
+firefly init                  # check the global environment; run openspec init only when missing
+firefly tasks                 # list unfinished tasks across active changes, read-only
+firefly validate --root <dir> # Chinese OpenSpec strict validation (see below)
+firefly diagram <feature> <dir> # generate a timestamped .mmd and a rendered .svg
+firefly doctor                # inspect managed assets on this platform (OK/MISS/DRIFT); modifies nothing
+firefly repair                # restore missing or drifted managed assets, preserving backups
+firefly snapshot              # print the worktree candidate snapshot; --spec/--tasks for package versions
+firefly record <subcommand>   # append one validated row to a handoff carrier
+```
 
-`draw -> think -> propose -> implement -> verify-web (if needed) -> review -> openspec-sync-specs (when early synchronization is needed) -> archive`
+`firefly next` is the read-only skill entry: it extracts finished, promised-but-undone and unfolded goals from the session and the project, and proposes 3–5 items ordered by risk clearance, promise keeping, resumption, planned advance and debt cleanup — each with its evidence source, completion standard and matching firefly entry. When no signal exists, the gap is reported as is; no item is invented.
 
-firefly turns requirement shaping, structured implementation, review, validation, and closure into one consistent delivery workflow.
+### Verdicts and escalation
 
-During a complete delivery, reaching apply-ready is an internal transition and the resolved change continues directly into implementation. A standalone `firefly propose` ends normally at apply-ready and returns the exact next command, `firefly implement <change>`, without describing completion as an interruption or asking whether to continue. The change remains active after complete delivery.
+An independent review returns exactly one of four verdicts:
 
-### Chinese OpenSpec Strict Validation
+- `ACCEPT`: the package is unchanged and every required role accepts, possibly with a reservation list.
+- `REVISE`: the implementation or its tests are defective; the candidate must change, consuming the repair budget.
+- `RECHECK`: an agreed check can be rerun on the current candidate; the candidate is unchanged and no repair round is consumed.
+- `INSUFFICIENT_EVIDENCE`: the required evidence cannot be obtained under existing authority, tools or environment; escalate directly.
+
+When new authority is needed, evidence is unavailable, retries make no progress or a promise has to change, `ESCALATE` returns three things: the current conclusion, the missing evidence or authority, and the owner who can supply it. Automatic execution stops there; no verdict or approval is made in the owner's place.
+
+### Candidate states
+
+A candidate travels from build to launch on one shared state table: **in progress → pending integration → pending verdict → accepted → releasing → live** (and **archived** once archive authority is granted). Passing verification moves it to pending integration; integration with a fixed review package moves it to pending verdict; acceptance to accepted; release authority advances it per the plan; the final stage verified against the original scenarios makes it live. A change to specs, standards or the candidate demotes affected observations and verdicts to history — an old verdict never clears a new candidate.
+
+## Chinese OpenSpec Strict Validation
 
 firefly provides Chinese-compatible OpenSpec strict validation through `firefly validate` for requirements whose body uses the Chinese normative terms `必须`, `不得`, `禁止`, or `应当`, without changing source specs. It checks those terms, injects `MUST` only in a temporary copy, and then runs native strict validation:
 
@@ -110,24 +126,12 @@ firefly provides Chinese-compatible OpenSpec strict validation through `firefly 
 firefly validate --root <project-root>
 ```
 
-The installer places a platform-neutral command at `~/.local/bin/firefly`; ensure that directory is on PATH to run `firefly validate --root <project-root>`. The command dispatcher also supports `init`, `tasks`, `draw`, `doctor`, and `repair`. When both Codex and Claude are installed, `doctor` and `repair` inspect both runtimes while other commands prefer the Codex runtime. The adapter validates main specs and active changes, supports only the `spec-driven` schema, and does not support Chinese section or heading keywords: keep `## Requirements`, `### Requirement:`, and `#### Scenario:` in English.
+The installer places a platform-neutral command at `~/.local/bin/firefly`; ensure that directory is on PATH to run `firefly validate --root <project-root>`. The command dispatcher supports the runtime subcommands `init`, `tasks`, `validate`, `diagram`, `doctor`, `repair`, `snapshot` and `record`. The adapter validates main specs and active changes, supports only the `spec-driven` schema, and does not support Chinese section or heading keywords: keep `## Requirements`, `### Requirement:`, and `#### Scenario:` in English.
 
-## Third-Party Assets & Licensing
+## Runtime dependencies
 
-- `playwright-interactive`: sourced from upstream, Apache License 2.0 (© Microsoft Corporation). firefly redistributes it with its original `LICENSE.txt` and `NOTICE.txt` retained.
-- `mermaid-diagram-specialist`: a firefly-original skill.
-- `superpowers` and `OpenSpec`: installed as upstream dependencies; firefly only overlays managed customization files on top of them. See `INSTALL.claude.md` / `INSTALL.codex.md`.
+Pass `--change <id>` to validate one active change and its corresponding main specs. Successful validation prints the SHA-256 of the staged input before adapting modal verbs. Reinstall from a complete source package to rebuild a damaged installation baseline. The record command uses `flock` to serialize updates to carriers in the same directory.
 
-## Upstream Dependencies
+Use `firefly review <change> --panel` for an independent panel and `firefly verify-formal` for a named invariant. Set model preferences in `.firefly/models.json` and project-specific checks in `.firefly/playbooks/`. Use `firefly config` to validate configuration and `firefly doctor --upstreams` to inspect upstream versions and adaptations. [Project configuration](firefly/references/project-configuration.md)
 
-firefly layers managed customizations on the following upstreams. The gap between the snapshot version and the latest upstream release determines whether adaptation is needed.
-
-| Upstream | Purpose | firefly baseline | Latest upstream | URL |
-|----------|---------|-------------------|-----------------|-----|
-| OpenSpec (`@fission-ai/openspec`) | spec-driven change workflow CLI | override targets and pins `1.6.0` | `1.6.0` | https://www.npmjs.com/package/@fission-ai/openspec |
-| superpowers (`obra/superpowers`) | brainstorming / TDD / planning / review skill framework | test baseline `6.1.1` | `6.1.1` | https://github.com/obra/superpowers |
-| playwright-interactive | browser interaction verification skill | vendored (untracked) | — | see `LICENSE.txt` / `NOTICE.txt` inside the skill (Apache-2.0, © Microsoft Corporation) |
-| mermaid-cli (`mmdc`) | runtime dependency for `firefly-draw` SVG rendering | runtime tool | — | https://github.com/mermaid-js/mermaid-cli |
-| ripgrep (`rg`) | runtime dependency for `firefly-tasks` scanning (optional, falls back to grep) | runtime tool | — | https://github.com/BurntSushi/ripgrep |
-
-> Note: firefly's OpenSpec override is a content snapshot taken against `1.6.0`, and the installer pins that version. When the local OpenSpec version differs from the snapshot, the installer and doctor skip the overlay protectively to avoid downgrading upstream. Upgrade the override snapshot, installation version, and `overrideTargetVersion` in `manifests/*.json` together.
+Installation, health checks and repair require Node.js 20 or later. OpenSpec 2.2.0 requires Node.js 22.20.0 or later. Git supports candidate snapshots and review. Install OpenSpec separately. `firefly init` runs `openspec init --tools none` in an isolated directory and imports the OpenSpec project config. Browser checks require an isolated browser automation tool. Mermaid rendering uses `mmdc` and task scanning can use `rg`. [Third-party notices](THIRD_PARTY_NOTICES.md)

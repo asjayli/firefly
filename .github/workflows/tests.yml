@@ -13,15 +13,19 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22.20.0'
 
       - name: Install runtime dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ripgrep shellcheck
+          sudo apt-get install -y ripgrep shellcheck util-linux
+          npm install --global @fission-ai/openspec@2.2.0
 
       - name: Shellcheck
-        run: shellcheck -S warning scripts/*.sh tests/*.sh assets/claude/superpowers/skills/subagent-driven-development/scripts/* assets/codex/superpowers/skills/subagent-driven-development/scripts/*
+        run: shellcheck -S warning scripts/*.sh firefly/scripts/*.sh tests/*.sh tests/cases/*.sh firefly/scripts/review-package firefly/scripts/task-brief firefly/scripts/sdd-workspace
+
+      - name: Design projection check
+        run: python3 docs/skill-proof/tools/verify-flynext.py
 
       - name: Run test suite
         run: |

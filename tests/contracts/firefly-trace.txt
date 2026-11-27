@@ -1,0 +1,65 @@
+@design 24
+
+# Entry. firefly-trace is dispatched under firefly-propose when a scenario
+# promises users obtain a result or the service has an on-call promise,
+# dispatched by the controller for the pre-release drill once a candidate
+# exists, or named directly.
++trigger: A scenario promises that users obtain a result, or the service has an on-call promise
++trigger: The controller dispatches this skill before planning starts
++trigger: A candidate exists and release is being considered
++trigger: The mandate record must cover the writes the work takes
++trigger: An internal refactor that meets neither condition
+
+# Authorization boundary. The requirements are written into the spec by this
+# skill inside the proposal mandate; missing signals go back to the
+# implementer and are never added here; the drill is not replaced by wired-in
+# logs; release readiness is the release owner's.
++mandate: This skill is a writer of the spec scenarios
++mandate: The runtime signal requirements sit beside the scenarios
++mandate: Missing signals are returned to the implementer; this skill does not add them itself
++mandate: "Logging is enabled" is not acceptance
++mandate: Deciding release readiness
++mandate: give the conclusion in the reply only, write nothing, and `ESCALATE` to the requester
+
+# Inputs: answers come from the record first; the drill needs a test
+# environment, a non-author executor and the named responder with a runbook.
++input: the minutes, the main specs, the runbook, the signals the service already keeps
++input: the fewest that answer it
++input: someone who did not implement the candidate
+
+# Outputs: requirements beside their scenarios, never design.md alone; the
+# drill record under ## Drill records in the progress record.
++output: `openspec/changes/<id>/specs/**/spec.md`, beside the scenarios
++output: never `design.md` alone
++output: The return names which scenarios they went into
++output: `.superpowers/sdd/progress.md`, section `## Drill records`
+
+# Verdicts and states: a lapsed drill record is historical by rule; no data is
+# not no failures; without an on-call promise the change is observable but
+# will not actively notify.
++verdict-or-state: a lapsed drill record is read as `historical` by rule
++verdict-or-state: "no data" is not "no failures"
++verdict-or-state: observable but will not actively notify
+
+# Handoffs: signal requirements return to their scenarios without new write
+# authority; missing signals go to the implementer; the drill record is handed
+# to the release owner; firefly-tasks schedules the requirements like any
+# other behavior.
++handoff: A returned conclusion goes back to the scenario it concerns and brings no new write authority
++handoff: The missing signals the drill could not distinguish
++handoff: The drill record is handed to the release owner
++handoff: `firefly-tasks` schedules the runtime signal requirements from the spec like any other behavior
+
+# Stops and escalation.
++stop: Owner: the requirement owner.
++stop: The test environment cannot induce the faults
+
+# Forbidden. The last three are the overreaches this skill exists to prevent:
+# adding the missing signals itself, passing the drill on wired-in logs, and
+# covering the two failure stages an operator treats differently with one
+# undifferentiated count.
+-: APPROVE
+-: subagent-driven-development
+-: implements the missing signals itself
+-: passes the drill because logging is enabled
+-: covers both failure stages with one error count

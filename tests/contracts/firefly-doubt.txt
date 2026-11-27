@@ -1,0 +1,88 @@
+@design 09
+
+# Entry. Doubt is commissioned for one consequential untested assumption that
+# no existing check can settle; the claim states the changing result first,
+# and the existing assertion runs before any dispatch.
++trigger: A consequential assumption, still unproven
++trigger: The user explicitly commissions independent dissent
++trigger: The requirement owner has decided an entry that stood `undecided`
++trigger: no existing check can settle it
++trigger: An adequate existing assertion that could distinguish the outcomes settles the question before dissent begins
++trigger: What is at issue is a preference, not a falsifiable claim
++trigger: An error is easy to withdraw, and deciding is cheaper than investigating the doubt
+
+# Authorization boundary. Dissent reports and records; it judges nothing,
+# writes no scenario, no observation row, no decision record, and never
+# stands in for the owner's decision.
++mandate: Dissent does not replace final judgment
++mandate: the conclusion returns to the scenario it concerns and brings no new write authority
++mandate: limited to the proposal mandate's permitted effects
++mandate: A promise changes only on the requirement owner's decision
++mandate: the designated verifier writes them, through the controller
++mandate: Asking a fresh dissenting context again in place of the owner's decision
++mandate: A decision record: it takes a mandate that permits it
+
+# Inputs: what travels with the dispatch, and what never does.
++input: the stated result that would change the decision
++input: no self-assessment travels with the dispatch
++input: the permitted verification means
++input: The two stages bind separately
++input: for the count of entries the claim already has
+
+# The counterexample itself: smallest, two predictions on one input, run
+# when a permitted means can execute it, missing observation named when not.
++output: the smallest counterexample that changes the outcome
++output: what the candidate design predicts for that input, and what the business promise predicts for the same input
++output: name the missing observation
++output: The actual result of the run, or the missing observation
++output: openspec/changes/<id>/doubt.md
++output: `## Counterexamples`
++output: `closed by the owner`
++output: citing the owner's verbatim words in the minutes
+
+# The count and the binding: one entry per claim, one follow-up only on new
+# discriminating evidence; an entry proves nothing about an earlier decision.
++verdict-or-state: One entry is one independent investigation
++verdict-or-state: new evidence has appeared that distinguishes the two competing explanations
++verdict-or-state: a dispatch that replaces an interrupted one is that same investigation
++verdict-or-state: `holds`, `refuted` or `undecided`
++verdict-or-state: A doubt that produced no counterexample is recorded `refuted` when observations dismissed it
++verdict-or-state: One counterexample suffices to send the work back; ten favorable opinions do not offset it
++verdict-or-state: the counterexample ran on the candidate
++verdict-or-state: records the affected scenario as `fail`
++verdict-or-state: the designated verifier records the check of that scenario as `unverified`
++verdict-or-state: the task package version changes; the ready decision is taken again
++verdict-or-state: A report made after implementation on a later candidate does not prove an earlier decision
+
+# The export example of design 09, with its remedy.
++input: deduplicating by query conditions makes retries safe
++input: the other is the same user's deliberate new export the next day
++verdict-or-state: distinguish submission intent explicitly in the design
++verdict-or-state: the requirement owner revises the promise
++verdict-or-state: the two inputs are verified again either way
+
+# Handoffs: where each outcome goes.
++handoff: To the spec author through `firefly-propose`, as an open blocker of the spec
++handoff: the scope it affects gets no task
++handoff: the planner gives its check a mapping
++handoff: only then does `firefly-implement` repair
++handoff: through `firefly-docs`, into a decision record
++handoff: A spec does not fail only because no dissent report exists
+
+# Stops and escalation.
++stop: A consequential promise stands `undecided`
++stop: The missing item is the owner's decision, not another opinion
++stop: asking another fresh context is not a substitute for the decision
++stop: The conclusion is given in the reply only, nothing is written
++stop: no value is derived by hand
+
+# Forbidden: the retired verdict word, a retired skill name, and the
+# overreaches this skill is most prone to.
+-: APPROVE
+-: subagent-driven-development
+-: polling a fresh dissenting context in place of the owner's decision
+-: A report made after implementation proves an earlier decision
+-: dissent replaces the final judgment
+-: ten favorable opinions outweigh
+-: the counterexample record is rewritten
++verdict-or-state: One follow-up is allowed per claim, only when new evidence has appeared

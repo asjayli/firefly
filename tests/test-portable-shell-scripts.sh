@@ -15,9 +15,7 @@ assert_not_contains() {
 }
 
 for path in \
-  "$ROOT_DIR/scripts/install-claude.sh" \
-  "$ROOT_DIR/scripts/doctor-claude.sh" \
-  "$ROOT_DIR/scripts/list-change-tasks.sh"
+"${ROOT_DIR}"/firefly/scripts/*.sh
 do
   assert_not_contains "$path" "-mindepth"
   assert_not_contains "$path" "-maxdepth"

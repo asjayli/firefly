@@ -1,0 +1,86 @@
+@design 05
+
+# Entry. firefly-bounds is dispatched under firefly-propose to agree the
+# constraints before implementation, named directly, sent by firefly-review
+# for the affected checks of a conditional axis, or reached from firefly-perf.
++trigger: a measurable service objective, a compatibility promise, a data boundary or a load
++trigger: The controller dispatches this skill so the constraints are agreed before implementation
++trigger: The mandate record must cover the writes the work takes
++trigger: Only those checks run, and their results return to that review
++trigger: its baseline, tolerance and owner arrive here to be turned into a constraint
++trigger: The change touches no measurable service objective, compatibility promise, data boundary or load
+
+# Authorization boundary. The standard is never changed to pass a candidate;
+# the owner decides; the verdict is the reviewer's; the main specs are never
+# written; the review dispatch leaves one write only.
++mandate: Redefining a criterion, a measurement method or a baseline at review time so that a candidate passes
++mandate: never inside the review that judges the candidate
++mandate: The standing reference values are the project owner's, kept in the main specs
++mandate: These are the requirement owner's decisions; this skill prepares and presents them
++mandate: The independent reviewer issues the verdict
++mandate: Mounting a check into the project's CI — that is firefly-guard's write, under its own authority
++mandate: Change nothing: not the spec, not the constraints, not the candidate
++mandate: The observation row and its evidence are the only write
++mandate: no write authority comes with them
++mandate: give the conclusion in the reply only, write nothing, and `ESCALATE` to the requester
++mandate: This skill mounts nothing.
+
+# Inputs: the project's own records are the source, and a budget needs a
+# defensible basis measured on the original version first.
++input: the project's existing service objectives, compatibility promises, data boundaries and existing tests
++input: the rows of `## Scenario map` in `openspec/changes/<id>/tasks.md` that name them
++input: A number without a defensible basis is not written as a budget
++input: measure the original version first under a specified workload, record the workload and the variation
++input: let the requirement owner decide which changes are unacceptable
+
+# Outputs: the constraint beside its scenario, six fields, no generic
+# checklist; the observation row is the only write of a review dispatch; the
+# reference values are the project owner's, never written here.
++output: `openspec/changes/<id>/specs/**/spec.md`, beside the affected scenario
++output: not a generic checklist elsewhere
++output: the applicable scenario, the owner, the criterion, the measurement method, the baseline source and the consequence of failure
++output: grounds a baseline, with its workload and variation
++output: --observer verifier:firefly-bounds
++output: `--note` is never omitted
++output: Before the check, capture the inputs with `firefly snapshot` and `firefly snapshot --spec <id>`
++output: Never written by this skill: the project owner keeps them there through firefly-docs
+
+# Verdicts and states: method before number, then the four-way order, standing
+# budgets, exceptions, noise, cumulative regression.
++verdict-or-state: A result is compared only after the checks were made under the agreed method
++verdict-or-state: A result made under another criterion or method has lapsed (contract, Lapse)
++verdict-or-state: the situation points to `REVISE`
++verdict-or-state: A check that can run only after the candidate changes points to `REVISE`
++verdict-or-state: points to `RECHECK`: restore the measurement; no repair round is consumed
++verdict-or-state: points to `INSUFFICIENT_EVIDENCE`, which escalates directly
++verdict-or-state: None of the three passes.
++verdict-or-state: It is not relaxed by rolling from the previous result
++verdict-or-state: the requirement owner may approve a non-regression limit
++verdict-or-state: A result too noisy to distinguish is not written as a constraint; it is observed only
++verdict-or-state: Resetting the baseline does not remove the regression
++verdict-or-state: A one-off exception carries its scope and its expiry, recorded in the entry it excepts
++verdict-or-state: It is not the default standard of the next work.
+
+# Handoffs: conclusions return without new write authority; the guard handover
+# needs the owner's consent and takes write authority of its own.
++handoff: A returned conclusion goes back to the scenario it concerns and brings no new write authority
++handoff: Only the affected checks of a conditional axis
++handoff: their results return to that review
++handoff: a constraint whose measurement method is stable and whose failures have an owner
++handoff: has its stable reference value kept in the main specs
+
+# Stops and escalation.
++stop: `ESCALATE` with the current conclusion, the missing evidence or authority, and the responsible owner
++stop: Owner: the requirement owner.
++stop: Record the row `unverified` with the reason and return it; the review adjudicates `INSUFFICIENT_EVIDENCE` from it
++stop: Noise is not a stop
+
+# Forbidden. The last three are the overreaches this skill exists to prevent:
+# reworking the standard at review time, relaxing a budget on the owner's
+# behalf, and writing the main specs from here.
+-: APPROVE
+-: subagent-driven-development
+-: loosen the standard until the candidate passes
+-: redefines the standard during the review
+-: relaxes the budget on the owner's behalf
+-: writes the standing reference value into the main specs

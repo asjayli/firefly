@@ -1,0 +1,12 @@
+@design 01
+# Anchors for the repair skill (runtime-facing, design 01).
++trigger: repair missing or drifted firefly-managed assets
++mandate: Preserve backups before replacement
++input: The doctor report, when one is at hand
++output: What was repaired, what was backed up
++verdict-or-state: Repair `MISS` and `DRIFT` states from firefly-owned copies
++handoff: The reply returns to the requester
++stop: upstream OpenSpec version differs from the override snapshot version
+-: APPROVE
+-: deletes a drifted asset
+-: repairs without a backup

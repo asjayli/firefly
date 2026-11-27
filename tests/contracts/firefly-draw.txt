@@ -1,0 +1,60 @@
+@design 03
+# firefly-draw: the concept as the first user behavior worth delivering, the
+# three tools chosen by the kind of uncertainty, probes that never enter the
+# product tree, and the diagram entry left to the runtime command.
+
+# Entry: named by the user, or handed an uncertainty the questions could not settle.
++trigger: The user names `firefly draw`
++trigger: an uncertainty the questions of `firefly-think` could not settle
++trigger: A fact that depends on a third party's versioned promise is not settled here
+# Decidable skips: a bare diagram, and an input already definite.
++trigger: Only a diagram is wanted
++trigger: The input is already definite
+
+# Mandate: the probes are disposable and never in the product tree; the diagram
+# entry is the runtime command with its output under openspec/think/.
++mandate: Never in the product tree
++mandate: the diagram and the prototype are not the delivery target
++mandate: only the probe directories are this skill's own writes
++mandate: the output directory given under `openspec/think/`
++mandate: no queue is built to make the argument rigorous
+
+# Inputs: the stated uncertainty and what is already on record.
++input: what each rival interpretation predicts
++input: the minutes under `openspec/think/`
+
+# Outputs: the probe carrier, the diagram carrier, and the handoff to the spec stage.
++output: openspec/changes/<id>/probes/<name>/
++output: openspec/think/<date>-<slug>-probe/
++output: the selected behavior, the rejected interpretations, the counterexamples, the evidence pointers and the first testable slice
++output: the task, the observations and the unresolved obstacles
++output: what nothing on disk backs stays out of the handoff
+
+# The skill records no verdict and no observation row; a probe is not a candidate.
++verdict-or-state: not as an observation row
++verdict-or-state: it fixes no candidate snapshot
+
+# Handoffs: the spec stage, third-party facts, user trade-offs, the diagram-only end.
++handoff: go to `firefly-propose` through the controller
++handoff: the question goes to `firefly-source`
++handoff: goes back to `firefly-think` for the minutes
++handoff: the diagram and the boundaries it leaves open
++handoff: brings no new write authority
+
+# Stops: the business cost, and a write the mandate does not cover.
++stop: A business cost the technical trial cannot settle
++stop: the owner is the requirement owner
++stop: A write the work needs is not covered
++stop: the current conclusion, the missing evidence or authority, and the responsible owner
+
+# Forbidden: the retired verdict word.
+-: APPROVE
+# Forbidden: the retired skill the diagram rendering was routed through, and the
+# retired runtime script (neither appears in the provenance comment).
+-: mermaid-diagram-specialist
+-: firefly-draw.sh
+-: mmdc
+# Typical overreach: the agent's own demonstration stands in for the user trial,
+# and the diagram lands in the retired default directory of the product tree.
+-: author demo
+-: ./firefly-drawings

@@ -92,12 +92,26 @@ assert_review_contract() {
 assert_controller_lifecycle() {
   local path="$1"
 
-  assert_file_contains "$path" 'An active reviewer is not a terminal state.'
-  assert_file_contains "$path" 'do not emit a final response, completion summary, or user-facing wait request'
-  assert_file_contains "$path" 'Before any final response, confirm that no active reviewer remains'
-  assert_file_contains "$path" 'On the first valid `REVISE`, invalidate reviews of that candidate'
-  assert_file_contains "$path" 'Repair the candidate, revalidate it, and dispatch a fresh independent review'
+  assert_file_contains "$path" 'A progress report, host wait timeout, or context compaction does not end the mandate.'
+  assert_file_contains "$path" 'Before returning, check active children and remaining authorized work.'
+  assert_file_contains "$path" 'A valid `REVISE` immediately blocks its generation.'
+  assert_file_contains "$path" 'Dispatch no replacement for an obsolete slot.'
+  assert_file_contains "$path" 'the terminal condition is met'
+  assert_file_contains "$path" 'Mark unrecoverable counters as unknown.'
+  assert_file_contains "$path" 'Treat an exhausted budget as a stop for the exhausted path.'
+  assert_file_in_order "$path" \
+    'Record the list in the terminal condition of the existing mandate record' \
+    'copy the recorded IDs into `required`' \
+    'Build `conditions` separately' \
+    '`continue-work`' \
+    '`reconcile-conditions`' \
+    '`wait`' \
+    '`escalate`' \
+    '`complete`'
 }
+
+assert_controller_lifecycle "$ROOT_DIR/firefly/references/continuation.md"
+assert_file_contains "$ROOT_DIR/firefly/SKILL.md" 'Before a completion or escalation reply, run the gate and carry out its decision.'
 
 assert_obsolete_reviewer_lifecycle() {
   local path="$1"
@@ -125,338 +139,122 @@ assert_template_function_contains() {
 }
 
 firefly_paths=(
-  "$ROOT_DIR/assets/codex/skills/firefly/SKILL.md"
-  "$ROOT_DIR/assets/claude/skills/firefly/SKILL.md"
+  "$ROOT_DIR/firefly/SKILL.md"
 )
 
 for path in "${firefly_paths[@]}"; do
-  assert_file_contains "$path" "objective authorization envelope"
-  assert_file_contains "$path" 'APPROVE'
-  assert_file_contains "$path" 'REVISE'
+  # v2 controller: mandate-scoped routing, four entries, continuous execution,
+  # the registry of commands; the old review protocol is retired.
+  assert_file_contains "$path" 'It does not include spec sync, commit, archive, push, merge or release'
+  assert_file_contains "$path" 'A local checkpoint commit happens only when the permitted effects explicitly allow it and the branch policy permits'
+  assert_file_contains "$path" 'it does not authorize push or release'
+  assert_file_contains "$path" 'a worker cannot widen the mandate or approve its own candidate'
   assert_file_contains "$path" 'ESCALATE'
-  assert_file_contains "$path" "Only ESCALATE pauses the workflow for user input"
-  assert_file_contains "$path" "does not authorize spec sync, commit, archive, push, merge, or release"
-  assert_file_contains "$path" 'only when authorized effects explicitly allow commits and branch policy permits'
-  assert_file_contains "$path" "different from the agent that produced the candidate"
-  assert_file_contains "$path" "Implementation runs continuously by default."
-  assert_file_contains "$path" "Before returning a completion summary, confirm every completion gate:"
-  assert_file_contains "$path" 'The controller dispatches an authorized repair subagent for every `REVISE` finding, requires targeted verification, and dispatches a fresh independent reviewer.'
-  assert_file_contains "$path" 'Repeat this repair-review loop until an `APPROVE` verdict or the no-progress `ESCALATE` boundary.'
-  assert_file_contains "$path" 'A firefly request with a requirement but no named subcommand authorizes the complete delivery workflow by default.'
-  assert_file_contains "$path" 'Read-only, exploratory, status, and review intent does not authorize implementation.'
-  assert_file_contains "$path" 'Complete-delivery phase order is: proposal -> implementation -> browser verification when relevant -> final independent review.'
-  assert_file_contains "$path" 'Browser verification is a pre-review gate.'
-  assert_file_contains "$path" 'Only after browser verification passes or is explicitly not applicable may the controller dispatch the final independent review.'
-  assert_file_contains "$path" 'carry the resolved change name directly into implementation'
-  assert_file_contains "$path" 'Do not pause, summarize, or ask for confirmation between those phases.'
-  assert_review_contract "$path"
-  assert_controller_lifecycle "$path"
-  assert_obsolete_reviewer_lifecycle "$path"
+  assert_file_contains "$path" '## Commands'
+  assert_file_contains "$path" '## Registry and health'
+  assert_file_contains "$path" 'firefly next'
+  assert_file_not_contains "$path" 'objective authorization envelope'
+  assert_file_not_contains "$path" 'APPROVE'
+  assert_file_not_contains "$path" 'requesting-code-review'
 done
 
 firefly_propose_paths=(
-  "$ROOT_DIR/assets/codex/skills/firefly-propose/SKILL.md"
-  "$ROOT_DIR/assets/claude/skills/firefly-propose/SKILL.md"
+  "$ROOT_DIR/firefly/references/abilities/firefly-propose/guide.md"
 )
 
+# firefly-propose (v2). Verdicts take the contract's four values and an
+# escalation is a return path that carries three things. The three-state
+# protocol, the old review contract and the old reviewer lifecycle rules are
+# superseded, so their assertions are gone; `REVISE` and `ESCALATE` are still
+# used and stay pinned. The phrases below are the skill's own wording.
 for path in "${firefly_propose_paths[@]}"; do
-  assert_file_contains "$path" '`APPROVE`'
   assert_file_contains "$path" '`REVISE`'
   assert_file_contains "$path" '`ESCALATE`'
-  assert_file_contains "$path" "cannot be recovered from the provided input, referenced files, conversation, or repository evidence"
-  assert_file_contains "$path" "the missing evidence, a recommended default, option impacts, and why work cannot continue"
+  assert_file_contains "$path" 'The requirement source cannot be recovered'
+  assert_file_contains "$path" 'from the input, the referenced files, the conversation or repository evidence'
+  assert_file_contains "$path" 'An `ESCALATE` carries three things: the current conclusion, the missing evidence or authority, and the responsible owner'
   assert_file_not_contains "$path" "Stop and clarify"
-  assert_file_contains "$path" 'Report that the standalone `propose` command reached its apply-ready terminal condition'
-  assert_file_contains "$path" 'Do not describe normal command completion as an interruption or emphasize missing authorization.'
-  assert_file_contains "$path" 'Do not ask whether to start implementation.'
-  assert_review_contract "$path"
-  assert_controller_lifecycle "$path"
-  assert_obsolete_reviewer_lifecycle "$path"
+  assert_file_contains "$path" 'A proposal-only mandate ends once the change is ready to start'
+  assert_file_contains "$path" 'Report that it is ready and give `firefly implement <change>` as the next command'
+  assert_file_contains "$path" 'do not describe this normal completion as an interruption or as missing authorization'
+  assert_file_contains "$path" 'Do not ask whether to continue'
 done
 
 firefly_archive_paths=(
-  "$ROOT_DIR/assets/codex/skills/firefly-archive/SKILL.md"
-  "$ROOT_DIR/assets/claude/skills/firefly-archive/SKILL.md"
+  "$ROOT_DIR/firefly/references/abilities/firefly-archive/guide.md"
 )
 
 for path in "${firefly_archive_paths[@]}"; do
-  assert_file_contains "$path" '`APPROVE`'
-  assert_file_contains "$path" '`REVISE`'
+  # v2: three independently commissioned ends; old three-value protocol retired.
   assert_file_contains "$path" '`ESCALATE`'
-  assert_file_contains "$path" "Repair only issues in the sync result or archive package that are inside the archive authorization envelope"
-  assert_file_contains "$path" 'For any other validation failure, diagnose it and return `ESCALATE` with evidence instead of editing outside that envelope'
+  assert_file_contains "$path" 'Repair only issues in the sync result or the archive package that are inside the archive authorization envelope'
+  assert_file_contains "$path" 'never repaired outside the envelope'
+  assert_file_contains "$path" 'no traffic action and archives nothing'
+  assert_file_contains "$path" 'covers no traffic action and no launch'
+  assert_file_not_contains "$path" '`APPROVE`'
+  assert_file_not_contains "$path" 'Independent review contract'
   assert_file_not_contains "$path" 'automatically repair an authorized `REVISE` or validation failure before review'
-  assert_review_contract "$path"
 done
 
 firefly_implement_paths=(
-  "$ROOT_DIR/assets/codex/skills/firefly-implement/SKILL.md"
-  "$ROOT_DIR/assets/claude/skills/firefly-implement/SKILL.md"
+  "$ROOT_DIR/firefly/references/abilities/firefly-implement/guide.md"
 )
 
+# firefly-implement (v2). The three-state protocol, the old review contract and
+# the unbounded repair-review loop up to an approval are superseded by the four
+# verdict values, the repair budget and the candidate states. Continuous
+# execution, the stop rule and the repair path remain, pinned in the skill's
+# own wording.
 for path in "${firefly_implement_paths[@]}"; do
-  assert_file_contains "$path" '`APPROVE`'
   assert_file_contains "$path" '`REVISE`'
   assert_file_contains "$path" '`ESCALATE`'
-  assert_file_contains "$path" "first test failure"
-  assert_file_contains "$path" 'After the final `APPROVE`, record completion and keep the change active'
-  assert_file_contains "$path" 'Only `ESCALATE` requests user input'
+  assert_file_contains "$path" 'a first failing check are diagnostic inputs, not requests for a decision'
+  assert_file_contains "$path" 'Continue the authorized mandate there.'
   assert_file_contains "$path" "Implementation runs continuously by default."
-  assert_file_contains "$path" "Before returning a completion summary, confirm every completion gate:"
-  assert_file_contains "$path" 'The controller dispatches an authorized repair subagent for every `REVISE` finding, requires targeted verification, and dispatches a fresh independent reviewer.'
-  assert_file_contains "$path" 'Repeat this repair-review loop until an `APPROVE` verdict or the no-progress `ESCALATE` boundary.'
-  assert_review_contract "$path"
+  assert_file_contains "$path" 'Never use completion language or a final delivery format while any task group is unchecked or in progress, or while the verdict of the integrated candidate is outstanding'
+  assert_file_contains "$path" 'A failing scenario, a `fail` on a mapped check or a valid `REVISE` from `firefly-review`, returns to the implementer by default.'
+  assert_file_contains "$path" 'The repaired candidate is a new candidate: it is verified and reviewed again on its own first package.'
 done
 
-for skill_name in firefly-review firefly-verify-web; do
-  for path in \
-    "$ROOT_DIR/assets/codex/skills/$skill_name/SKILL.md" \
-    "$ROOT_DIR/assets/claude/skills/$skill_name/SKILL.md"
-  do
-    assert_file_contains "$path" '`APPROVE`'
-    assert_file_contains "$path" '`REVISE`'
-    assert_file_contains "$path" '`ESCALATE`'
-    assert_file_contains "$path" "standalone read-only command"
-    assert_file_contains "$path" 'return `REVISE` findings without'
-    assert_file_contains "$path" 'only `ESCALATE` requests a user decision'
-    assert_review_contract "$path"
-    assert_file_contains "$path" 'A `REVISE` verdict returns findings and stops without editing product files, `tasks.md`, or `.superpowers/sdd/progress.md`.'
-  done
-done
+path="$ROOT_DIR/firefly/references/abilities/firefly-verify-web/guide.md"
+  # v2: verify-web observes and returns findings; it issues no verdict and
+  # keeps the old three-value protocol and the ledger status word out.
+  assert_file_contains "$path" '`ESCALATE`'
+  assert_file_contains "$path" 'a standalone investigation that returns findings only'
+  assert_file_contains "$path" 'unverified'
+  assert_file_contains "$path" 'firefly record observe'
+  assert_file_not_contains "$path" '`APPROVE`'
+  assert_file_not_contains "$path" 'browser-evidence'
 
-for path in \
-  "$ROOT_DIR/assets/codex/skills/firefly-review/SKILL.md" \
-  "$ROOT_DIR/assets/claude/skills/firefly-review/SKILL.md"
-do
-  assert_file_contains "$path" 'Generate the review package before routing to `requesting-code-review`.'
-  assert_file_contains "$path" '`review-package BASE HEAD`'
-  assert_file_contains "$path" '`review-package BASE WORKTREE`'
-  assert_file_contains "$path" 'Pass the printed path as `DIFF_FILE`.'
-done
-
-assert_file_contains "$ROOT_DIR/assets/codex/skills/firefly/SKILL.md" '`spawn_agent`'
-assert_file_contains "$ROOT_DIR/assets/claude/skills/firefly/SKILL.md" '`Task`'
-
-for path in \
-  "$ROOT_DIR/assets/codex/skills/firefly-think/SKILL.md" \
-  "$ROOT_DIR/assets/claude/skills/firefly-think/SKILL.md"
-do
-  assert_file_contains "$path" "independent review"
-  assert_file_contains "$path" '`APPROVE`'
+# firefly-review (v2). A standalone review still returns findings and changes
+# nothing of the candidate, but it does write records about the candidate: the
+# package, the stored returns and the ledger rows; no ledger row is written by
+# hand and no stored return is edited. The dispatch template moved to
+# references/reviewer-brief.md, and the package path is no longer passed as
+# `DIFF_FILE`.
+{
+  path="$ROOT_DIR/firefly/references/abilities/firefly-review/guide.md"
   assert_file_contains "$path" '`REVISE`'
   assert_file_contains "$path" '`ESCALATE`'
-  assert_file_contains "$path" "write the think artifact without waiting for user confirmation"
+  assert_file_contains "$path" 'This is a standalone review'
+  assert_file_contains "$path" 'Standalone review: return the findings and stop'
+  assert_file_contains "$path" 'A `REVISE` is a result, not an escalation'
+  assert_file_contains "$path" 'The review is not a repair: it changes no file of the candidate, of its spec or of its tasks'
+  assert_file_contains "$path" 'A standalone review writes them and nothing else: no file of the candidate, of its spec or of its tasks'
+  assert_file_contains "$path" 'No row of these tables is written by hand, and no written row is edited'
+  assert_file_contains "$path" 'Dispatch only after the printed path exists and is readable'
+  assert_file_contains "$path" 'BASE <full-candidate-tree-sha> openspec/changes/<id>/evidence/<snapshot12>/<generation>/package.diff'
+  assert_file_contains "$ROOT_DIR/firefly/references/abilities/firefly-review/references/reviewer-brief.md" 'the path printed by `review-package`'
+}
+
+path="$ROOT_DIR/firefly/references/abilities/firefly-think/guide.md"
+  # v2: think clarifies and records; it dispatches no review and issues no
+  # verdict. Autonomy is the mandate default: minutes are written under
+  # openspec/think/ without a confirmation gate.
+  assert_file_contains "$path" '`ESCALATE`'
+  assert_file_not_contains "$path" "independent review"
+  assert_file_not_contains "$path" '`APPROVE`'
   assert_file_not_contains "$path" "Wait for explicit confirmation"
   assert_file_not_contains "$path" "Do not skip the confirmation step"
-  assert_review_contract "$path"
-done
-
-openspec_apply_paths=(
-  "$ROOT_DIR/assets/codex/skills/openspec-apply-change/SKILL.md"
-  "$ROOT_DIR/assets/claude/skills/openspec-apply-change/SKILL.md"
-  "$ROOT_DIR/assets/claude/commands/opsx/apply.md"
-)
-
-for path in "${openspec_apply_paths[@]}"; do
-  assert_file_contains "$path" "first test failure"
-  assert_file_contains "$path" "Diagnose and repair in-scope design issues and first test failures within scope"
-  assert_file_contains "$path" "independent review"
-  assert_file_contains "$path" '`APPROVE`'
-  assert_file_contains "$path" '`REVISE`'
-  assert_file_contains "$path" '`ESCALATE`'
-  assert_file_contains "$path" 'Only `ESCALATE` pauses for user input'
-  assert_file_not_contains "$path" "Error or blocker encountered"
-  assert_file_not_contains "$path" "Pause on errors, blockers, or unclear requirements"
-  assert_review_contract "$path"
-  assert_file_in_order "$path" \
-    'Complete every task.' \
-    'Run integration and global verification across the complete implementation.' \
-    'Build a commit-bounded full-branch review package covering the complete implementation range, or a WORKTREE package when commit authorization or branch policy left changes uncommitted.' \
-    'Dispatch a fresh full-branch reviewer that is independent from every candidate producer.' \
-    'Only a final `APPROVE` may produce `Implementation Complete`.'
-  assert_file_in_order "$path" \
-    'On a final authorized `REVISE`, the controller dispatches an implementation repair subagent with the findings,' \
-    'reruns integration and global verification,' \
-    'builds a fresh full-branch package, and dispatches a fresh independent full-branch reviewer.'
-  assert_file_contains "$path" 'When apply instructions report `state: "all_done"`, resume at integration and global verification; do not congratulate, suggest archive, or report completion yet.'
-  assert_file_contains "$path" 'Implementation runs continuously by default.'
-  assert_file_contains "$path" 'Before returning a completion summary, confirm every completion gate:'
-  assert_file_contains "$path" '`git diff --check` succeeds'
-  assert_file_contains "$path" 'The controller dispatches an authorized repair subagent for every `REVISE` finding, requires targeted verification, and dispatches a fresh independent reviewer.'
-  assert_file_contains "$path" 'Repeat this repair-review loop until an `APPROVE` verdict or the no-progress `ESCALATE` boundary.'
-done
-
-openspec_archive_paths=(
-  "$ROOT_DIR/assets/codex/skills/openspec-archive-change/SKILL.md"
-  "$ROOT_DIR/assets/claude/skills/openspec-archive-change/SKILL.md"
-  "$ROOT_DIR/assets/claude/commands/opsx/archive.md"
-)
-
-for path in "${openspec_archive_paths[@]}"; do
-  assert_file_contains "$path" "Auto-select if only one active change exists"
-  assert_file_contains "$path" "sync delta specs by default"
-  assert_file_contains "$path" "independent review"
-  assert_file_contains "$path" '`APPROVE`'
-  assert_file_contains "$path" '`REVISE`'
-  assert_file_contains "$path" '`ESCALATE`'
-  assert_file_contains "$path" 'Only `ESCALATE` pauses for user input'
-  assert_file_not_contains "$path" "Ask the user to confirm"
-  assert_file_not_contains "$path" "Prompt user for confirmation"
-  assert_file_not_contains "$path" "Archive without syncing"
-  assert_file_not_contains "$path" "Proceed if user confirms"
-  assert_file_not_contains "$path" "Do NOT guess or auto-select a change"
-  assert_review_contract "$path"
-done
-
-assert_file_contains "$ROOT_DIR/assets/codex/skills/openspec-archive-change/SKILL.md" '`spawn_agent`'
-assert_file_contains "$ROOT_DIR/assets/claude/skills/openspec-archive-change/SKILL.md" '`Task`'
-assert_file_contains "$ROOT_DIR/assets/claude/commands/opsx/archive.md" '`Task`'
-
-openspec_propose_paths=(
-  "$ROOT_DIR/assets/codex/skills/openspec-propose/SKILL.md"
-  "$ROOT_DIR/assets/claude/skills/openspec-propose/SKILL.md"
-  "$ROOT_DIR/assets/claude/commands/opsx/propose.md"
-)
-
-for path in "${openspec_propose_paths[@]}"; do
-  assert_file_contains "$path" "independent review"
-  assert_file_contains "$path" '`APPROVE`'
-  assert_file_contains "$path" '`REVISE`'
-  assert_file_contains "$path" '`ESCALATE`'
-  assert_file_contains "$path" 'Only `ESCALATE` pauses for user input'
-  assert_file_contains "$path" 'State that the standalone proposal reached its apply-ready terminal condition.'
-  assert_file_contains "$path" 'Next command: `firefly implement <name>`'
-  assert_file_contains "$path" 'Do not ask whether to proceed'
-  assert_review_contract "$path"
-  assert_file_in_order "$path" \
-    'Validate the current planning package before dispatching its reviewer.' \
-    'If validation fails, repair only the matching planning artifact type and rerun the same validation.' \
-    'Dispatch an independent review only after that planning validation passes.' \
-    'After all apply-required artifacts are complete, run `openspec validate "<name>" --strict --no-interactive` for the complete change' \
-    'If strict validation fails, repair the indicated proposal, design, specs, or tasks and rerun strict validation.' \
-    'Independently review every package changed by strict-validation repair before reporting the proposal apply-ready.'
-  assert_controller_lifecycle "$path"
-  assert_obsolete_reviewer_lifecycle "$path"
-done
-
-assert_file_contains "$ROOT_DIR/assets/codex/skills/openspec-propose/SKILL.md" '`spawn_agent`'
-assert_file_contains "$ROOT_DIR/assets/claude/skills/openspec-propose/SKILL.md" '`Task`'
-assert_file_contains "$ROOT_DIR/assets/claude/commands/opsx/propose.md" '`Task`'
-
-openspec_sync_paths=(
-  "$ROOT_DIR/assets/codex/skills/openspec-sync-specs/SKILL.md"
-  "$ROOT_DIR/assets/claude/skills/openspec-sync-specs/SKILL.md"
-  "$ROOT_DIR/assets/claude/commands/opsx/sync.md"
-)
-
-for path in "${openspec_sync_paths[@]}"; do
-  assert_file_contains "$path" "Auto-select if only one active change exists"
-  assert_file_contains "$path" "independent review"
-  assert_file_contains "$path" "Review the sync plan before editing main specs"
-  assert_file_contains "$path" "delta-to-target mapping, content preservation, applicability, and idempotency preconditions"
-  assert_file_contains "$path" 'If sync-plan validation fails or the plan review returns `REVISE`, repair the sync plan, rerun the same validation, and dispatch a fresh independent review'
-  assert_file_contains "$path" 'Apply changes only after the sync-plan review returns `APPROVE`'
-  assert_file_contains "$path" "If strict validation, idempotency, or content-preservation verification fails, repair the sync result, rerun the same failed validation, and only then dispatch the result review"
-  assert_file_contains "$path" "reuse the unchanged review package"
-  assert_file_contains "$path" "at most two new independent review agents"
-  assert_file_contains "$path" "collected infrastructure evidence"
-  assert_file_contains "$path" 'never infer `APPROVE`'
-  assert_review_contract "$path"
-  assert_file_contains "$path" '`APPROVE`'
-  assert_file_contains "$path" '`REVISE`'
-  assert_file_contains "$path" '`ESCALATE`'
-  assert_file_contains "$path" 'Only `ESCALATE` pauses for user input'
-  assert_file_not_contains "$path" "Always let the user choose"
-  assert_file_not_contains "$path" "If something is unclear, ask for clarification"
-done
-
-assert_file_contains "$ROOT_DIR/assets/codex/skills/openspec-sync-specs/SKILL.md" '`spawn_agent`'
-assert_file_contains "$ROOT_DIR/assets/claude/skills/openspec-sync-specs/SKILL.md" '`Task`'
-assert_file_contains "$ROOT_DIR/assets/claude/commands/opsx/sync.md" '`Task`'
-assert_file_not_contains "$ROOT_DIR/INSTALL.claude.md" "artifact, confirmation, and versioning rules"
-assert_file_contains "$ROOT_DIR/INSTALL.claude.md" "artifact, independent-review, and versioning rules"
-
-propose_template="$ROOT_DIR/assets/openspec/dist/core/templates/workflows/propose.js"
-assert_occurrences_at_least "$propose_template" "independent review" 2
-assert_occurrences_at_least "$propose_template" '\`APPROVE\`' 2
-assert_occurrences_at_least "$propose_template" '\`REVISE\`' 2
-assert_occurrences_at_least "$propose_template" '\`ESCALATE\`' 2
-assert_occurrences_at_least "$propose_template" 'Only \`ESCALATE\` pauses for user input' 2
-assert_occurrences_at_least "$propose_template" 'State that the standalone proposal reached its apply-ready terminal condition.' 2
-assert_occurrences_at_least "$propose_template" 'Next command: \`firefly implement <name>\`' 2
-assert_occurrences_at_least "$propose_template" 'Do not ask whether to proceed' 2
-assert_file_in_order "$propose_template" \
-  'Objective: the authorized outcome.' \
-  'Scope: the allowed repositories, changes, files, and systems.' \
-  'Constraints: the binding process, architecture, safety, and platform rules.' \
-  'Authorized effects: the writes and side effects allowed to the controller.' \
-  'Terminal condition: the state at which this workflow must stop.' \
-  'candidate producer identity' \
-  'candidate artifacts, action, or diff' \
-  'verification evidence' \
-  'assumptions and risks'
-assert_file_in_order "$propose_template" \
-  'reviewer fails to start, times out, crashes, or returns an invalid verdict' \
-  'reuse the unchanged review package' \
-  'at most two new independent review agents' \
-  'collected infrastructure evidence' \
-  'never infer \`APPROVE\`'
-assert_file_contains "$propose_template" 'The controller validates only reviewer identity, verdict structure, and supporting evidence; it does not recursively review the verdict.'
-assert_file_contains "$propose_template" 'An active reviewer is not a terminal state.'
-assert_file_contains "$propose_template" 'do not emit a final response, completion summary, or user-facing wait request'
-assert_file_contains "$propose_template" 'Before any final response, confirm that no active reviewer remains'
-assert_file_contains "$propose_template" 'On the first valid \`REVISE\`, invalidate reviews of that candidate'
-assert_file_contains "$propose_template" 'Repair the candidate, revalidate it, and dispatch a fresh independent review'
-assert_template_function_contains "$propose_template" 'getOpsxProposeSkillTemplate' 'An invalidated reviewer is obsolete and non-blocking.'
-assert_template_function_contains "$propose_template" 'getOpsxProposeCommandTemplate' 'An active reviewer is not a terminal state.'
-assert_template_function_contains "$propose_template" 'getOpsxProposeCommandTemplate' 'An invalidated reviewer is obsolete and non-blocking.'
-assert_template_function_contains "$propose_template" 'getOpsxProposeCommandTemplate' 'A final-state check counts only reviewers that remain required for the current candidate.'
-assert_file_in_order "$propose_template" \
-  'Validate the current planning package before dispatching its reviewer.' \
-  'If validation fails, repair only the matching planning artifact type and rerun the same validation.' \
-  'Dispatch an independent review only after that planning validation passes.' \
-  'After all apply-required artifacts are complete, run \`openspec validate "<name>" --strict --no-interactive\` for the complete change' \
-  'If strict validation fails, repair the indicated proposal, design, specs, or tasks and rerun strict validation.' \
-  'Independently review every package changed by strict-validation repair before reporting the proposal apply-ready.'
-
-tracked_internal_planning="$(git -C "$ROOT_DIR" ls-files -- \
-  'openspec/**' \
-  'docs/plans/**' \
-  '.firefly/**' \
-  '.superpowers/**')"
-if [[ -n "$tracked_internal_planning" ]]; then
-  echo "repository-local planning or runtime artifacts must not be tracked:" >&2
-  echo "$tracked_internal_planning" >&2
-  exit 1
-fi
-
-tracked_local_client_state="$(git -C "$ROOT_DIR" ls-files -- '.claude/**' '.codex/**')"
-if [[ -n "$tracked_local_client_state" ]]; then
-  echo "repository-local Claude and Codex state must not be tracked:" >&2
-  echo "$tracked_local_client_state" >&2
-  exit 1
-fi
-
-for internal_path in openspec/ docs/plans/ .firefly/ .superpowers/; do
-  if ! git -C "$ROOT_DIR" check-ignore -q "$internal_path"; then
-    echo "expected repository-local path to be ignored: $internal_path" >&2
-    exit 1
-  fi
-done
-
-tracked_openspec_assets="$(git -C "$ROOT_DIR" ls-files -- 'assets/openspec/**')"
-if [[ -z "$tracked_openspec_assets" ]]; then
-  echo "expected product OpenSpec assets to remain tracked" >&2
-  exit 1
-fi
-
-assert_file_contains "$ROOT_DIR/AGENTS.md" '不得使用 `git add -f`'
-assert_file_contains "$ROOT_DIR/AGENTS.md" 'Codex 与 Claude Code 共同支持的能力交集'
-assert_file_not_contains "$ROOT_DIR/README.md" "等你确认后"
-assert_file_contains "$ROOT_DIR/README.md" "独立审查"
-assert_file_contains "$ROOT_DIR/README.md" "无需逐步确认"
-assert_file_not_contains "$ROOT_DIR/README_EN.md" "waits for your confirmation"
-assert_file_contains "$ROOT_DIR/README_EN.md" "independent review"
-assert_file_contains "$ROOT_DIR/README_EN.md" "without step-by-step confirmation"
 
 echo "autonomous workflow contract test passed"

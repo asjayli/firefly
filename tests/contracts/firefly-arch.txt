@@ -1,0 +1,67 @@
+@design 12
+# firefly-arch: the contract behind a public promise is settled and written
+# back into the spec scenarios before tasks are cut; probes stay disposable;
+# a review dispatch observes the contract axis and issues no verdict.
+
+# Entry: the propose handoff, the tasks cycle, the review axis; and the one
+# decidable skip.
++trigger: A scenario changes a public interface, or two sides must develop independently
++trigger: A cycle that needs a contract
++trigger: only the affected checks of the contract axis
++trigger: An internal change that changes no external commitment
+
+# Mandate: the write-back is this skill's own act and lands in the scenarios,
+# never in design.md; the mandate must cover every write.
++mandate: Planning starts only after that write-back
++mandate: the mandate on record must cover them
++mandate: Writing the contract anywhere but the scenario it settles
++mandate: A breaking finding decides that one is needed
++mandate: Never in the product tree: a file there enters the candidate snapshot
++mandate: no spec, no contract, no candidate
++mandate: named directly
+
+# Inputs: the scenario with its stable ID and source line, the cycle's
+# promises, the review's affected checks.
++input: with its stable ID `(S-xxx)`
++input: the promise each waits for
++input: the scenario map rows the review names
+
+# Outputs: the contract back into the scenarios, probes disposable, the
+# verifier observation row with its three-part note and per-candidate evidence.
++output: written back into the scenarios it settles
++output: --observer verifier:firefly-arch
++output: the recorder refuses a `pass` or a `fail` without it
++output: Never in the product tree: a file there enters the candidate snapshot
+
+# Verdict and state usage: the result values are the observer's, the verdict
+# stays with the independent reviewer; an unobserved check is returned
+# unverified, never a verdict.
++verdict-or-state: is the independent reviewer's to issue, never this skill's
++verdict-or-state: the result (`pass`, `fail` or `unverified`)
++verdict-or-state: is returned `unverified` with what is missing
+
+# Handoffs: back to propose, back to the controller from the tasks cycle, back
+# to the review, to the controller for the decision record.
++handoff: planning starts
++handoff: the contract task is cut out only after it
++handoff: The verdict stays with the independent reviewer
++handoff: as content for a decision record
+
+# Stops: no mandate for the writes, a promise-level trade-off, a probe that
+# cannot distinguish, an effect outside the mandate.
++stop: Give the conclusion in the reply and write nothing
++stop: decided by the requirement owner
++stop: The capability stays unknown and no contract is written on it
++stop: the current conclusion, the missing evidence or authority, and the responsible owner
+
+# Forbidden: the retired verdict word.
+-: APPROVE
+# Forbidden: retired skill names.
+-: brainstorming
+-: writing-plans
+# Overreach: an unverified prototype is treated as the promise it was only
+# meant to probe, and compatibility duties are invented for interfaces that
+# have no consumers.
+-: the prototype becomes the contract
+-: backward compatible by default
++trigger: not a sequence to run every time

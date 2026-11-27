@@ -1,0 +1,53 @@
+@design 11
+# firefly-ui — design position 11 (Who guarantees UI quality?)
+
+# Trigger: proposal dispatch when a scenario adds or alters what a user meets; real-operation rows in delivery; named entry; the no-UI-change skip.
++trigger: A scenario of the change under proposal adds or alters what a user meets
++trigger: names this skill for a check that only a real operation can establish
++trigger: The user names `firefly ui`
++trigger: No UI change.
+
+# Mandate: the three-way ownership; the list fixes nothing that judges; the scenario is not rewritten; the verdict belongs to the reviewer.
++mandate: The implementer owns the interaction, the verifier owns the observations, and the independent reviewer owns the acceptance
++mandate: The list and the matrix support the scenarios and judge nothing
++mandate: this skill does not rewrite the scenario
++mandate: The verdict is the independent reviewer's; this skill never returns one of its own
+
+# Input: the project's own terms; the audience when the project states none; the map rows that name this skill.
++input: the project's existing components, its design rules, its target viewports and its accessibility requirements
++input: the audience the change serves
++input: the affected rows of `## Scenario map` in `openspec/changes/<id>/tasks.md` that name this skill
+
+# Output: the two design carriers; the observation row with the verifier observer; the evidence per candidate.
++output: write the UI state list and the verification matrix into `openspec/changes/<id>/design.md`
++output: `--observer verifier:firefly-ui`
++output: `openspec/changes/<id>/evidence/<snapshot12>/`
+
+# Verdict-or-state: statuses used, never invented; the gap returned unverified; the occlusion or color-only finding is a fail.
++verdict-or-state: record the row `unverified` with the reason
++verdict-or-state: is a `fail` against its scenario
++verdict-or-state: `pass`, `fail`, `unverified` or `not-applicable`
+
+# Handoff: the matrix goes to firefly-verify-web; a fail starts a repair round; the results reach the review.
++handoff: The verification matrix beside the list
++handoff: starts a repair round under firefly-implement
++handoff: The independent reviewer judges whether a gap affects its scenario and issues the verdict
+
+# Stop: mandate not covering the writes; the audience undeterminable; unverified instead of stopping.
++stop: Stop and `ESCALATE`
++stop: Record the affected rows `unverified` with the reason
+
+# State rules the checks turn into map rows.
++output: submission in progress, background processing, a downloadable result, and failure
++output: never an apparently untouched form
++verdict-or-state: establishes no comprehensible state transition
++verdict-or-state: a screenshot establishes no keyboard access
++handoff: The verification matrix handed to firefly-verify-web
+
+# Overreach and retired terms this skill must never show.
+-: APPROVE
+-: subagent-driven-development
+-: infers from the name of a component that a user can complete the operation
+-: Claim compliance with a standard the project has not adopted
+-: this skill repairs the layout
+-: this skill runs the exercises in real browser sessions

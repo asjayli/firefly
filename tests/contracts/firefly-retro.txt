@@ -1,0 +1,62 @@
+@design 26
+
+# Entry. firefly-retro is named by the user after an actual failure or
+# repeated rework on a delivered change; a smooth delivery and an incident
+# whose cause already has an agreed, covered conclusion do not trigger it.
++trigger: after a failure or repeated rework on a delivered change
++trigger: The mandate record must cover this skill's writes
++trigger: A delivery that went smoothly, with no repeated rework
++trigger: An incident whose cause already has an agreed conclusion and is covered by an existing rule
++trigger: Routine success need not create a standing rule
+
+# Authorization boundary. The retro approves improvement proposals; rule
+# activation is a separate approval; fixes are deliveries commissioned
+# separately; the whole conversation is not a learning asset; the lesson is
+# not written into every skill.
++mandate: activation is a separate approval recorded under `## Retro rules`
++mandate: a delivery commissioned separately through the change's own path
++mandate: An entire transcript is not a learning asset
++mandate: appended by hand — the recorder has no subcommand for it
++mandate: The lesson is not written into every skill
+
+# Inputs: contemporary facts from the change's records; the three
+# comparators; tuning and held-out case sets; for disputed causes, the
+# owner's evidence scope and non-authors for the two explanations.
++input: contemporary input, decision, tool result and actual consequence
++input: the existing rule with its base revision, the smallest mechanical check
++input: the held-out cases that take no part in tuning the rules
++input: the evidence scope the responsible owner defines, and non-authors to test the two explanations
+
+# Outputs: the retro record in the change's retro.md, moved with the
+# archive; approved rule candidates and their versions under ## Retro rules.
++output: `openspec/changes/<id>/retro.md`
++output: `.superpowers/sdd/progress.md`, section `## Retro rules`
++output: the rows of the candidates it produced only
++output: the record moves with the archive (contract, Carriers)
+
+# Verdicts and states: a shadow record changes no verdict in force; a rule
+# already active meets its withdrawal condition; the version and the
+# rollback basis stay after activation.
++verdict-or-state: changes no verdict in force
++verdict-or-state: A rule already active meets its withdrawal condition
++verdict-or-state: the version and the rollback basis stay
+
+# Handoffs: the unwired bad-file fixture goes to firefly-guard's
+# gate-mounting entry; fixes go through the change's own delivery path; the
+# proposals and the separate activation approval return to the requester.
++handoff: firefly-guard's gate-mounting entry, under that skill's write authority
++handoff: commissioned separately, through the change's own path — proposal, tasks, implementation, review
++handoff: the activation of a rule, as a separate approval
+
+# Stops and escalation.
++stop: Owner: the responsible owner
++stop: No non-author is available
+
+# Forbidden. The last three are the overreaches this skill exists to
+# prevent: implementing the fix itself, folding activation into the
+# proposal's approval, and writing the lesson into every skill.
+-: APPROVE
+-: subagent-driven-development
+-: implements the fix itself
+-: one approval for the proposal and its activation
+-: writes the lesson into every skill

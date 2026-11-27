@@ -1,0 +1,129 @@
+@design 10
+# firefly-context: load context on demand, compress and check handoffs, rebuild state on resumption.
+
+# trigger: two ways in (loaded by the working skill, named by the user), and the decidable skips
++trigger: Not entered by name
++trigger: take over a mandate that is in progress
++trigger: after each context compaction
++trigger: asks for a handoff summary for a successor
++trigger: The mandate has just started and has no progress records
++trigger: No successor takes the work and the context is not being compacted
+
+# mandate: the takeover ends at the rebuilt state; the trade-off write-back is the only record write, no mandate row is written, and a decision record needs the permitted effects to cover it
++mandate: Nothing is implemented, repaired, re-verified or reviewed on the way
++mandate: The trade-off write-back above is its only record write
++mandate: check that the mandate's permitted effects cover the write
++mandate: A conclusion the agent inferred is not a user decision
++mandate: This skill rewrites no mandate
++mandate: the controller writes it under every mandate
++mandate: No task item is flipped
++mandate: No summary changes the mandate
++mandate: No push, merge, archive or release
++mandate: None of them changes the index or the worktree
++mandate: it does not stay in the summary
++mandate: No mandate row is appended and none is edited
+
+# input: what each carrier explains, what a received summary is, where each record is read, what the resumption check compares, and what the recipient opens
++input: The task record states the delivery commitments
++input: Git states where the change actually is
++input: The verification record states on which candidate what was observed
++input: never a source of facts
++input: Keep the resident context in view
++input: only for the specific judgment that needs them
++input: Open the key pointers and do not act on the summary's description of them
++input: the hand-written line `Minutes: <path>` after the mandate table
++input: with the same hand-written `Minutes: <path>` line after its table
++input: The comparison is between implementations
++input: Before integration they are read in the worktree that produced them
++input: After integration they are read in the target baseline
++input: a candidate in a child worktree has its observation rows and evidence in that worktree
++input: open the return beside the package
++input: whether a return is available and whether the host confirms running, finished or unknown
++input: reads there what the joint review found wrong
++input: A task group that is integrated on the target baseline but not ticked counts as incomplete
++input: nothing is implemented again
++input: A blocker is read from the dispatch and budget rows of the progress record and from the escalation
+
+# output: what is written, when, and what is not written at all; the order and the limits of compression
++output: Progress is written when produced, by the skill that produces it
++output: returned after the write-back and the snapshot
++output: No mandate row is written here
++output: No progress table of its own
++output: The summary is not another progress ledger
++output: the designated verifier records the observation
++output: permitted effects with every limit
++output: Drop repeated process first
++output: Remove credentials, tokens and personal or customer data
++output: Migrate only the excerpt the next check needs
+
+# verdict-or-state: what the candidate is; gaps are unverified; a branch pass is not an integration; validity is decided by version, never read off a value
++verdict-or-state: nothing under `openspec/changes/` or `openspec/think/` is part of its snapshot
++verdict-or-state: Missing evidence is marked `unverified`
++verdict-or-state: A predecessor's assurance that it is already fine fills nothing
++verdict-or-state: A candidate verified only in a child worktree is `ready-to-integrate`
++verdict-or-state: a row carried over from a child worktree is not a pass for the integrated candidate
++verdict-or-state: Continue from the first task group that is incomplete and whose dependencies are satisfied
++verdict-or-state: only once its check scheduled at `integrated` has the observation row of the designated verifier
++verdict-or-state: An uncommitted candidate is located by the content digest of its fixed snapshot
++verdict-or-state: A candidate without a surviving verdict record still needs independent acceptance
++verdict-or-state: Only the highest generation of a candidate counts
++verdict-or-state: A record marked `historical` supports no conclusion
++verdict-or-state: Every version comparison in this skill ignores the `wt:` prefix
++verdict-or-state: Lapse of observations and task mappings
++verdict-or-state: that is judged against the scenario map, not by comparing versions
++verdict-or-state: every observation and every task mapping that cites the old version lapses
++verdict-or-state: Other records lapse only when they are affected
++verdict-or-state: when the criterion or the measurement method it was observed under changed without changing that version
++verdict-or-state: Take the newest row of the `## Ready decision` table
++verdict-or-state: the `wt:` prefix ignored on either side
++verdict-or-state: implementation has not been cleared to start
++verdict-or-state: Its identity is `<id>@ready.<spec12>.<tasks12>`
++verdict-or-state: it supports no ready decision for the present ones
++verdict-or-state: Nothing verified only in a child worktree reads as integrated
++verdict-or-state: A check the summary calls passed is `pass` only when the verification record holds its `pass` row
+
+# handoff: the controller routes; the boundary with implementation, proposal, the decision record and the minutes; a new mandate goes back to the requester
++handoff: A takeover brings no new write authority
++handoff: go to `firefly-implement`
++handoff: it performs the resumption steps on the rebuilt state
++handoff: still waiting for the joint decision under `firefly-propose`
++handoff: A choice with lasting force, a rejected alternative for one, goes to the decision record through `firefly-docs`
++handoff: a user decision goes to the minutes, written by the controller
++mandate: The entry goes under `openspec/think/`
++mandate: A file the user named is never edited: it is part of the candidate
++mandate: One that exists only in the conversation is recorded first as a minutes entry
++handoff: checked against the permitted effects of the mandate record, one limit at a time
++handoff: It goes back to the requester by `ESCALATE`
++handoff: Find the original decision
++handoff: each limit of the mandate record is found in the summary: a limit the summary dropped altogether is a lost limit
++handoff: Continue without asking the user again
++handoff: It checks at its entry that the mandate in force covers the delivery
+
+# stop: a summary that lost a limit is void; a write-back without authority and a trade-off that changes the mandate stop; the three escalation items
++stop: a summary missing `do not release` is void
++stop: The original mandate governs
++stop: No open mandate is on record
++stop: Never guess it or replay it
++stop: the current conclusion, the missing evidence or authority, and the responsible owner
++stop: The summary is not sent with the trade-off still only in it
++stop: A write-back needs authority the mandate does not grant
++stop: A trade-off changes the mandate
++stop: the requirement owner, for the authority an observation needs, and the owner of the missing tool or environment, for the capability
+
+# forbidden: the retired verdict word, retired skill names (none named in the provenance comment), this skill's typical overreach, the withdrawn conventions, and a trade-off written back as a mandate row
+-: APPROVE
+-: writing-plans
+-: executing-plans
+-: written back to the mandate record
+-: second progress ledger
+-: missing evidence as `pass`
+-: summary overrides the mandate
+-: git clean
+-: record observe --result unverified
+-: stays an open assumption and goes to `firefly-think`
+-: short SHA of `HEAD`
+-: only the edited scenario lapses
+-: unchanged scenarios remain valid
+-: every record that cites the old version
+-: reported as a tick
+-: finishes the ticks before

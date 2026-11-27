@@ -58,23 +58,11 @@ sed -i "s/\[$version\]/[0.0.0-tampered]/" "$ROOT_DIR/CHANGELOG.md"
 expect_check_failure "CHANGELOG.md"
 cp "$BACKUP_DIR/CHANGELOG.md" "$ROOT_DIR/CHANGELOG.md"
 
-# 4. A manifest fireflyVersion that disagrees with VERSION is rejected.
-tamper manifests/codex.json
-sed -i "s/\"fireflyVersion\": \"$version\"/\"fireflyVersion\": \"0.0.0-tampered\"/" \
-  "$ROOT_DIR/manifests/codex.json"
-expect_check_failure "manifests/codex.json"
-cp "$BACKUP_DIR/codex.json" "$ROOT_DIR/manifests/codex.json"
+# The distributable license must equal the repository license.
+tamper firefly/LICENSE
+printf 'different license\n' > "$ROOT_DIR/firefly/LICENSE"
+expect_check_failure "package license"
+cp "$BACKUP_DIR/LICENSE" "$ROOT_DIR/firefly/LICENSE"
 
-# 5. THIRD_PARTY_NOTICES without a declared override component is rejected.
-tamper THIRD_PARTY_NOTICES.md
-sed -i '/superpowers/d' "$ROOT_DIR/THIRD_PARTY_NOTICES.md"
-expect_check_failure "THIRD_PARTY_NOTICES.md"
-cp "$BACKUP_DIR/THIRD_PARTY_NOTICES.md" "$ROOT_DIR/THIRD_PARTY_NOTICES.md"
-
-# 6. Everything restored: the tree is clean again.
 bash "$CHECK"
-
-restore_all
-trap - EXIT
-
 echo "release metadata test passed"

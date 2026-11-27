@@ -3,6 +3,8 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# shellcheck source=lib.sh
+source "$ROOT_DIR/tests/lib.sh"
 
 assert_file_contains() {
   local path="$1"
@@ -28,46 +30,11 @@ assert_file_not_contains() {
   fi
 }
 
-assert_normalized_equal() {
-  local codex_path="$1"
-  local claude_path="$2"
-  local codex_normalized
-  local claude_normalized
-
-  # Normalize both platform spellings to the same baseline on each side, so a
-  # skill that legitimately references BOTH platform directories (e.g. a
-  # read-only memory policy naming .codex/memory/ and .claude/memory/ together)
-  # still compares equal after normalization.
-  codex_normalized="$(sed -e 's/CODEX_HOME/CLIENT_HOME/g' -e 's/CLAUDE_HOME/CLIENT_HOME/g' -e 's/\.codex/.client/g' -e 's/\.claude/.client/g' "$codex_path")"
-  claude_normalized="$(sed -e 's/CODEX_HOME/CLIENT_HOME/g' -e 's/CLAUDE_HOME/CLIENT_HOME/g' -e 's/\.codex/.client/g' -e 's/\.claude/.client/g' "$claude_path")"
-  if [[ "$codex_normalized" != "$claude_normalized" ]]; then
-    echo "expected normalized mirror files to match: $codex_path $claude_path" >&2
-    exit 1
-  fi
-}
-
-for path in \
-  "$ROOT_DIR/assets/codex/skills/firefly-propose/SKILL.md" \
-  "$ROOT_DIR/assets/claude/skills/firefly-propose/SKILL.md"
-do
-  assert_file_contains "$path" "必须、不得、禁止、应当"
-  assert_file_contains "$path" "### Requirement:"
-  assert_file_contains "$path" "firefly\" validate"
-done
-
-for skill_name in firefly-propose firefly-review firefly-archive; do
-  assert_normalized_equal \
-    "$ROOT_DIR/assets/codex/skills/$skill_name/SKILL.md" \
-    "$ROOT_DIR/assets/claude/skills/$skill_name/SKILL.md"
-done
-
-for path in \
-  "$ROOT_DIR/assets/codex/skills/firefly-review/SKILL.md" \
-  "$ROOT_DIR/assets/claude/skills/firefly-review/SKILL.md" \
-  "$ROOT_DIR/assets/codex/skills/firefly-archive/SKILL.md" \
-  "$ROOT_DIR/assets/claude/skills/firefly-archive/SKILL.md"
-do
-  assert_file_contains "$path" "firefly\" validate"
+guide_root="$ROOT_DIR/firefly/references/abilities"
+assert_file_contains "$guide_root/firefly-propose/guide.md" "必须、不得、禁止、应当"
+assert_file_contains "$guide_root/firefly-propose/guide.md" "### Requirement:"
+for name in firefly-propose firefly-review firefly-archive; do
+  assert_file_contains "$guide_root/$name/guide.md" 'firefly.sh" validate'
 done
 
 assert_file_contains "$ROOT_DIR/README.md" "firefly validate"
@@ -75,36 +42,39 @@ assert_file_contains "$ROOT_DIR/README.md" "不支持中文章节或标题"
 assert_file_contains "$ROOT_DIR/README_EN.md" "firefly validate"
 assert_file_contains "$ROOT_DIR/README_EN.md" "does not support Chinese section or heading keywords"
 
-assert_file_contains "$ROOT_DIR/assets/codex/skills/openspec-archive-change/SKILL.md" "planningHome.changesDir"
-assert_file_contains "$ROOT_DIR/assets/codex/skills/openspec-archive-change/SKILL.md" "artifactPaths.specs.existingOutputPaths"
-assert_file_not_contains "$ROOT_DIR/assets/codex/skills/openspec-archive-change/SKILL.md" "mkdir -p openspec/changes/archive"
-assert_file_contains "$ROOT_DIR/assets/codex/skills/openspec-explore/SKILL.md" "artifactPaths.<artifact>.existingOutputPaths"
-assert_file_contains "$ROOT_DIR/assets/codex/skills/firefly/SKILL.md" "changeRoot"
-assert_file_contains "$ROOT_DIR/assets/claude/skills/firefly/SKILL.md" "changeRoot"
+assert_file_contains "$ROOT_DIR/firefly/references/abilities/firefly-implement/guide.md" "changeRoot"
+assert_file_contains "$ROOT_DIR/firefly/references/abilities/firefly-propose/guide.md" "OpenSpec proposal guide"
+assert_file_not_contains "$guide_root/openspec-propose/guide.md" "openspec validate"
+assert_file_not_contains "$guide_root/openspec-propose/guide.md" "all apply-required artifacts"
 
-for path in \
-  "$ROOT_DIR/assets/claude/commands/opsx/sync.md" \
-  "$ROOT_DIR/assets/claude/skills/openspec-sync-specs/SKILL.md" \
-  "$ROOT_DIR/assets/codex/skills/openspec-sync-specs/SKILL.md"
-do
-  assert_file_contains "$path" "planningHome.root"
-  assert_file_contains "$path" '<planningHome.root>/openspec/specs/<capability>/spec.md'
-  assert_file_not_contains "$path" "For each repo-local capability"
-done
-
-for path in \
-  "$ROOT_DIR/assets/claude/commands/opsx/archive.md" \
-  "$ROOT_DIR/assets/claude/skills/openspec-archive-change/SKILL.md" \
-  "$ROOT_DIR/assets/codex/skills/openspec-archive-change/SKILL.md"
-do
-  assert_file_contains "$path" '<planningHome.root>/openspec/specs/<capability>/spec.md'
-  assert_file_not_contains "$path" 'at `openspec/specs/<capability>/spec.md`'
-done
-
-while IFS= read -r path; do
-  assert_file_not_contains "$path" "AskUserQuestion"
-  assert_file_not_contains "$path" "TodoWrite"
-  assert_file_not_contains "$path" "Task tool"
-done < <(find "$ROOT_DIR/assets/codex/skills" -mindepth 2 -maxdepth 2 -path '*/openspec-*/SKILL.md' -type f | sort)
-
-echo "chinese OpenSpec workflow integration test passed"
+if command -v openspec >/dev/null 2>&1; then
+  new_tmp_dir chinese-openspec
+  project="$FIREFLY_TMP_DIR/project"
+  mkdir -p "$project" "$FIREFLY_TMP_DIR/home"
+  (
+    cd "$project"
+    export HOME="$FIREFLY_TMP_DIR/home" OPENSPEC_TELEMETRY=0
+    runtime="$ROOT_DIR/firefly/scripts/firefly.sh"
+    "$runtime" init .
+    openspec new change chinese-export
+    change=openspec/changes/chinese-export
+    test ! -e "$change/tasks.md"
+    mkdir -p "$change/specs/export"
+    printf '## Why\n\n验证中文需求。\n\n## What Changes\n\n- 增加导出。\n' > "$change/proposal.md"
+    purpose='该能力为需要离线核对数据的用户提供导出文件。用户完成查询后可以保留当次结果，以便在后续对账时复核相同的数据范围和内容。'
+    printf '## Purpose\n\n%s\n\n## ADDED Requirements\n\n### Requirement: 导出\n系统必须支持导出。\n\n#### Scenario: 导出成功\n- **WHEN** 用户发起导出\n- **THEN** 系统返回文件\n' "$purpose" > "$change/specs/export/spec.md"
+    mv openspec/config.yaml openspec/config.yml
+    "$runtime" validate --root "$project"
+    "$runtime" validate --root "$project" --change chinese-export
+    assert_file_not_contains "$change/specs/export/spec.md" MUST
+    test ! -e "$change/tasks.md"
+    if [[ "$(openspec --version)" == 2.* ]]; then
+      # The adapter above already validated the Chinese delta. The native
+      # archive command otherwise validates it again using English modals.
+      openspec archive chinese-export --yes --no-validate
+      assert_file_contains openspec/specs/export/spec.md "$purpose"
+      "$runtime" validate --root "$project"
+    fi
+  )
+fi
+echo "Chinese OpenSpec workflow test passed"

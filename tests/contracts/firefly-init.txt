@@ -1,0 +1,13 @@
+@design 01
+# Anchors for the init skill (runtime-facing, design 01).
++trigger: The user explicitly asks firefly to initialize the current project
++trigger: asks whether the current project is ready for the firefly workflow
++mandate: Do not modify project source files beyond
++input: The project directory, when the user names one
++output: The initialization state it found
++verdict-or-state: runs `openspec init` only when missing
++handoff: The reply returns to the requester
++stop: `openspec` is not available and installing it is outside this mandate
+-: APPROVE
+-: auto-selects a project directory
+-: installs OpenSpec without checking
