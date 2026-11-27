@@ -85,7 +85,7 @@ Write each row as it is produced, before the next step:
 - `pass` and `fail` need `--evidence` naming an existing path, under `openspec/changes/<id>/evidence/<snapshot12>/`.
 - `not-applicable` needs `--rule` naming the rule that applies and the reason; it never counts as `pass`.
 - `--note` is never omitted: the conditions observed under — environment, inputs, viewport, with the build identity, session identifier, test role and action order — the expected outcome the scenario map row named when the observation was made, and the check it named. The recorder writes them into the `Conditions` column (contract, Recording).
-- Before the check, capture the inputs with `firefly snapshot` and `firefly snapshot --spec <id>`. Pass those exact values; later changes leave the observation historical. A rejected call writes nothing.
+- Before the check, capture the inputs with `firefly snapshot worktree` and `firefly snapshot --spec <id>`. Pass those exact values; later changes leave the observation historical. A rejected call writes nothing.
 - A tool failure, a cancelled run or a missing result is `unverified`, never `pass`.
 
 ### 6. Archive identifiers, not credentials

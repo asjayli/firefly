@@ -34,7 +34,7 @@
 # pending authorization otherwise.
 +output: --observer verifier:firefly-guard
 +output: `--note` is never omitted
-+output: Before the check, capture the inputs with `firefly snapshot` and `firefly snapshot --spec <id>`
++output: Before the check, capture the inputs with `firefly snapshot worktree` and `firefly snapshot --spec <id>`
 +output: The conclusion lives in the reply
 +output: A mounted gate, or a configuration task pending authorization with its receiver
 

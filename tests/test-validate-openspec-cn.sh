@@ -114,8 +114,14 @@ EOF
 chmod +x "$bin_dir/openspec"
 mkdir -p "$tmp_dir/staging"
 
+missing_status=0
+missing_output="$(TMPDIR="$tmp_dir/staging" PATH="$bin_dir:$PATH" node "$VALIDATOR" --root "$project_dir" 2>&1)" || missing_status=$?
+assert_exit_code "$missing_status" 2
+assert_contains "$missing_output" 'firefly validate all'
+test ! -e "$log_file"
+
 set +e
-_output="$(TMPDIR="$tmp_dir/staging" PATH="$bin_dir:$PATH" node "$VALIDATOR" --root "$project_dir" 2>&1)"
+_output="$(TMPDIR="$tmp_dir/staging" PATH="$bin_dir:$PATH" node "$VALIDATOR" --root "$project_dir" all 2>&1)"
 status=$?
 set -e
 
@@ -160,7 +166,7 @@ cat > "$archived_change_project/openspec/changes/archive/old-change/specs/legacy
 EOF
 
 set +e
-_archived_change_output="$(TMPDIR="$tmp_dir/staging" PATH="$bin_dir:$PATH" node "$VALIDATOR" --root "$archived_change_project" 2>&1)"
+_archived_change_output="$(TMPDIR="$tmp_dir/staging" PATH="$bin_dir:$PATH" node "$VALIDATOR" --root "$archived_change_project" all 2>&1)"
 archived_change_status=$?
 set -e
 
@@ -171,7 +177,7 @@ cp -R "$project_dir" "$quoted_schema_project"
 printf 'schema: "spec-driven" # supported YAML scalar\n' > "$quoted_schema_project/openspec/config.yaml"
 
 set +e
-_quoted_schema_output="$(TMPDIR="$tmp_dir/staging" PATH="$bin_dir:$PATH" node "$VALIDATOR" --root "$quoted_schema_project" 2>&1)"
+_quoted_schema_output="$(TMPDIR="$tmp_dir/staging" PATH="$bin_dir:$PATH" node "$VALIDATOR" --root "$quoted_schema_project" all 2>&1)"
 quoted_schema_status=$?
 set -e
 
@@ -185,7 +191,7 @@ schema: >-
 EOF
 
 set +e
-_block_schema_output="$(TMPDIR="$tmp_dir/staging" PATH="$bin_dir:$PATH" node "$VALIDATOR" --root "$block_schema_project" 2>&1)"
+_block_schema_output="$(TMPDIR="$tmp_dir/staging" PATH="$bin_dir:$PATH" node "$VALIDATOR" --root "$block_schema_project" all 2>&1)"
 block_schema_status=$?
 set -e
 
@@ -196,7 +202,7 @@ cp -R "$project_dir" "$tagged_schema_project"
 printf 'schema: !!str spec-driven\n' > "$tagged_schema_project/openspec/config.yaml"
 
 set +e
-_tagged_schema_output="$(TMPDIR="$tmp_dir/staging" PATH="$bin_dir:$PATH" node "$VALIDATOR" --root "$tagged_schema_project" 2>&1)"
+_tagged_schema_output="$(TMPDIR="$tmp_dir/staging" PATH="$bin_dir:$PATH" node "$VALIDATOR" --root "$tagged_schema_project" all 2>&1)"
 tagged_schema_status=$?
 set -e
 
@@ -207,7 +213,7 @@ cp -R "$project_dir" "$missing_modal_project"
 sed -i 's/系统必须保留中文正文/系统提供中文正文/' "$missing_modal_project/openspec/specs/main/spec.md"
 
 set +e
-missing_modal_output="$(TMPDIR="$tmp_dir/staging" PATH="$bin_dir:$PATH" node "$VALIDATOR" --root "$missing_modal_project" 2>&1)"
+missing_modal_output="$(TMPDIR="$tmp_dir/staging" PATH="$bin_dir:$PATH" node "$VALIDATOR" --root "$missing_modal_project" all 2>&1)"
 missing_modal_status=$?
 set -e
 
@@ -219,7 +225,7 @@ cp -R "$project_dir" "$chinese_header_project"
 sed -i 's/^### Requirement:/### 需求:/' "$chinese_header_project/openspec/specs/main/spec.md"
 
 set +e
-chinese_header_output="$(TMPDIR="$tmp_dir/staging" PATH="$bin_dir:$PATH" node "$VALIDATOR" --root "$chinese_header_project" 2>&1)"
+chinese_header_output="$(TMPDIR="$tmp_dir/staging" PATH="$bin_dir:$PATH" node "$VALIDATOR" --root "$chinese_header_project" all 2>&1)"
 chinese_header_status=$?
 set -e
 
@@ -231,7 +237,7 @@ cp -R "$project_dir" "$unsupported_schema_project"
 sed -i 's/spec-driven/custom-schema/' "$unsupported_schema_project/openspec/config.yaml"
 
 set +e
-unsupported_schema_output="$(TMPDIR="$tmp_dir/staging" PATH="$bin_dir:$PATH" node "$VALIDATOR" --root "$unsupported_schema_project" 2>&1)"
+unsupported_schema_output="$(TMPDIR="$tmp_dir/staging" PATH="$bin_dir:$PATH" node "$VALIDATOR" --root "$unsupported_schema_project" all 2>&1)"
 unsupported_schema_status=$?
 set -e
 
@@ -239,7 +245,7 @@ assert_exit_code "$unsupported_schema_status" "1"
 assert_contains "$unsupported_schema_output" "仅支持 spec-driven schema"
 
 set +e
-_native_failure_output="$(TMPDIR="$tmp_dir/staging" FAKE_OPENSPEC_FAIL_ON='validate --changes' PATH="$bin_dir:$PATH" node "$VALIDATOR" --root "$project_dir" 2>&1)"
+_native_failure_output="$(TMPDIR="$tmp_dir/staging" FAKE_OPENSPEC_FAIL_ON='validate --changes' PATH="$bin_dir:$PATH" node "$VALIDATOR" --root "$project_dir" all 2>&1)"
 native_failure_status=$?
 set -e
 
@@ -258,11 +264,12 @@ rm -f "$symlink_project/openspec/specs/main/spec.md"
 ln -s "$target_file" "$symlink_project/openspec/specs/main/spec.md"
 
 set +e
-_symlink_output="$(TMPDIR="$tmp_dir/staging" PATH="$bin_dir:$PATH" node "$VALIDATOR" --root "$symlink_project" 2>&1)"
+_symlink_output="$(TMPDIR="$tmp_dir/staging" PATH="$bin_dir:$PATH" node "$VALIDATOR" --root "$symlink_project" all 2>&1)"
 symlink_status=$?
 set -e
 
-assert_exit_code "$symlink_status" "0"
+assert_exit_code "$symlink_status" "1"
+assert_contains "$_symlink_output" "路径超出项目范围"
 if [[ "$(cat "$target_file")" != *"系统必须保留中文正文"* ]] || [[ "$(cat "$target_file")" == *"^MUST "* ]]; then
   echo "validator followed a symlink and modified a file outside openspec/" >&2
   exit 1
@@ -281,7 +288,7 @@ cp "$project_dir/openspec/changes/change/proposal.md" "$scoped_project/openspec/
 scoped_output="$(FAKE_OPENSPEC_SCOPED=1 PATH="$bin_dir:$PATH" node "$VALIDATOR" --root "$scoped_project" change)"
 assert_contains "$scoped_output" "Validation input SHA-256:"
 assert_contains "$(cat "$log_file")" 'validate change --type change --strict --no-interactive'
-if loop_output="$(PATH="$bin_dir:$PATH" node "$VALIDATOR" --root "$scoped_project" 2>&1)"; then
+if loop_output="$(PATH="$bin_dir:$PATH" node "$VALIDATOR" --root "$scoped_project" all 2>&1)"; then
   echo 'expected a cycle in an active change spec tree to fail validation' >&2
   exit 1
 fi
@@ -290,7 +297,7 @@ assert_contains "$loop_output" '目录循环'
 staged_spec="$project_dir/openspec/changes/change/specs/capability/spec.md"
 if staged_output="$(FIREFLY_STAGING_TEST_SPEC="$staged_spec" \
   NODE_OPTIONS="--import=$ROOT_DIR/tests/fixtures/validation-staging-change.mjs" \
-  PATH="$bin_dir:$PATH" node "$VALIDATOR" --root "$project_dir" 2>&1)"; then
+  PATH="$bin_dir:$PATH" node "$VALIDATOR" --root "$project_dir" all 2>&1)"; then
   echo 'expected the adapter to inspect the staged content before injecting' >&2
   exit 1
 fi

@@ -115,8 +115,16 @@ assert_file_contains "$ROOT_DIR/firefly/SKILL.md" 'Before a completion or escala
 assert_file_in_order "$ROOT_DIR/firefly/SKILL.md" \
   '## First use' \
   'bash "<skill-root>/scripts/manage.sh" bootstrap' \
-  'continue the requested capability in the same turn' \
+  'Continue the requested capability in the same turn' \
   '## When to use'
+assert_file_contains "$ROOT_DIR/firefly/SKILL.md" 'skip bootstrap and mandate writes'
+assert_file_in_order "$ROOT_DIR/firefly/references/abilities/firefly-archive/guide.md" \
+  'snapshot --check <candidate-sha>' \
+  'Stage the sync.' \
+  'each main file' \
+  'Recover this inventory before planning another sync.' \
+  'Stop on a third state' \
+  'If the destination already contains this inventory'
 
 assert_obsolete_reviewer_lifecycle() {
   local path="$1"

@@ -35,7 +35,7 @@ Install the skill and invoke Firefly once in your agent host.
 npx skills@latest add asjayli/firefly
 ```
 
-On first use, the agent installs `~/.local/bin/firefly` and its repair baseline from the skill bundle, then continues the requested task. The managed runtime lives under `${XDG_DATA_HOME:-$HOME/.local/share}/firefly/runtime/firefly`. Firefly reuses any healthy managed command at the destination. If the host restricts writes to the user directory, run `bash <skill-directory>/scripts/manage.sh bootstrap` in a terminal. Add the command directory to `PATH` or run `~/.local/bin/firefly doctor` directly.
+On the first workflow invocation that allows writes, the agent installs `~/.local/bin/firefly` and its repair baseline from the skill bundle, then continues the requested task. The managed runtime lives under `${XDG_DATA_HOME:-$HOME/.local/share}/firefly/runtime/firefly`. Firefly reuses any healthy managed command at the destination. Help and read-only queries run from the bundle without starting installation. If the host restricts writes to the user directory, run `bash <skill-directory>/scripts/manage.sh bootstrap` in a terminal. Add the command directory to `PATH` or run `~/.local/bin/firefly doctor` directly.
 
 ### Manual managed installation
 
@@ -102,8 +102,8 @@ The user chooses the deliverable and the permitted effects; firefly chooses the 
 
 ```bash
 firefly init                  # check the global environment; run openspec init only when missing
-firefly tasks                 # list unfinished tasks across active changes, read-only
-firefly validate --root <dir> # Chinese OpenSpec strict validation (see below)
+firefly tasks all             # list unfinished tasks across active changes
+firefly validate all          # explicitly validate the whole project
 firefly list --json           # list changes
 firefly status                # show artifact status for the only active change
 firefly status --help         # explain the change ID and how to find or omit it
@@ -111,7 +111,7 @@ firefly spec --help           # list specification backend commands and options
 firefly diagram <feature> <dir> # generate a timestamped .mmd and a rendered .svg
 firefly doctor                # inspect managed assets on this platform (OK/MISS/DRIFT); modifies nothing
 firefly repair                # restore missing or drifted managed assets, preserving backups
-firefly snapshot              # print the worktree candidate snapshot; --spec/--tasks for package versions
+firefly snapshot worktree     # fix the candidate snapshot; --spec/--tasks for package versions
 firefly record <subcommand>   # append one validated row to a handoff carrier
 ```
 
@@ -119,7 +119,7 @@ firefly record <subcommand>   # append one validated row to a handoff carrier
 
 Run `firefly --help` for an overview and `firefly <command> --help` for parameters. A change ID identifies a change listed by `firefly list`. Use `firefly new <change-id>` to create a change scaffold. `firefly status` and `firefly show` select the only active change automatically or list candidates when several are active. Agents should pass the change ID when the mandate identifies it.
 
-`firefly init` initializes a project and `firefly validate` validates the whole project. Follow the `firefly docs` and `firefly archive` agent guides for spec sync and archive. Use `firefly spec …` for artifact instructions, templates, and other backend operations. The current backend, OpenSpec, can run independently.
+`firefly init` initializes a project. Both `validate` and `tasks` require a change ID or explicit `all`. For an existing change named `all`, run `firefly validate -- all` or `firefly tasks -- all`. Follow the `firefly docs` and `firefly archive` agent guides for spec sync and archive. Change commands discover the local project from subdirectories and accept an explicit `--root`. Use `firefly spec instructions`, `templates` or `schemas` for local queries. Explicitly select `firefly spec raw <command>` for native backend semantics. New projects default to Simplified Chinese prose and honor explicit project language requirements.
 
 ### Verdicts and escalation
 
@@ -141,10 +141,10 @@ A candidate travels from build to launch on one shared state table: **in progres
 firefly provides Chinese-compatible OpenSpec strict validation through `firefly validate` for requirements whose body uses the Chinese normative terms `必须`, `不得`, `禁止`, or `应当`, without changing source specs. It checks those terms, injects `MUST` only in a temporary copy, and then runs native strict validation:
 
 ```bash
-firefly validate --root <project-root>
+firefly validate all --root <project-root>
 ```
 
-The installer places a platform-neutral command at `~/.local/bin/firefly`; ensure that directory is on PATH to run `firefly validate --root <project-root>`. The command dispatcher supports the runtime subcommands `init`, `tasks`, `validate`, `diagram`, `doctor`, `repair`, `snapshot` and `record`. The adapter validates main specs and active changes, supports only the `spec-driven` schema, and does not support Chinese section or heading keywords: keep `## Requirements`, `### Requirement:`, and `#### Scenario:` in English.
+Run `firefly --help` for the runtime commands. The adapter validates main specs and active changes, supports only the `spec-driven` schema, and does not support Chinese section or heading keywords: keep `## Requirements`, `### Requirement:`, and `#### Scenario:` in English.
 
 ## Runtime dependencies
 

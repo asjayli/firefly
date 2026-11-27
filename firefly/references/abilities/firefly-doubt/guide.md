@@ -48,7 +48,7 @@ This skill is one independent investigation in a fresh context: dispatched by `f
 
 - **The claim.** A short stable identifier, the decision it supports, the assumption that decision rests on, and the stated result that would change the decision. The spec author states that result before the dispatch; the claim does not enter without it.
 - **What the investigation examines — and what it does not.** The candidate snapshot, when one exists; the required scenarios; the constraints recorded beside the spec; the permitted verification means. The author's case for why the claim should pass is not part of the input: no self-assessment travels with the dispatch.
-- **The stage binding.** Spec stage: the spec package version, what `"<skill-root>/scripts/firefly.sh" snapshot --spec <id>` prints. Implementation stage: that version and the candidate snapshot, what `"<skill-root>/scripts/firefly.sh" snapshot` prints. The two stages bind separately; a record names the one it was judged against.
+- **The stage binding.** Spec stage: the spec package version, what `"<skill-root>/scripts/firefly.sh" snapshot --spec <id>` prints. Implementation stage: that version and the candidate snapshot, what `"<skill-root>/scripts/firefly.sh" snapshot worktree` prints. The two stages bind separately; a record names the one it was judged against.
 - **The mandate in force**, when this skill is named directly: the newest row of `## Mandate` of the change, or of `## Mandates` when the work has no change (contract, Mandate record).
 - **The counterexample record**, for the count of entries the claim already has.
 

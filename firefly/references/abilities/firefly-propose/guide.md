@@ -33,7 +33,7 @@ The controller runs this skill. The spec package is written as spec author, the 
 
 - A proposal-only mandate ends with the change ready to start. Three facts then hold:
   1. The newest row of `## Ready decision` in `openspec/changes/<change>/tasks.md` is an `ACCEPT` whose spec package version and task package version are the current ones (step 10).
-  2. The complete change passes `"<skill-root>/scripts/firefly.sh" validate --root <project-root> <id>`.
+  2. The complete change passes `"<skill-root>/scripts/firefly.sh" validate --root <project-root> -- <id>`.
   3. The reply names `firefly implement <change>` as the next command.
 - The mandate also ends by `ESCALATE` (see "Stop and escalate").
 - Under a mandate that continues into delivery (contract, Mandate record) the same facts are reached, and the change is handed to `firefly-implement` inside the same flow.
@@ -101,7 +101,7 @@ The spec records the behavior already agreed, and adds no commitment the records
 - **Inferred required scenario.** A required scenario sourced to `agent-inference` passes the ready decision only after the requirement owner confirms it. Until then it is an open blocker: list it, and write nothing for the part the inference has not settled, which the author does not fill in. Its tasks and mappings are planned like those of any other required scenario; it is the ready decision they wait for, not the planning. The confirmation may be given when the owner signs off on the proposal. Once it is given, record it in the minutes and point the line at that entry as `owner-confirmed`: the spec package version changes, the changed scenario goes back to step 7 for its tasks and mappings to be checked again, and step 11 applies.
 - **Two lists.** The spec package lists the selected behavior that is not written into this spec, among the non-goals of `design.md`, and every open blocker, in the spec file beside the scenarios each one blocks. A listed open blocker is not a placeholder; an unlisted blank is.
 - **Promises live in scenarios.** A contract is written back into the scenario, a constraint entry sits beside the scenario it binds (`firefly-bounds`, step 6), and a runtime signal requirement is written into the spec file with the scenarios it belongs to. `design.md` holds only the design that supports the scenarios, plus the dependency conclusions that support them, and judges nothing (contract, Carriers).
-- **Chinese requirements.** When writing Chinese requirements, use one of `必须、不得、禁止、应当` in the requirement body. Keep OpenSpec structure keywords in English, including `## Requirements` and `### Requirement:`.
+- **Chinese requirements.** Write proposal, design, requirement and task prose in Simplified Chinese by default. Follow an explicit user or project language instruction. When writing Chinese requirements, use one of `必须、不得、禁止、应当` in the requirement body. Keep OpenSpec structure keywords in English, including `## Requirements` and `### Requirement:`.
 - **Discriminating power.** Write each scenario so that a wrong implementation fails it. In the export case:
   - E1: a retry of one submission after its response was lost still points at one job, while a deliberate new submission of the same query gets a new job. Wording such as "Supports retry" accepts duplicate production as well as correct recovery: return it and complete it as E1.
   - E2: the owner finds the job again after a refresh; another account cannot retrieve it.
@@ -123,7 +123,7 @@ The system MUST keep one job for one submission and MUST NOT merge a new submiss
 
 ### 4. Validate strictly
 
-1. Run `"<skill-root>/scripts/firefly.sh" validate --root <project-root> <id>` after the spec package is written, after every repair of it, and again after the task package returns, before the joint review is dispatched.
+1. Run `"<skill-root>/scripts/firefly.sh" validate --root <project-root> -- <id>` after the spec package is written, after every repair of it, and again after the task package returns, before the joint review is dispatched.
 2. A non-zero exit blocks the start. While the command fails, dispatch no review and report the change neither as strictly valid nor as ready to start.
    Record the validated input SHA-256 and the spec and task package versions with the evidence. If either package changes during validation, validate again before recording a ready decision.
 3. If the command fails, repair the artifact of this change that it names and rerun the same command. A failure in `tasks.md` goes to the planner. An artifact it names outside `openspec/changes/<change>/` is not repaired here: the next step needs an effect the mandate does not permit.

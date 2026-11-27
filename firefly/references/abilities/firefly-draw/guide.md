@@ -38,7 +38,7 @@ Dispatched under a mandate, the terminal condition of that mandate governs. Name
 **Permitted effects.**
 
 - Write the work of one question — the comparison page, the prototype, the probe and the observation notes beside them — into one directory under the carrier of the contract's Carriers table: `openspec/changes/<id>/probes/<name>/` when the work has a change, `openspec/think/<date>-<slug>-probe/` when it has none. **Never in the product tree**: a file there enters the candidate snapshot.
-- Produce a diagram only with `firefly diagram <feature-name> <output-directory>`, the output directory given under `openspec/think/`: the second argument is the output directory, and the default one sits in the repository's current directory, which would carry the diagrams into the candidate snapshot.
+- Produce a diagram only with `firefly diagram <feature-name> <output-directory>`. Set the required second argument to a directory under `openspec/think/` to keep its outputs outside the candidate snapshot.
 - Dispatched under `firefly-propose`, the writes stay within the permitted effects of the proposal mandate, and of those only the probe directories are this skill's own writes. A returned conclusion goes back to the scenario it concerns and brings no new write authority (contract, Mandate record).
 
 **Not granted.**

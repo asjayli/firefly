@@ -198,7 +198,7 @@ Do not send this section.
 | `[PACKAGE_ID]` | `<change-name>@<snapshot12>.<generation>` |
 | `[MANDATE_ID]`, `[OBJECTIVE]`, `[PERMITTED_EFFECTS]`, `[TERMINAL_CONDITION]` | The mandate record |
 | `[BASE]` | The baseline of the `Preflight` section: its Baseline commit when its Worktree snapshot is the tree of that commit, otherwise its Worktree snapshot |
-| `[SNAPSHOT_SHA]` | The output of `firefly snapshot` |
+| `[SNAPSHOT_SHA]` | The output of `firefly snapshot worktree` |
 | `[PACKAGE_DIFF_PATH]` | `openspec/changes/<id>/evidence/<snapshot12>/<generation>/package.diff`, the path printed by `review-package` |
 | `[RANGE]` | `BASE..<full-candidate-tree-sha>`, as the first line of the package file reads |
 | `[SPEC_VERSION]` | The output of `firefly snapshot --spec <change>` |

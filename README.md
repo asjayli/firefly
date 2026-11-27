@@ -35,7 +35,7 @@ firefly 把用户的委托转成可验收的交付物：调查给出有依据的
 npx skills@latest add asjayli/firefly
 ```
 
-首次调用时，Agent 会从技能包安装 `~/.local/bin/firefly` 和修复基线，然后继续当前任务。受管运行时保存在 `${XDG_DATA_HOME:-$HOME/.local/share}/firefly/runtime/firefly`。已有健康的受管命令会直接复用。如果宿主限制写入用户目录，可在终端手动执行 `bash <技能目录>/scripts/manage.sh bootstrap`。命令目录需要在 `PATH` 中，也可以直接执行 `~/.local/bin/firefly doctor`。
+首次执行允许写入的工作流时，Agent 会从技能包安装 `~/.local/bin/firefly` 和修复基线，然后继续当前任务。受管运行时保存在 `${XDG_DATA_HOME:-$HOME/.local/share}/firefly/runtime/firefly`。已有健康的受管命令会直接复用。帮助和只读查询直接使用技能包，不触发安装。如果宿主限制写入用户目录，可在终端手动执行 `bash <技能目录>/scripts/manage.sh bootstrap`。命令目录需要在 `PATH` 中，也可以直接执行 `~/.local/bin/firefly doctor`。
 
 ### 手动受管安装
 
@@ -103,8 +103,8 @@ bash firefly/scripts/manage.sh repair --skills-dir /path/to/skills
 
 ```bash
 firefly init                  # 检查全局环境；项目缺 OpenSpec 初始化时才执行 openspec init
-firefly tasks                 # 只读列出所有活跃变更的未完成任务
-firefly validate --root <目录> # 中文 OpenSpec 严格校验（见下节）
+firefly tasks all             # 列出所有活跃变更的未完成任务
+firefly validate all          # 显式校验整个项目，可能耗时较长
 firefly list --json           # 列出变更
 firefly status                # 查看唯一活跃变更的制品状态
 firefly status --help         # 查看变更 ID 的含义、来源和省略规则
@@ -112,7 +112,7 @@ firefly spec --help           # 查看规格后端的命令和参数
 firefly diagram <功能> <目录>   # 生成带时间戳的 .mmd 与渲染 .svg
 firefly doctor                # 检查当前平台受管资产（OK/MISS/DRIFT），不改文件
 firefly repair                # 修复缺失或漂移的受管资产，替换前保留备份
-firefly snapshot              # 打印工作树候选快照；--spec/--tasks 查两包版本
+firefly snapshot worktree     # 固定工作树候选快照；--spec/--tasks 查两包版本
 firefly record <子命令>        # 向交接载体追加一条经校验的记录行
 ```
 
@@ -120,7 +120,7 @@ firefly record <子命令>        # 向交接载体追加一条经校验的记�
 
 用 `firefly --help` 查看入口，`firefly <命令> --help` 查看参数。变更 ID 是一项变更的标识，可从 `firefly list` 获取。用 `firefly new <变更ID>` 创建变更骨架。`firefly status` 和 `firefly show` 自动选中唯一活跃变更，有多个时会列出候选。Agent 已知委托的变更 ID 时显式传入。
 
-`firefly init` 初始化项目，`firefly validate` 校验整个项目。同步规格和归档走 Agent 的 `firefly docs`、`firefly archive`。制品指令、模板和其他后端操作通过 `firefly spec …` 调用。当前后端 OpenSpec 可独立使用。
+`firefly init` 初始化项目。`validate` 和 `tasks` 必须指定变更 ID 或 `all`。对已有的同名变更，使用 `firefly validate -- all` 或 `firefly tasks -- all`。同步规格和归档走 Agent 的 `firefly docs`、`firefly archive`。从子目录调用时，变更命令向上查找本地项目，也可用 `--root` 明确指定。用 `firefly spec instructions`、`templates` 或 `schemas` 查询本地规格。显式选择 `firefly spec raw <命令>` 可使用独立后端的原生语义。新项目的制品正文默认用简体中文，明确的项目语言要求优先。
 
 ### 裁决与升级
 
@@ -142,7 +142,7 @@ firefly record <子命令>        # 向交接载体追加一条经校验的记�
 firefly 通过 `firefly validate` 提供中文 OpenSpec 严格校验，用于在不修改源规格的前提下支持需求正文中的“必须、不得、禁止、应当”。它先校验中文强制词，再在临时副本中注入 `MUST` 并运行原生严格校验：
 
 ```bash
-firefly validate --root <项目根目录>
+firefly validate all --root <项目根目录>
 ```
 
 适配器同时校验主规格和活跃变更，且只支持 `spec-driven` schema；不支持中文章节或标题，必须继续使用 `## Requirements`、`### Requirement:` 和 `#### Scenario:` 等 OpenSpec 结构关键字。

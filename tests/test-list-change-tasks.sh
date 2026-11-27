@@ -49,6 +49,9 @@ cat > "$project_dir/openspec/changes/alpha/tasks.md" <<'EOF'
 
 - [ ] 1.1 First alpha task
 - [x] 1.2 Done alpha task
+  - [ ] Nested alpha task
+  3. [~] Pending alpha task
+  - [A](https://example.test) Related link
 EOF
 
 cat > "$project_dir/openspec/changes/beta/tasks.md" <<'EOF'
@@ -68,9 +71,30 @@ touch -t 202601010101 "$project_dir/openspec/changes/alpha/.openspec.yaml"
 touch -t 202601020101 "$project_dir/openspec/changes/beta/.openspec.yaml"
 
 help_output="$("$SCRIPT" --help)"
-assert_contains "$help_output" "List unfinished tasks for active OpenSpec changes"
+assert_contains "$help_output" "firefly tasks <变更ID|all>"
 
-output="$("$SCRIPT" "$project_dir")"
+if missing="$("$SCRIPT" --root "$project_dir" 2>&1)"; then
+  echo "expected tasks to reject an omitted target" >&2
+  exit 1
+fi
+assert_contains "$missing" "firefly tasks all"
+assert_not_contains "$missing" "First alpha task"
+
+scoped="$("$SCRIPT" alpha --root "$project_dir")"
+assert_contains "$scoped" "First alpha task"
+assert_contains "$scoped" "Nested alpha task"
+assert_contains "$scoped" "Pending alpha task"
+assert_not_contains "$scoped" "Related link"
+assert_not_contains "$scoped" "First beta task"
+mkdir "$project_dir/openspec/changes/all"
+printf '%s\n' '- [ ] Literal all task' > "$project_dir/openspec/changes/all/tasks.md"
+literal="$("$SCRIPT" --root "$project_dir" -- all)"
+assert_contains "$literal" "Literal all task"
+assert_not_contains "$literal" "First alpha task"
+mkdir "$project_dir/openspec/changes/unplanned"
+assert_contains "$("$SCRIPT" unplanned --root "$project_dir")" "尚未生成任务表"
+
+output="$("$SCRIPT" all --root "$project_dir")"
 
 assert_contains "$output" "📋 Active change tasks"
 assert_contains "$output" "🗂️ alpha"
@@ -78,6 +102,8 @@ assert_contains "$output" "🗂️ beta"
 assert_contains "$output" "First alpha task"
 assert_contains "$output" "First beta task"
 assert_contains "$output" "Second beta task"
+assert_contains "$output" "Literal all task"
+assert_contains "$output" "变更 unplanned 尚未生成任务表"
 assert_not_contains "$output" "Done alpha task"
 assert_not_contains "$output" "Archived task"
 
@@ -95,7 +121,7 @@ fi
 touch -t 202601030101 "$project_dir/openspec/changes/alpha/.openspec.yaml"
 touch -t 202601010101 "$project_dir/openspec/changes/beta/.openspec.yaml"
 
-reverse_output="$("$SCRIPT" "$project_dir")"
+reverse_output="$("$SCRIPT" all --root "$project_dir")"
 reverse_alpha_line="$(printf '%s\n' "$reverse_output" | nl -ba | rg '🗂️ alpha' | awk '{print $1}')"
 reverse_beta_line="$(printf '%s\n' "$reverse_output" | nl -ba | rg '🗂️ beta' | awk '{print $1}')"
 if [[ -z "$reverse_alpha_line" || -z "$reverse_beta_line" ]]; then

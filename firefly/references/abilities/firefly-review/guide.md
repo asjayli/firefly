@@ -47,7 +47,7 @@ When the user explicitly requests `firefly review <change> --panel` for a candid
 
 - The mandate record. It says which of the two ends applies and what the permitted effects are.
 - The change `openspec/changes/<id>`: `proposal.md` with the mandate, `specs/**/spec.md` with the scenarios, `tasks.md` with `## Scenario map`, `verification.md` with `## Observations`.
-- The baseline and the candidate snapshot. The baseline is the one the `Preflight` section of the progress record holds. The observations carry the snapshot in their `Candidate` column and the spec version in their `Spec` column, after its `spec:` prefix; `firefly snapshot`, `firefly snapshot --spec <change>` and `firefly snapshot --tasks <change>` print the current snapshot, spec version and task package version.
+- The baseline and the candidate snapshot. The baseline is the one the `Preflight` section of the progress record holds. The observations carry the snapshot in their `Candidate` column and the spec version in their `Spec` column, after its `spec:` prefix; `firefly snapshot worktree`, `firefly snapshot --spec <change>` and `firefly snapshot --tasks <change>` print the current snapshot, spec version and task package version.
 - The applicable standards sources, the required roles and, for each dispatch, the non-author identity to give.
 - For a candidate that follows a valid `REVISE`, the stored returns of the generation that ended in it, with their paths. firefly-implement hands them over.
 - On resumption, what is already recorded for the snapshot: the rows of `## Review dispatches` and `## Review verdicts` in the progress record, and under `evidence/<snapshot12>/` the `brief.md` of each generation and its stored returns.
@@ -56,7 +56,7 @@ When the user explicitly requests `firefly review <change> --panel` for a candid
 
 ### 1. Validate strictly
 
-Run `"<skill-root>/scripts/firefly.sh" validate --root <project-root> <id>` before anything else. A non-zero exit means that the spec package is not compliant; the validator as shipped reads the spec package and not `tasks.md`. That is not a defect of the candidate, and no verdict value carries it: build no package and dispatch no reviewer. Return an `ESCALATE` (`## Stop and escalate`). The validator's file-level output is never put to the reviewers.
+Run `"<skill-root>/scripts/firefly.sh" validate --root <project-root> -- <id>` before anything else. A non-zero exit means that the spec package is not compliant; the validator as shipped reads the spec package and not `tasks.md`. That is not a defect of the candidate, and no verdict value carries it: build no package and dispatch no reviewer. Return an `ESCALATE` (`## Stop and escalate`). The validator's file-level output is never put to the reviewers.
 
 ### 2. Rebuild the state
 
@@ -77,7 +77,7 @@ How complete a package is depends on its kind. A package built from a diff is co
 3. Read the rows of the current generation. Reconcile outstanding dispatches under the [continuation rules](../../continuation.md). A dispatched reviewer that the host still reports active keeps its slot. A `returned` row followed by a `failed` row is a return or a verdict that did not stand: its role has none. A return stored with its `returned` row and no `failed` or verdict row after it was cut short between the steps of Step 7, unless it belongs to a comparison package: continue from its third step.
 4. Read the stored returns of the current generation. They hold the findings already returned.
 5. Compare versions without the `wt:` prefix, here and in every later step: a commit changes only the prefix, never the version.
-6. Run `firefly snapshot`, `firefly snapshot --spec <change>` and `firefly snapshot --tasks <change>`. An observation counts for the worktree only when its `Candidate` column carries that snapshot and its `Spec` column carries that spec version. The `Spec` column carries it as `spec:<version>`: compare what follows `spec:`, the `wt:` prefix ignored as before. A row that differs is evidence about another candidate or another spec version. Rows carried over from a child worktree keep its snapshot, and a branch that passed there is not the integrated candidate.
+6. Run `firefly snapshot worktree`, `firefly snapshot --spec <change>` and `firefly snapshot --tasks <change>`. An observation counts for the worktree only when its `Candidate` column carries that snapshot and its `Spec` column carries that spec version. The `Spec` column carries it as `spec:<version>`: compare what follows `spec:`, the `wt:` prefix ignored as before. A row that differs is evidence about another candidate or another spec version. Rows carried over from a child worktree keep its snapshot, and a branch that passed there is not the integrated candidate.
 
    A package built from a diff for another snapshot, not complete, with a different snapshot printed now, means the candidate changed after that package was fixed: its verdicts are `historical` and nothing of it counts here. While the designated verifiers' observations on the snapshot printed now are still incomplete (`## When not to use`), nothing is packaged: under a delivery the candidate goes back to firefly-implement for those observations (Step 9), and a standalone review returns that finding, names what it takes to review the snapshot printed now (the designated verifiers' observations on it, which a standalone review does not make), and stops here. Once they are complete, the review of the snapshot printed now starts at Step 3.2, from generation 1 when it has no package yet; the old package is not resumed.
 7. The comparison of the worktree with the recorded snapshots covers the implementation only. A difference in the spec, the tasks or a record is judged by the spec version and the task package version; it never shows up as a worktree that differs from the snapshot. Uncommitted implementation changes whose snapshot matches no recorded snapshot are the work of the requester: confirm with the requester through an `ESCALATE` before packaging them (`## Stop and escalate`).
@@ -86,7 +86,7 @@ How complete a package is depends on its kind. A package built from a diff is co
 
 Step 2.6 and Step 2.7 run again before anything is packaged here, a rebuilt package included. When this entry is a comparison review, there is no diff to judge: no `package.diff` is built, the package directory is created as below, and the package is the `brief.md` of Step 4.
 
-1. Keep the full tree SHA from `firefly snapshot` as the package candidate. Take `<snapshot12>` from its first 12 characters.
+1. Keep the full tree SHA from `firefly snapshot worktree` as the package candidate. Take `<snapshot12>` from its first 12 characters.
 2. Decide the generation by Step 11. The first paragraph of Step 2 says which kind of entry this is.
    - No package exists for the snapshot yet: generation 1.
    - This entry is a comparison review. An incomplete comparison package of the snapshot is kept when what its `brief.md` fixed is still current: its identity, its file and its count, and the entry continues at Step 4 with the roles that still lack a return. In every other case the generation is the next one after whatever package the snapshot has, comparison or diff, and its facts are fixed again at Step 4.
@@ -202,7 +202,7 @@ Then:
 
 ### 9. Act on the outcome
 
-Before the candidate is treated as `accepted`, run `firefly snapshot`, `firefly snapshot --spec <change>` and `firefly snapshot --tasks <change>` once more and compare with the `brief.md` of the generation. The snapshot, the spec version and the task package version (the `wt:` prefix aside), the applicable standards sources, the evidence it names, the mandate with its permitted effects and the baseline must be what the brief fixed. A package whose brief no longer matches is not accepted. What ends it depends on what changed:
+Before the candidate is treated as `accepted`, run `firefly snapshot worktree`, `firefly snapshot --spec <change>` and `firefly snapshot --tasks <change>` once more and compare with the `brief.md` of the generation. The snapshot, the spec version and the task package version (the `wt:` prefix aside), the applicable standards sources, the evidence it names, the mandate with its permitted effects and the baseline must be what the brief fixed. A package whose brief no longer matches is not accepted. What ends it depends on what changed:
 
 - The candidate stayed the same and something the brief fixed changed, the spec version, the task package version, the standards or the evidence included: what was recorded for the package is `historical` and it is rebuilt as the next generation (Step 11).
 - The candidate changed: it is a new candidate. The verdicts recorded for the package are `historical` and the candidate is back to `in-progress`. This skill does not package it until the designated verifiers' observations on the new snapshot are complete. Delivery: return it to firefly-implement, which completes them before it enters review again. Standalone review: report that the candidate changed after its package was fixed and stop.
@@ -294,7 +294,7 @@ The first five rows are records about the candidate. A standalone review writes 
 Stop and return an `ESCALATE` with the current conclusion, the missing evidence or authority, and the responsible owner when:
 
 - A required role returns `INSUFFICIENT_EVIDENCE`, of a comparison package included, or a rerun agreed under `RECHECK` still yields no usable result.
-- `"<skill-root>/scripts/firefly.sh" validate --root <project-root> <id>` exits non-zero (Step 1). The current conclusion is the file-level output of the validator. What is missing is a compliant spec package. Owner: the spec author, reached through firefly-propose.
+- `"<skill-root>/scripts/firefly.sh" validate --root <project-root> -- <id>` exits non-zero (Step 1). The current conclusion is the file-level output of the validator. What is missing is a compliant spec package. Owner: the spec author, reached through firefly-propose.
 - No mandate of the change states the review and its permitted effects, or no recorded baseline of the candidate exists. Owner: the requester.
 - A dispatched generation has no `brief.md`. Its fixed facts have nothing to be compared with. Owner: the controller.
 - A package version cannot be obtained when a step needs it. `firefly snapshot --spec <change>` or `firefly snapshot --tasks <change>` fails, for example because the change has no `specs/` directory or no `tasks.md`. No version is derived by hand. Owner: the requester.

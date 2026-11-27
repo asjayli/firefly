@@ -40,9 +40,9 @@ metadata:
 
 ### Run the repair
 
-1. Run `repair` with the absolute managed command returned by the first-use check.
-   If the runtime is missing or cannot start, run `bash "<skill-root>/scripts/manage.sh" repair --skill-dir "<absolute-managed-directory>"` using the managed directory identified by bootstrap or supplied by the user. A complete source bundle can run the same command from its own location.
-2. It refuses to repair OpenSpec overrides when the upstream OpenSpec version differs from the override snapshot version, to avoid downgrading upstream.
+1. Run `repair` with the absolute command for the managed installation named by the user.
+   If that command cannot run, use `bash "<skill-root>/scripts/manage.sh" repair --skill-dir "<absolute-managed-directory>"` from a complete source bundle. The target's receipt and baseline supply the files to restore.
+2. Recheck the same managed target with `doctor` and report the results and backups.
 
 ## Outputs
 
@@ -54,7 +54,7 @@ metadata:
 
 ## Stop and escalate
 
-- The upstream OpenSpec version differs from the override snapshot version. Owner: the requester.
+- The target receipt or baseline is missing or invalid and there is no complete source bundle available for reinstall. Owner: the requester.
 
 ## Boundaries
 

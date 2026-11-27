@@ -8,7 +8,7 @@ One block per drill, appended under the section heading:
 
 ```markdown
 - **<YYYY-MM-DD> — <change id>**
-  - Candidate: <the candidate snapshot, as `firefly snapshot` printed it at drill time>
+  - Candidate: <the candidate snapshot, as `firefly snapshot worktree` printed it at drill time>
   - Spec version: <the spec package version, as `firefly snapshot --spec <id>` printed it at drill time>
   - Faults induced: delayed processing; unreadable output — separately
   - Executor: <who read the signals: a person or an agent who did not implement the candidate>

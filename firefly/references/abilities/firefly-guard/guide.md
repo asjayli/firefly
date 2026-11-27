@@ -89,7 +89,7 @@ Security checks and gate mounting. The two checking entries share one set of cri
    - `pass` and `fail` need `--evidence` naming an existing path, put under `openspec/changes/<id>/evidence/<snapshot12>/`.
    - `not-applicable` needs `--rule` naming the rule that applies and the reason.
    - `--note` is never omitted: it carries the conditions observed under, the expected outcome the scenario map row named when the observation was made, and the check that row named (contract, Recording).
-   - Before the check, capture the inputs with `firefly snapshot` and `firefly snapshot --spec <id>`. Pass those exact values; later changes leave the observation historical. A rejected call writes nothing.
+   - Before the check, capture the inputs with `firefly snapshot worktree` and `firefly snapshot --spec <id>`. Pass those exact values; later changes leave the observation historical. A rejected call writes nothing.
 2. What is retained: the candidate snapshot, the roles of the test identities, the observations and redacted locations. What is never retained: report contents, credentials or raw sensitive output — not in the evidence, not in the note.
 
 ### 6. Report coverage separately from results

@@ -89,14 +89,14 @@
 +verdict-or-state: a standalone review returns that finding, names what it takes to review the snapshot printed now
 +verdict-or-state: the review of the snapshot printed now starts at Step 3.2, from generation 1 when it has no package yet; the old package is not resumed
 +verdict-or-state: Once those observations are complete, the review of that snapshot starts at Step 3.2, and the old package is not resumed
-+input: Run `firefly snapshot`, `firefly snapshot --spec <change>` and `firefly snapshot --tasks <change>`.
++input: Run `firefly snapshot worktree`, `firefly snapshot --spec <change>` and `firefly snapshot --tasks <change>`.
 +input: When this entry is a comparison review, there is no diff to judge
 # The task package version is fixed into the package: a changed criterion or
 # measurement method is told by it, not by the spec version. A rebuilt generation
 # also records the versions the generation before it fixed, and each observation
 # row carries the expected outcome it was made under.
 +input: It covers `## Scenario map`: the criteria and the measurement methods the observations were made under
-+input: `firefly snapshot`, `firefly snapshot --spec <change>` and `firefly snapshot --tasks <change>` print the current snapshot, spec version and task package version
++input: `firefly snapshot worktree`, `firefly snapshot --spec <change>` and `firefly snapshot --tasks <change>` print the current snapshot, spec version and task package version
 +verdict-or-state: Whether a criterion or a measurement method changed is judged by the task package version, not by comparing spec versions
 +verdict-or-state: to the task package (the scenario map and its criteria and measurement methods included)
 +input: For a rebuilt generation, the `brief.md` of the generation before it under `evidence/<snapshot12>/`

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # firefly snapshot — identify the candidate in the worktree and its packages.
 #
-#   firefly snapshot
+#   firefly snapshot worktree
 #     One line: the SHA of a Git tree object that captures the candidate in the
 #     working tree, untracked files included (files ignored by Git are not part
 #     of it). The tree is built in a temporary index, so the real index and the
@@ -61,28 +61,47 @@ refuse() {
 }
 
 usage() {
-  sed -n '2,/^$/p' "$0" | sed -e 's/^# \{0,1\}//' >&2
+  cat <<'EOF'
+用法：firefly snapshot worktree | --check <候选SHA> | --spec <变更ID> | --tasks <变更ID>
+  worktree  扫描当前工作树，输出候选树 SHA 并保存 Git 引用。
+  --check   比较当前工作树与已有候选 SHA。只使用临时对象库，匹配才成功。
+  --spec    输出指定变更的规格包版本。
+  --tasks   输出指定变更的任务包版本。
+用 firefly list 查询变更 ID。请显式选择一项。
+EOF
 }
 
-mode=candidate
+mode=''
 change=''
-while [[ $# -gt 0 ]]; do
-  case "$1" in
+case "${1:-}" in
+    worktree)
+      [[ $# == 1 ]] || refuse 'worktree does not take additional arguments'
+      mode=candidate
+      ;;
+    --check)
+      [[ $# == 2 && "$2" =~ ^([0-9a-f]{40}|[0-9a-f]{64})$ ]] || refuse 'invalid option: --check needs a full candidate SHA'
+      mode=check
+      expected="$2"
+      ;;
     --spec|--tasks)
-      [[ $# -ge 2 ]] || refuse "invalid option: $1 needs a change name"
+      [[ $# == 2 && "$2" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ && "$2" != archive ]] ||
+        refuse "invalid option: $1 needs one change ID"
       mode="${1#--}"
       change="$2"
-      shift 2
       ;;
     --help|-h)
+      [[ $# == 1 ]] || refuse 'use --help without other arguments'
       usage
       exit 0
+      ;;
+    '')
+      usage >&2
+      exit 2
       ;;
     *)
       refuse "unknown option: $1"
       ;;
-  esac
-done
+esac
 
 repo_root="$(git rev-parse --show-toplevel 2>/dev/null)" || refuse "not a git repository"
 # A repository may have no commit yet (a change proposed before the first
@@ -140,19 +159,31 @@ indexed() {
 # Nothing else references the tree of an uncommitted candidate, and git gc
 # prunes what nothing references: a baseline recorded at the start of a long
 # delivery would be gone by the time review-package needs it. One ref per
-# snapshot keeps it. A ref that cannot be written is reported and is not fatal:
-# the snapshot still identifies the candidate while the object lives.
+# snapshot keeps it. Without a ref the candidate cannot be used for recovery.
 keep_reachable() {
-  git -C "$repo_root" update-ref "refs/firefly/snapshots/$1" "$1" >/dev/null 2>&1 ||
-    echo "firefly snapshot: warning: could not keep $1 reachable (refs/firefly/snapshots/$1); git gc may prune it" >&2
+  git -C "$repo_root" update-ref "refs/firefly/snapshots/$1" "$1" ||
+    refuse "could not keep candidate reachable: $1"
 }
 
-if [[ "$mode" == candidate ]]; then
+if [[ "$mode" == candidate || "$mode" == check ]]; then
+  if [[ "$mode" == check ]]; then
+    git -C "$repo_root" cat-file -e "$expected^{tree}" || refuse "unknown candidate: $expected"
+    original_objects="$(git -C "$repo_root" rev-parse --path-format=absolute --git-path objects)"
+    mkdir -p "$tmp_dir/objects/info"
+    printf '%s\n' "$original_objects" > "$tmp_dir/objects/info/alternates"
+    export GIT_OBJECT_DIRECTORY="$tmp_dir/objects"
+  fi
   if $have_head; then indexed read-tree HEAD; else indexed read-tree --empty; fi
-  indexed add -A
   indexed rm -r --cached -q --ignore-unmatch -- "${PLANNING_PATHS[@]}"
+  exclusions=()
+  for excluded in "${PLANNING_PATHS[@]}"; do exclusions+=(":(top,exclude)$excluded"); done
+  indexed add -A -- . "${exclusions[@]}"
   tree="$(indexed write-tree)"
-  keep_reachable "$tree"
+  if [[ "$mode" == check ]]; then
+    [[ "$tree" == "$expected" ]] || refuse "worktree does not match candidate: $expected"
+  else
+    keep_reachable "$tree"
+  fi
   echo "$tree"
   exit 0
 fi

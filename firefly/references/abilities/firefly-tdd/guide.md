@@ -91,7 +91,7 @@ A test is worth writing first when it separates the old behavior from the intend
    - `pass` and `fail` need `--evidence` naming an existing path, put under `openspec/changes/<id>/evidence/<snapshot12>/`; a rerun gets a new location and never overwrites an earlier one.
    - `not-applicable` needs `--rule` naming the rule that applies and the reason.
    - `--note` is never omitted. It carries the conditions observed under — the test revision, the inputs and, for a red run, the expected failure reason — the expected outcome the scenario map row named when the observation was made, and the check that row named. The recorder writes them into the `Conditions` column (contract, Recording).
-   - Before the check, capture the inputs with `firefly snapshot` and `firefly snapshot --spec <id>`. Pass those exact values; later changes leave the observation historical. A rejected call writes nothing.
+   - Before the check, capture the inputs with `firefly snapshot worktree` and `firefly snapshot --spec <id>`. Pass those exact values; later changes leave the observation historical. A rejected call writes nothing.
 2. A test that serves no mapped row runs in the same cycle as part of the implementation's own verification; the observation rows are the checks the scenario map schedules.
 3. An alternative observation is trusted only where it produces different results on a candidate wrong for the promise and on a correct one. Where that separation cannot be shown, its result is `unverified`, never `pass`. A check skipped, cancelled or left without a result is recorded `unverified` (contract, Observation record).
 

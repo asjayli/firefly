@@ -69,6 +69,7 @@ assert_file_exists "$fake_log"
 assert_contains "$(cat "$fake_log")" "init --tools none ."
 assert_contains "$(cat "$fake_log")" "firefly-bootstrap."
 test ! -e "$project_dir/upstream-extra"
+assert_contains "$(cat "$project_dir/openspec/config.yaml")" '默认用简体中文'
 
 line_count="$(wc -l < "$fake_log" | tr -d ' ')"
 if [[ "$line_count" != "2" ]]; then

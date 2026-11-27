@@ -176,7 +176,7 @@ echo "handoff contract: review fixes present"
 #     snapshot command, and forbids hand-written rows.
 expect_text '## Recording'
 for call in 'firefly record mandate' 'firefly record observe' 'firefly record ready' \
-  'firefly record verdict' 'firefly record dispatch' 'firefly record budget' 'firefly snapshot'
+  'firefly record verdict' 'firefly record dispatch' 'firefly record budget' 'firefly snapshot worktree'
 do
   expect_text "$call"
 done

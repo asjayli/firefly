@@ -13,7 +13,7 @@
 # index or worktree.
 #
 # The candidate tree is the one firefly-snapshot.sh defines, so `--snapshot`
-# prints the same SHA as `firefly snapshot`. Pass that full SHA as TREE-SHA
+# prints the same SHA as `firefly snapshot worktree`. Pass that full SHA as TREE-SHA
 # to use a candidate that was captured earlier. The diff of every package leaves
 # out openspec/changes/ and openspec/think/: a change's spec package, task
 # package and records are judged on their own and never show up as candidate
@@ -70,7 +70,7 @@ resolve_outfile() {
 }
 
 if [ $# -eq 1 ] && [ "$1" = "--snapshot" ]; then
-  exec "$script_dir/firefly-snapshot.sh"
+  exec "$script_dir/firefly-snapshot.sh" worktree
 fi
 
 if [ $# -lt 2 ] || [ $# -gt 3 ]; then
@@ -83,7 +83,7 @@ head=$2
 
 git -C "$repo_root" cat-file -e "${base}^{tree}" 2>/dev/null || { echo "bad BASE tree: $base" >&2; exit 2; }
 if [ "$head" = "WORKTREE" ]; then
-  candidate=$("$script_dir/firefly-snapshot.sh")
+  candidate=$("$script_dir/firefly-snapshot.sh" worktree)
 elif [[ "$head" =~ ^([0-9a-f]{40}|[0-9a-f]{64})$ ]] &&
   [[ "$(git -C "$repo_root" cat-file -t "$head" 2>/dev/null)" == tree ]]; then
   candidate="$head"

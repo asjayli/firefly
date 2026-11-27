@@ -34,7 +34,7 @@
 +output: --observer implementer:<name>
 +output: --implemented-by-observer
 +output: `--note` is never omitted
-+output: Before the check, capture the inputs with `firefly snapshot` and `firefly snapshot --spec <id>`
++output: Before the check, capture the inputs with `firefly snapshot worktree` and `firefly snapshot --spec <id>`
 +output: a rerun gets a new location and never overwrites an earlier one
 
 # Verdicts and states: the watched failing run, the weak assertion, the

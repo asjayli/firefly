@@ -47,7 +47,7 @@ One accepted candidate, delivered as a pull request. The description is written 
 
 - The mandate record: `## Mandate` of `openspec/changes/<id>/proposal.md`. It names which of the five actions are authorized and where the fixed end lies.
 - The accepted candidate: the package identity of the accepted generation, its `brief.md` under `openspec/changes/<id>/evidence/<snapshot12>/<generation>/`, and the `ACCEPT` rows of every required role with their reservation lists in `## Review verdicts` of `.superpowers/sdd/progress.md`. The description's acceptance pointer cites these rows; a comparison package records no verdict rows, so its directory is never cited as acceptance evidence.
-- The candidate snapshot and the spec version, printed by `"<skill-root>/scripts/firefly.sh" snapshot` and `"<skill-root>/scripts/firefly.sh" snapshot --spec <id>`; the values the description cites are the ones the accepted generation's `brief.md` fixed.
+- The candidate snapshot and the spec version, printed by `"<skill-root>/scripts/firefly.sh" snapshot worktree` and `"<skill-root>/scripts/firefly.sh" snapshot --spec <id>`; the values the description cites are the ones the accepted generation's `brief.md` fixed.
 - The verification record and the evidence directory: `openspec/changes/<id>/verification.md`, `openspec/changes/<id>/evidence/<snapshot12>/`.
 - The measurement rerun method and its limits, handed over by firefly-perf when a measurement is part of the delivery.
 - The decision records and the glossary of firefly-docs, cited by path where a trade-off with lasting force matters to the merge decision.

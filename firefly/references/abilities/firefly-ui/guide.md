@@ -95,7 +95,7 @@ The implementer owns the interaction, the verifier owns the observations, and th
    - `pass` and `fail` need `--evidence` naming an existing path, put under `openspec/changes/<id>/evidence/<snapshot12>/`.
    - `not-applicable` needs `--rule` naming the rule that applies and the reason.
    - `--note` is never omitted: it carries the conditions observed under — the environment, the inputs, the viewport and zoom, the focus — the expected outcome the scenario map row named when the observation was made, and the check that row named. The recorder writes them into the `Conditions` column (contract, Recording).
-   - Before the check, capture the inputs with `firefly snapshot` and `firefly snapshot --spec <id>`. Pass those exact values; later changes leave the observation historical. A rejected call writes nothing.
+   - Before the check, capture the inputs with `firefly snapshot worktree` and `firefly snapshot --spec <id>`. Pass those exact values; later changes leave the observation historical. A rejected call writes nothing.
 3. The evidence shows the walk: the path taken, the state text seen at each step, and the result. A screenshot alone does not establish that the path was walked.
 4. What one path of evidence establishes: an automated scan finds a share of the semantic problems and establishes no comprehensible state transition; a screenshot establishes no keyboard access. Neither substitutes for the walked path.
 5. A path of the evidence missing when the check is made: record the row `unverified` with the reason, and return the gap named against the specific scenario it touches. The review judges whether it affects that scenario.

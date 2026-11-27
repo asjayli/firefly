@@ -12,11 +12,11 @@ metadata:
 
 Firefly is the entry point for all of its capabilities. The user decides what is delivered and what may change. The controller chooses the entry and the next step from the mandate. Read the [handoff contract](references/handoff-contract.md) before dispatching work. Each worker dispatch begins by pointing to the [worker instructions](references/worker.md). Load [project configuration](references/project-configuration.md) before using project extensions or choosing a model.
 
-Use the absolute directory containing this `SKILL.md` as `<skill-root>` in shell commands. Resolve paths inside a guide against the guide's directory unless it specifies `<skill-root>` or a project path. Give dispatched agents the absolute guide path and mandate. A named capability `firefly <name>` in the skill registry loads `references/abilities/firefly-<name>/guide.md` directly. `next` is defined here. For `init` and `repair`, read the matching guide under the same path.
+Use the absolute directory containing this `SKILL.md` as `<skill-root>` in shell commands. Resolve guide paths against the guide directory unless a path is expressed relative to `<skill-root>` or the project. Give dispatched agents the absolute guide path and mandate. Route a literal runtime command or `--help` to `"<skill-root>/scripts/firefly.sh"`. Load `references/abilities/firefly-<name>/guide.md` for a named workflow capability. `next` is defined here. For workflow initialization and repair read the matching guide. A task query uses the runtime and task planning uses the tasks guide.
 
 ## First use
 
-On explicit invocation, the controller runs `bash "<skill-root>/scripts/manage.sh" bootstrap` once before entering the requested capability. It checks or installs the user-level command and repair baseline from the bundled files and prints the command's absolute path. Then continue the requested capability in the same turn using the runtime beside this guide. Use the returned command for installation diagnosis and repair. If bootstrap fails, report the exact issue and continue using the bundled runtime where possible. For an explicit request forbidding user-directory writes, use the bundled runtime directly.
+Help, runtime queries, `next`, and read-only assessments use the bundled runtime and skip bootstrap and mandate writes. For the first explicitly requested workflow that permits writes, run `bash "<skill-root>/scripts/manage.sh" bootstrap` once unless the user forbids user-directory writes. It checks or installs the user-level command and repair baseline and prints its absolute path. Continue the requested capability in the same turn using the bundled runtime. If bootstrap fails, report the exact issue and continue with the bundle where possible. Diagnose or repair a specific installation by targeting that installation.
 
 ## When to use
 
@@ -33,7 +33,7 @@ On explicit invocation, the controller runs `bash "<skill-root>/scripts/manage.s
 
 ## Mandate
 
-At entry, record the mandate with `firefly record mandate` — the four fields id, objective, permitted effects and terminal condition (the runtime path is under Commands; the options are in the contract's Recording section). The user decides what is delivered and what may change; the controller chooses the entry and the next step from the mandate. A worker may recommend a next step; a worker cannot widen the mandate or approve its own candidate.
+At the entry to a workflow with write authority, record the mandate with `firefly record mandate` — the four fields id, objective, permitted effects and terminal condition (the runtime path is under Commands; the options are in the contract's Recording section). For a read-only workflow keep the mandate in the request context. The user decides what is delivered and what may change; the controller chooses the entry and the next step from the mandate. A worker may recommend a next step; a worker cannot widen the mandate or approve its own candidate.
 
 **Finish gate.** At entry, on an authorized change of scope, and on resumption, follow [Check whether the mandate can end](references/continuation.md#check-whether-the-mandate-can-end). Before a completion or escalation reply, run the gate and carry out its decision. An explicit user interruption takes effect immediately.
 
@@ -146,14 +146,14 @@ The two lists below are the registry, the single source of what exists. `firefly
 - `firefly new <change-id>` — scaffold the named change. The ID identifies the change directory and uses lowercase kebab case.
 - `firefly list [--json]` — list active changes and their IDs.
 - `firefly status [change-id] [--json]` and `firefly show [change-id] [--json]` — inspect artifact progress or change content. Pass the real change ID when known from the mandate. With no ID, either command selects the only active change. An empty or ambiguous list requires resolution. Read `firefly <command> --help` for argument meanings and examples.
-- `firefly spec [arguments]` — access instructions, templates, schemas, and other operations of the installed specification backend, currently OpenSpec. Within Firefly workflows, run commands through `"<skill-root>/scripts/firefly.sh"`. Use `init` and `validate` for project initialization and Chinese-compatible strict validation, and follow the `firefly docs` and `firefly archive` guides for spec sync and archive. The command prefix grants no additional effects.
+- `firefly spec <instructions|templates|schemas>` — query the specification backend for the local project. Use `spec raw <command>` only for a user-requested native operation under its own authority. Within Firefly workflows use `init` and `validate` for project initialization and Chinese-compatible strict validation, and follow `firefly docs` and `firefly archive` for spec sync and archive.
 - `firefly doctor` — inspect this skill package and report `OK`, `MISS` or `DRIFT` against its installation baseline. The command is read-only.
 - `firefly config [--root PROJECT]` — verify project playbook anchors and resolve model preferences.
 - `firefly repair` — repair missing or drifted firefly-managed assets from firefly-owned copies, preserving backups before replacement.
-- `firefly validate [change-id] [--root <project-root>]` — strictly validate one change and its matching main specs, or the whole project when no change is specified.
-- `firefly tasks [arguments]` — list unfinished tasks across all active, unarchived changes; the read-only task overview.
+- `firefly validate <change-id|all> [--root <project-root>]` — strictly validate one change and its matching main specs. Use explicit `all` for the whole project.
+- `firefly tasks <change-id|all> [--root <project-root>]` — list unfinished tasks for one active change. Use explicit `all` for every active change. When passing a known change ID to either command, use `-- <change-id>` as the final arguments so an ID named `all` stays scoped.
 - `firefly diagram <feature-name> <output-directory>` — produce a timestamped Mermaid source and rendered SVG using the [Mermaid guide](references/abilities/mermaid-diagram-specialist/guide.md). Place workflow diagrams under `openspec/think/` to keep them outside the candidate snapshot.
-- `firefly snapshot` — print the candidate snapshot of the worktree; with `--spec <id>` and `--tasks <id>`, the spec package version and the task package version.
+- `firefly snapshot worktree` — persist the candidate snapshot of the worktree. Use `--check <candidate-sha>` for a non-persisting comparison, or `--spec <id>` and `--tasks <id>` for package versions.
 - `firefly record <subcommand> [options]` — append one validated row to a handoff carrier; see `firefly record --help`.
 
 ### Skill subcommands

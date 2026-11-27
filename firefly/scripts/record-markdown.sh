@@ -13,6 +13,9 @@ append_row() (
   command -v flock >/dev/null || refuse "flock is required to update the carrier"
   exec 9<"$dir"
   flock -x 9 || refuse "cannot lock carrier directory: $dir"
+  if [[ -L "$file" || ( -e "$file" && ! -f "$file" ) ]]; then
+    refuse "carrier is not a regular file: $file"
+  fi
   source="$file"
   [[ -f "$file" ]] || source=/dev/null
   sep="$(printf '%s\n' "$header" | awk -F'|' '{ out = ""; for (i = 2; i < NF; i++) out = out "---|"; print "|" out }')"

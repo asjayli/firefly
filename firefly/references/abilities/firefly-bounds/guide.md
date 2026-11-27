@@ -104,7 +104,7 @@ A quality constraint is agreed before implementation and judged method first, nu
    - `pass` and `fail` need `--evidence` naming an existing path, put under `openspec/changes/<id>/evidence/<snapshot12>/`.
    - `not-applicable` needs `--rule` naming the rule that applies and the reason.
    - `--note` is never omitted: it carries the conditions observed under, the expected outcome the scenario map row named when the observation was made, and the check that row named. The recorder writes them into the `Conditions` column (contract, Recording).
-   - Before the check, capture the inputs with `firefly snapshot` and `firefly snapshot --spec <id>`. Pass those exact values; later changes leave the observation historical. A rejected call writes nothing.
+   - Before the check, capture the inputs with `firefly snapshot worktree` and `firefly snapshot --spec <id>`. Pass those exact values; later changes leave the observation historical. A rejected call writes nothing.
 3. The implementer's own run documents a deviation; it never replaces this row.
 
 ### 7. Return the interpretation: the adjudication order

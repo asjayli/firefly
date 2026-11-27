@@ -49,7 +49,7 @@ One diagnosis at a time. A feedback signal that distinguishes faulty from normal
 - **The failure.** From a `firefly-implement` handoff: the failing scenario, the trigger input, the candidate snapshot and the evidence. From an investigation mandate: the symptom as the requester described it, with the input, revision and environment the report names.
 - **The mandate in force.** The newest row of `## Mandate` of the change, or of `## Mandates` when the work has no change (contract, Mandate record). When this skill is named directly, the recorded mandate must cover the writes this skill makes; when it does not, see `## Stop and escalate`.
 - **The scenario map** of the change, `## Scenario map` in `openspec/changes/<id>/tasks.md`: the row of the failing scenario names the task group whose task item list takes the write-back (step 7).
-- **The versions.** The candidate snapshot from `"<skill-root>/scripts/firefly.sh" snapshot`, the spec package version from `"<skill-root>/scripts/firefly.sh" snapshot --spec <id>`; nobody derives a version by hand (contract, Recording).
+- **The versions.** The candidate snapshot from `"<skill-root>/scripts/firefly.sh" snapshot worktree`, the spec package version from `"<skill-root>/scripts/firefly.sh" snapshot --spec <id>`; nobody derives a version by hand (contract, Recording).
 
 ## Procedure
 

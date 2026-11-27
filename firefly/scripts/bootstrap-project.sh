@@ -7,7 +7,7 @@ usage() {
 Bootstrap OpenSpec in the current project.
 
 Usage:
-  $(basename "$0") [--help] [project_dir]
+  firefly init [project_dir]
 
 Behavior:
   - checks whether OpenSpec is already initialized in the target directory
@@ -166,6 +166,14 @@ main() (
   )
   config="$stage/project/openspec/config.yaml"
   [[ -f "$config" && ! -L "$config" ]] || { echo "OpenSpec did not create a regular config.yaml" >&2; return 1; }
+  if ! grep -q '^context:' "$config"; then
+    cat >> "$config" <<'EOF'
+
+context: |
+  默认用简体中文撰写提案、规格正文、设计和任务。明确的项目语言要求优先。
+  保留 OpenSpec 的英文结构关键字和机器可读标识。
+EOF
+  fi
   assert_initializer_tree_safe "$project_dir/openspec"
   mkdir -p -- "$project_dir/openspec/specs" "$project_dir/openspec/changes"
   (set -o noclobber; cat -- "$config" > "$project_dir/openspec/config.yaml")

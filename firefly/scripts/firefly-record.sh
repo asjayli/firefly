@@ -181,9 +181,11 @@ file_name() {
 # use_change <id> — require the change directory and set CHANGE_DIR.
 use_change() {
   local id="$1"
-  [[ "$id" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ && -d "$repo_root/openspec/changes/$id" ]] \
+  [[ "$id" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ && "$id" != archive && -d "$repo_root/openspec/changes/$id" ]] \
     || refuse "invalid change: $id"
   CHANGE_DIR="$repo_root/openspec/changes/$id"
+  [[ ! -L "$repo_root/openspec" && ! -L "$repo_root/openspec/changes" && ! -L "$CHANGE_DIR" ]] ||
+    refuse "refusing symlinked change path: $CHANGE_DIR"
 }
 
 # use_workspace — locate the progress ledger directory and set LEDGER, its

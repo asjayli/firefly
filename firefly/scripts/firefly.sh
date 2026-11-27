@@ -21,13 +21,14 @@ usage() {
   list [--json]                   列出活跃变更及其 ID
   status [变更ID] [--json]        查看变更的制品进度
   show [变更ID] [--json]          查看变更内容
-  validate [变更ID] [--root 目录]  严格校验整个项目或指定变更
-  tasks [目录]                    列出未完成任务
+  validate <变更ID|all> [--root 目录]  严格校验指定变更或整个项目
+  tasks <变更ID|all> [--root 目录]     列出指定范围的未完成任务
   doctor [--upstreams]            检查安装或显示上游版本
 
 其他入口
-  config、repair、diagram、snapshot、record
-  spec --help                     查看规格后端的完整命令
+  snapshot worktree              固定候选快照并保留 Git 引用
+  config、repair、diagram、record
+  spec --help                     查看规格查询和原生通道
 
 用 firefly <命令> --help 查看参数和示例。
 EOF
@@ -37,7 +38,10 @@ command_name="${1:-help}"
 if [[ $# == 2 && ( "$2" == --help || "$2" == -h ) ]]; then
   case "$command_name" in
     doctor)
-      printf '%s\n' '用法：firefly doctor [--upstreams]' '  --upstreams  可选。展示上游依赖版本。省略则检查当前安装。'
+      printf '%s\n' '用法：firefly doctor [--upstreams | --skill-dir 目录 | --skills-dir 目录]' \
+        '  --upstreams   展示上游依赖版本。' \
+        '  --skill-dir   检查目标技能目录。' \
+        '  --skills-dir  检查该父目录下的 firefly。省略目标时检查当前安装。'
       exit 0
       ;;
     config)
@@ -45,7 +49,10 @@ if [[ $# == 2 && ( "$2" == --help || "$2" == -h ) ]]; then
       exit 0
       ;;
     repair)
-      printf '%s\n' '用法：firefly repair' '  从安装基线修复受管文件，并保留替换前的备份。'
+      printf '%s\n' '用法：firefly repair [--skill-dir 目录 | --skills-dir 目录]' \
+        '  --skill-dir   修复目标技能目录。' \
+        '  --skills-dir  修复该父目录下的 firefly。省略目标时修复当前安装。' \
+        '  使用目标的安装基线，并保留替换前的备份。'
       exit 0
       ;;
   esac
@@ -64,11 +71,11 @@ case "$command_name" in
     ;;
   spec)
     shift
-    if ! command -v openspec >/dev/null 2>&1; then
-      printf '%s\n' 'firefly: openspec is not installed or not on PATH' >&2
-      exit 127
+    if [[ $# == 0 ]]; then
+      printf '%s\n' '请指定规格后端命令，或用 firefly spec --help 查看可用命令。' >&2
+      exit 2
     fi
-    exec openspec "$@"
+    exec node "$SCRIPT_DIR/spec-commands.mjs" spec "$@"
     ;;
   tasks)
     shift

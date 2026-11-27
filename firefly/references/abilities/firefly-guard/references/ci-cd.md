@@ -41,7 +41,7 @@ Every result carries the candidate snapshot, the check, the status, the redacted
 
   `"<skill-root>/scripts/firefly.sh" record observe --change <id> --candidate <tree-sha> --spec <version> --scenario <S-xxx> --check <name> --result <pass|fail|unverified|not-applicable> --observer verifier:firefly-guard [--evidence <path>] [--rule <text>] --note "<conditions observed under, the pipeline run included; the expected outcome the scenario map row named when observed; the check that row named>"`
 
-- The evidence goes under `openspec/changes/<id>/evidence/<snapshot12>/`, redacted: no report contents, no credentials, no raw sensitive output. Before the check, capture the inputs with `firefly snapshot` and `firefly snapshot --spec <id>`. Pass those exact values; later changes leave the observation historical.
+- The evidence goes under `openspec/changes/<id>/evidence/<snapshot12>/`, redacted: no report contents, no credentials, no raw sensitive output. Before the check, capture the inputs with `firefly snapshot worktree` and `firefly snapshot --spec <id>`. Pass those exact values; later changes leave the observation historical.
 
 ## Results that arrive outside a session
 

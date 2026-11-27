@@ -100,9 +100,28 @@ assert_file_exists "$mmd_path"
 assert_file_exists "$svg_path"
 assert_file_exists "$config_log"
 assert_file_contains "$mmd_path" "sequenceDiagram"
-assert_file_contains "$svg_path" "data-source=\"$mmd_path\""
+assert_file_contains "$svg_path" "20260320-120101-login-flow.mmd"
 assert_file_contains "$args_log" "-p"
 assert_file_contains "$config_log" "\"executablePath\": \"$fake_chrome\""
+
+if printf '%s\n' 'replacement' |
+  PATH="$bin_dir:$PATH" ARGS_LOG="$args_log" CONFIG_LOG="$config_log" MMDC_BIN="$bin_dir/mmdc" \
+    FIREFLY_DRAW_TIMESTAMP=20260320-120101 "$SCRIPT" login-flow "$tmp_dir/out"; then
+  echo 'diagram should reject existing outputs' >&2
+  exit 1
+fi
+assert_file_contains "$mmd_path" 'sequenceDiagram'
+if "$SCRIPT" login-flow "$tmp_dir/unexpected" --bad; then
+  echo 'diagram should reject extra arguments' >&2
+  exit 1
+fi
+test ! -e "$tmp_dir/unexpected"
+if printf '%s\n' 'render fails' | MMDC_BIN=false FIREFLY_DRAW_TIMESTAMP=20260320-120101 \
+  "$SCRIPT" broken "$tmp_dir/out"; then
+  echo 'diagram should fail when rendering fails' >&2
+  exit 1
+fi
+test ! -e "$tmp_dir/out/20260320-120101-broken.mmd"
 
 # A timestamp is part of the generated filename, so an environment override
 # must not be able to escape the caller-selected output directory.

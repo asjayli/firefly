@@ -50,7 +50,7 @@ This skill defines the user's clock first, then measures under recorded conditio
 
 - The mandate record: which entry this is and what its permitted effects cover.
 - Named entry: the slow path or the comparison asked for, and the interval of the wait the requester means.
-- The change `openspec/changes/<id>` and the candidate measured: `firefly snapshot` fixes the candidate before the first measurement record is written.
+- The change `openspec/changes/<id>` and the candidate measured: `firefly snapshot worktree` fixes the candidate before the first measurement record is written.
 - The constraint entry beside the affected scenario, when one exists: the criterion, the measurement method, the baseline source and the consequence of failure it records (firefly-bounds).
 - From a review dispatch or a scenario map row: the affected checks and the rows of `## Scenario map` in `openspec/changes/<id>/tasks.md` that name them — the check with its command or step, the expected outcome, the verifier — together with the candidate snapshot and the spec version the observations are made on.
 - On resumption: the measurement records already under `openspec/changes/<id>/evidence/<snapshot12>/` and the observation rows already written.
@@ -99,7 +99,7 @@ Run each affected check under the measurement method the constraint entry and th
    - `pass` and `fail` need `--evidence` naming an existing path, put under `openspec/changes/<id>/evidence/<snapshot12>/`.
    - `not-applicable` needs `--rule` naming the rule that applies and the reason.
    - `--note` is never omitted: it carries the conditions observed under, the expected outcome the scenario map row named when the observation was made, and the check that row named. The recorder writes them into the `Conditions` column (contract, Recording).
-   - Before the check, capture the inputs with `firefly snapshot` and `firefly snapshot --spec <id>`. Pass those exact values; later changes leave the observation historical. A rejected call writes nothing.
+   - Before the check, capture the inputs with `firefly snapshot worktree` and `firefly snapshot --spec <id>`. Pass those exact values; later changes leave the observation historical. A rejected call writes nothing.
    - The observer did not implement the candidate, so `--implemented-by-observer` is never set here.
 
 Return per check: the scenario, the check, the measurement method used, the result (`pass`, `fail` or `unverified`) and the evidence pointer. The verdict — `ACCEPT`, `REVISE`, `RECHECK` or `INSUFFICIENT_EVIDENCE` — is the independent reviewer's to issue, never this skill's.

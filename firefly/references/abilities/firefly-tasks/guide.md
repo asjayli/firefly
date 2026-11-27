@@ -46,7 +46,7 @@ The shared rules are in `<skill-root>/references/handoff-contract.md`. This skil
 **Permitted effects**
 
 - Planning entry: write `openspec/changes/<id>/tasks.md`, and nothing else.
-- Planning entry: run `"<skill-root>/scripts/firefly.sh" validate --root <project-root> <id>` and `"<skill-root>/scripts/firefly.sh" snapshot --spec <id>`; neither writes a carrier.
+- Planning entry: run `"<skill-root>/scripts/firefly.sh" validate --root <project-root> -- <id>` and `"<skill-root>/scripts/firefly.sh" snapshot --spec <id>`; neither writes a carrier.
 - Query entry: none.
 
 **Not granted**
@@ -227,12 +227,12 @@ The joint decision checks a task package for failure branches, cycles, non-repla
 12. Under a proposal-only mandate, the return lists the writes and the side effects the task groups need, as the task package declares them, and says whether a task group needs a child worktree, a local commit or a merge into the target baseline; those three are granted only by the request's words. The delivery mandate is recorded from the request's words plus what the task package declares (`firefly-implement`).
 13. No field, command or row is left as a placeholder.
 
-Before the handover, run `"<skill-root>/scripts/firefly.sh" validate --root <project-root> <id>`. The validator as shipped reads the spec package and not `tasks.md`: the task package is judged by the list above. A failure that names this change's `tasks.md` is repaired here and the command is rerun. A failure that names anything else is returned to the controller as it is: it is not this skill's to repair.
+Before the handover, run `"<skill-root>/scripts/firefly.sh" validate --root <project-root> -- <id>`. The validator as shipped reads the spec package and not `tasks.md`: the task package is judged by the list above. A failure that names this change's `tasks.md` is repaired here and the command is rerun. A failure that names anything else is returned to the controller as it is: it is not this skill's to repair.
 
 ### List tasks (query entry)
 
-1. Run `"<skill-root>/scripts/firefly.sh" tasks [project_dir]`. Without `project_dir` it reads the current directory.
-2. Report the output as printed: active, unarchived changes by creation time ascending, each with only its unfinished checklist items. A change with no unfinished item is not listed.
+1. For a known target, run `"<skill-root>/scripts/firefly.sh" tasks --root "<project-root>" -- "<change-id>"`. Use `tasks all --root "<project-root>"` for a requested project-wide overview. Use `list` when the query leaves the target unclear.
+2. Report unfinished checklist items and distinguish changes whose task file has not been generated. The all-changes view sorts by change metadata modification time, using the directory time when metadata is absent.
 
 The listing reads the same `tasks.md` the planning entry wrote; there is no second ticket list to maintain. A ticked or an unticked item says nothing about the ready decision: whether a change may start is read only from `## Ready decision`, by the version comparison under "Handoffs".
 

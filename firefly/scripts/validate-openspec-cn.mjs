@@ -4,6 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
+import { activeChangeIds, localPath, projectRoot } from './project-paths.mjs';
 
 const ENGLISH_MODAL_PATTERN = /\b(?:SHALL|MUST)\b/;
 const CHINESE_MODAL_PATTERN = /必须|不得|禁止|应当/;
@@ -19,9 +20,12 @@ const UNSUPPORTED_CHINESE_STRUCTURE = [
 function parseOptions(args) {
   let root;
   let change;
+  let literal = false;
   for (let i = 0; i < args.length; i += 1) {
     const arg = args[i];
-    if (arg === '--root' && root === undefined && args[i + 1] && !args[i + 1].startsWith('-')) {
+    if (arg === '--' && !literal && change === undefined && i === args.length - 2) {
+      literal = true;
+    } else if (!literal && arg === '--root' && root === undefined && args[i + 1] && !args[i + 1].startsWith('-')) {
       root = args[++i];
     } else if (change === undefined && /^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(arg) && arg !== 'archive') {
       change = arg;
@@ -29,7 +33,10 @@ function parseOptions(args) {
       throw new Error(`无效参数：${arg}。请运行 firefly validate --help。`);
     }
   }
-  return { root: path.resolve(root ?? '.'), change };
+  if (change === undefined) {
+    throw new Error('请指定变更 ID（用 firefly list 查询），或运行 firefly validate all 校验整个项目。');
+  }
+  return { root, change: !literal && change === 'all' ? undefined : change };
 }
 
 function specFiles(directory) {
@@ -175,25 +182,21 @@ function collectInspections(root) {
   ].map(entry => ({ ...entry, ...inspectSpec(root, entry.filePath, entry.mainSpec) }));
 }
 
-function copyTreeDereferenced(src, dst, ancestors = new Set()) {
-  const srcStat = fs.lstatSync(src);
-  if (srcStat.isSymbolicLink()) {
-    const resolved = fs.realpathSync(src);
-    return copyTreeDereferenced(resolved, dst, ancestors);
-  }
+function copyTreeDereferenced(src, dst, root, ancestors = new Set()) {
+  const identity = localPath(root, src);
+  const srcStat = fs.statSync(identity);
   if (srcStat.isDirectory()) {
-    const identity = fs.realpathSync(src);
     if (ancestors.has(identity)) throw new Error(`OpenSpec 输入包含目录循环：${src}`);
     const next = new Set(ancestors).add(identity);
     fs.mkdirSync(dst, { recursive: true });
-    for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
-      copyTreeDereferenced(path.join(src, entry.name), path.join(dst, entry.name), next);
+    for (const entry of fs.readdirSync(identity, { withFileTypes: true })) {
+      copyTreeDereferenced(path.join(identity, entry.name), path.join(dst, entry.name), root, next);
     }
     return;
   }
   if (srcStat.isFile()) {
     fs.mkdirSync(path.dirname(dst), { recursive: true });
-    fs.copyFileSync(src, dst);
+    fs.copyFileSync(identity, dst);
     return;
   }
   throw new Error(`unsupported file type at ${src}`);
@@ -205,25 +208,18 @@ function stageInputs(root, stagingRoot, change) {
   const config = projectConfig(root);
   function copy(relative) {
     const input = path.join(source, relative);
-    if (fs.existsSync(input)) copyTreeDereferenced(input, path.join(target, relative));
+    if (fs.existsSync(input)) copyTreeDereferenced(input, path.join(target, relative), root);
   }
   copy(path.basename(config));
   requireSpecDriven(projectConfig(stagingRoot));
   copy('schemas');
   fs.mkdirSync(path.join(target, 'changes'), { recursive: true });
   fs.mkdirSync(path.join(target, 'specs'), { recursive: true });
-  const changes = path.join(source, 'changes');
-  const names = change ? [change] : fs.existsSync(changes)
-    ? fs.readdirSync(changes, { withFileTypes: true })
-      .filter(entry => entry.isDirectory() && entry.name !== 'archive' && !entry.name.startsWith('.'))
-      .map(entry => entry.name)
-    : [];
+  const names = change ? [change] : activeChangeIds(root);
+  const incomplete = names.filter(name => !fs.existsSync(path.join(source, 'changes', name, 'proposal.md')));
+  if (incomplete.length) throw new Error(`未找到活跃变更的 proposal.md：${incomplete.join('、')}`);
   for (const name of names) {
     const relative = path.join('changes', name);
-    if (!fs.existsSync(path.join(source, relative, 'proposal.md'))) {
-      if (change) throw new Error(`未找到活跃变更的 proposal.md：${change}`);
-      continue;
-    }
     for (const entry of ['proposal.md', 'design.md', 'tasks.md', '.openspec.yaml', 'specs']) {
       copy(path.join(relative, entry));
     }
@@ -284,16 +280,26 @@ function runNativeValidation(stagingRoot, change) {
 function main() {
   const args = process.argv.slice(2);
   if (args.length === 1 && ['--help', '-h'].includes(args[0])) {
-    console.log(`用法：firefly validate [变更ID] [--root 目录]
-  [变更ID]  可选。用 firefly list 查询。提供后校验该变更及对应主规格，省略则校验整个项目。
-  --root    可选。项目目录，默认当前目录。
-示例：firefly validate export-report（export-report 是示例变更 ID）。`);
+    console.log(`用法：firefly validate <变更ID|all> [--root 目录]
+  变更ID    校验该活跃变更和对应主规格。用 firefly list 查询 ID。
+  all      校验整个项目，可能耗时较长。必须显式指定校验目标。
+  --root    可选。指定项目根，默认从当前目录向上查找本地项目。
+示例：firefly validate all
+      firefly validate export-report（export-report 是示例变更 ID）
+      firefly validate -- all（只校验 ID 恰好为 all 的变更）`);
     return 0;
   }
-  const { root, change } = parseOptions(args);
+  let options;
+  try {
+    options = parseOptions(args);
+  } catch (error) {
+    console.error(error.message);
+    return 2;
+  }
+  const { root, change } = options;
   const stagingRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'firefly-openspec-cn-'));
   try {
-    stageInputs(root, stagingRoot, change);
+    stageInputs(projectRoot(root), stagingRoot, change);
     const inspections = collectInspections(stagingRoot);
     const issues = inspections.flatMap(inspection => inspection.issues);
     if (issues.length) {

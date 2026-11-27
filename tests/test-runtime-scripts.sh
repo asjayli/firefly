@@ -96,17 +96,54 @@ git -C "$snap_repo" config user.name "firefly Test"
 git -C "$snap_repo" add -A
 git -C "$snap_repo" commit -qm base
 
-clean_snapshot="$(cd "$snap_repo/src" && "$SNAPSHOT")"
+if (cd "$snap_repo" && "$SNAPSHOT") > "$tmp_dir/snapshot-no-scope" 2>&1; then
+  echo 'snapshot should reject an omitted scope' >&2
+  exit 1
+fi
+assert_eq '' "$(git -C "$snap_repo" for-each-ref refs/firefly/snapshots/)"
+
+git -C "$snap_repo" update-ref refs/firefly/snapshots HEAD
+if failed_snapshot="$(cd "$snap_repo" && "$SNAPSHOT" worktree 2> "$tmp_dir/ref-error")"; then
+  echo 'snapshot should fail when its candidate ref cannot be created' >&2
+  exit 1
+fi
+assert_eq '' "$failed_snapshot"
+git -C "$snap_repo" update-ref -d refs/firefly/snapshots
+
+clean_snapshot="$(cd "$snap_repo/src" && "$SNAPSHOT" worktree)"
 assert_eq "$(git -C "$snap_repo" rev-parse 'HEAD^{tree}')" "$clean_snapshot"
 echo "ok snapshot: a clean repository equals HEAD^{tree}, also from a nested directory"
 
+mkdir -p "$snap_repo/openspec/think"
+printf 'unindexed planning evidence from the fixture\n' > "$snap_repo/openspec/think/local.md"
+planning_blob="$(git -C "$snap_repo" hash-object "$snap_repo/openspec/think/local.md")"
+assert_eq "$clean_snapshot" "$(cd "$snap_repo" && "$SNAPSHOT" worktree)"
+if git -C "$snap_repo" cat-file -e "$planning_blob"; then
+  echo 'snapshot wrote an excluded file to the object store' >&2
+  exit 1
+fi
+mv "$snap_repo/openspec/think/local.md" "$tmp_dir/local.md"
+
+refs_before="$(git -C "$snap_repo" for-each-ref refs/firefly/snapshots/)"
+assert_eq "$clean_snapshot" "$(cd "$snap_repo" && "$SNAPSHOT" --check "$clean_snapshot")"
+assert_eq "$refs_before" "$(git -C "$snap_repo" for-each-ref refs/firefly/snapshots/)"
+
 printf 'more\n' >> "$snap_repo/a.txt"
 printf 'untracked\n' > "$snap_repo/b.txt"
+changed_blob="$(git -C "$snap_repo" hash-object "$snap_repo/b.txt")"
+if (cd "$snap_repo" && "$SNAPSHOT" --check "$clean_snapshot") > "$tmp_dir/nonmatching-candidate" 2>&1; then
+  echo 'candidate check should detect a changed worktree' >&2
+  exit 1
+fi
+if git -C "$snap_repo" cat-file -e "$changed_blob"; then
+  echo 'candidate check wrote to the shared object store' >&2
+  exit 1
+fi
 # The baseline is taken after the edits: taking the snapshot must not change
 # what git reports about the worktree.
 git -C "$snap_repo" status --porcelain > "$tmp_dir/status-before"
 git -C "$snap_repo" diff --cached > "$tmp_dir/index-before"
-dirty_snapshot="$(cd "$snap_repo" && "$SNAPSHOT")"
+dirty_snapshot="$(cd "$snap_repo" && "$SNAPSHOT" worktree)"
 git -C "$snap_repo" status --porcelain > "$tmp_dir/status-after"
 git -C "$snap_repo" diff --cached > "$tmp_dir/index-after"
 if [[ "$dirty_snapshot" == "$clean_snapshot" ]]; then
@@ -119,7 +156,7 @@ src/s.js" "$(git -C "$snap_repo" ls-tree -r --name-only "$dirty_snapshot")"
 output_has "$(git -C "$snap_repo" show "$dirty_snapshot:a.txt")" "more"
 cmp "$tmp_dir/status-before" "$tmp_dir/status-after"
 cmp "$tmp_dir/index-before" "$tmp_dir/index-after"
-assert_eq "$dirty_snapshot" "$(cd "$snap_repo" && "$SNAPSHOT")"
+assert_eq "$dirty_snapshot" "$(cd "$snap_repo" && "$SNAPSHOT" worktree)"
 echo "ok snapshot: an edit and an untracked file change it; status and index stay as they were; it repeats"
 
 # The candidate is the implementation. A change's own products and records
@@ -134,7 +171,7 @@ printf 'Why\n' > "$snap_repo/$planning/proposal.md"
 printf 'minutes\n' > "$snap_repo/openspec/think/2026-11-25-c1.md"
 git -C "$snap_repo" add -A
 git -C "$snap_repo" commit -qm planning
-implementation="$(cd "$snap_repo" && "$SNAPSHOT")"
+implementation="$(cd "$snap_repo" && "$SNAPSHOT" worktree)"
 output_lacks "$(git -C "$snap_repo" ls-tree -r --name-only "$implementation")" 'openspec/'
 printf 'row\n' > "$snap_repo/$planning/verification.md"
 printf 'diff\n' > "$snap_repo/$planning/evidence/pkg/package.diff"
@@ -143,12 +180,12 @@ printf '#### Scenario: b (S-2)\n' > "$snap_repo/$planning/specs/spec-b.md"
 printf '## Mandate\n' >> "$snap_repo/$planning/proposal.md"
 printf 'more\n' >> "$snap_repo/openspec/think/2026-11-25-c1.md"
 sed -i 's/^- \[ \] 1.1 do/- [x] 1.1 do/' "$snap_repo/$planning/tasks.md"
-assert_eq "$implementation" "$(cd "$snap_repo" && "$SNAPSHOT")"
+assert_eq "$implementation" "$(cd "$snap_repo" && "$SNAPSHOT" worktree)"
 git -C "$snap_repo" add -A
 git -C "$snap_repo" commit -qm records
-assert_eq "$implementation" "$(cd "$snap_repo" && "$SNAPSHOT")"
+assert_eq "$implementation" "$(cd "$snap_repo" && "$SNAPSHOT" worktree)"
 printf 'code change\n' >> "$snap_repo/src/s.js"
-if [[ "$(cd "$snap_repo" && "$SNAPSHOT")" == "$implementation" ]]; then
+if [[ "$(cd "$snap_repo" && "$SNAPSHOT" worktree)" == "$implementation" ]]; then
   echo "FAIL: a product code edit did not change the snapshot" >&2
   exit 1
 fi
@@ -199,7 +236,7 @@ cd "$ROOT_DIR"
 echo "ok snapshot --spec / --tasks: content-addressed; records, ticks and unrelated commits do not change them"
 
 # One candidate tree: review-package takes it from firefly-snapshot.sh, so
-# `--snapshot` agrees with `firefly snapshot` and a WORKTREE package names the
+# `--snapshot` agrees with `firefly snapshot worktree` and a WORKTREE package names the
 # candidate files only.
 cd "$snap_repo"
 sed -i 's/^- \[x\] 1.1 do it/- [ ] 1.1 do it/' openspec/changes/c1/tasks.md
@@ -207,14 +244,14 @@ git commit -qam untick
 printf 'code change\n' >> a.txt
 printf 'record\n' >> openspec/changes/c1/verification.md
 printf 'log\n' > openspec/changes/c1/evidence/after-commit.log
-snapshot="$(cd "$snap_repo" && "$SNAPSHOT")"
+snapshot="$(cd "$snap_repo" && "$SNAPSHOT" worktree)"
 assert_eq "$snapshot" "$(cd "$snap_repo/src" && "$REVIEW_PACKAGE" --snapshot)"
 package="openspec/changes/c1/evidence/${snapshot:0:12}/1/package.diff"
 mkdir -p "$snap_repo/$(dirname "$package")"
 output_has "$(cd "$snap_repo/src" && "$REVIEW_PACKAGE" HEAD WORKTREE "$snap_repo/$package")" "wrote $snap_repo/$package"
 assert_eq "diff --git a/a.txt b/a.txt" "$(grep '^diff --git' "$snap_repo/$package")"
 output_lacks "$(cat "$snap_repo/$package")" 'openspec/'
-assert_eq "$snapshot" "$(cd "$snap_repo" && "$SNAPSHOT")"
+assert_eq "$snapshot" "$(cd "$snap_repo" && "$SNAPSHOT" worktree)"
 printf 'later work\n' >> a.txt
 pinned_package="openspec/changes/c1/evidence/${snapshot:0:12}/1/pinned.diff"
 "$REVIEW_PACKAGE" HEAD "$snapshot" "$pinned_package" >/dev/null
@@ -233,7 +270,7 @@ touch openspec/changes/c1/specs/ignored.md
 spec_with_ignored_file="$("$SNAPSHOT" --spec c1)"
 [[ "$spec_with_ignored_file" == wt:* && "$spec_before_ignore" != "${spec_with_ignored_file#wt:}" ]]
 cd "$ROOT_DIR"
-echo "ok review-package: --snapshot equals firefly snapshot; packages name the implementation only, planning products never appear"
+echo "ok review-package: --snapshot equals firefly snapshot worktree; packages name the implementation only, planning products never appear"
 
 # not_git <label> <command...> — run outside any repository and leave the
 # single output line in OUTPUT: exit 2, and no file is created.
@@ -249,7 +286,7 @@ not_git() {
   assert_eq 1 "$(printf '%s\n' "$OUTPUT" | wc -l)"
   assert_eq "$before" "$(tree_digest "$dir")"
 }
-not_git snapshot "$SNAPSHOT"
+not_git snapshot "$SNAPSHOT" worktree
 assert_eq "firefly snapshot: not a git repository" "$OUTPUT"
 echo "negative: rejected (snapshot: not a git repository, nothing written)"
 
@@ -316,7 +353,7 @@ test_record() {
 
   spec_version="$("$SNAPSHOT" --spec c1)"
   assert_eq "$(git rev-parse "HEAD:$change/specs" | cut -c1-12)" "$spec_version"
-  snapshot="$("$SNAPSHOT")"
+  snapshot="$("$SNAPSHOT" worktree)"
   "$RECORD" observe --change c1 --scenario S-1 --check file-content --result fail --observer verifier:amy \
     --candidate "$snapshot" --spec "$spec_version" --evidence "$change/evidence/e1.txt" --note "chrome 120, 1280x720" > /dev/null
   first="$(rows "$change/verification.md")"
@@ -324,7 +361,7 @@ test_record() {
   assert_eq 1 "$(rows "$change/verification.md" | wc -l)"
   echo "ok record observe: fail with evidence; candidate equals the snapshot taken before the write; spec is the spec package version (the tree of specs/) while the specs are clean"
 
-  assert_eq "$snapshot" "$("$SNAPSHOT")"
+  assert_eq "$snapshot" "$("$SNAPSHOT" worktree)"
   echo "ok record observe: the snapshot taken after the write still equals the recorded candidate"
 
   "$RECORD" observe --change c1 --scenario S-1 --check retry --result unverified --observer implementer:dan --implemented-by-observer \
@@ -337,7 +374,7 @@ test_record() {
   printf '#### Scenario: owner recovers (S-1)\n\n- edited\n' > "$change/specs/x/spec.md"
   old_snapshot="$snapshot"
   touch later-implementation.txt
-  snapshot="$("$SNAPSHOT")"
+  snapshot="$("$SNAPSHOT" worktree)"
   dirty_spec="$("$SNAPSHOT" --spec c1)"
   [[ "$dirty_spec" =~ ^wt:[0-9a-f]{12}$ && "$dirty_spec" != "wt:$spec_version" ]] || { echo "FAIL: dirty spec version is $dirty_spec" >&2; exit 1; }
   "$RECORD" observe --change c1 --scenario S-1 --check ui --result not-applicable --observer reviewer:bo --rule "no UI change" \
@@ -443,6 +480,14 @@ not_git record "$RECORD" observe --change c1 --scenario S-1 --check k --result u
 assert_eq "firefly record: not a git repository" "$OUTPUT"
 echo "negative: rejected (usage: not a git repository, nothing written)"
 
+mkdir -p "$tmp_dir/outside-record" "$snap_repo/openspec/changes"
+ln -s "$tmp_dir/outside-record" "$snap_repo/openspec/changes/outside"
+if (cd "$snap_repo" && "$RECORD" mandate --change outside --id M-guard --objective guard --effects none --terminal 'done'); then
+  echo 'record should reject a linked change directory outside the repository' >&2
+  exit 1
+fi
+test ! -e "$tmp_dir/outside-record/proposal.md"
+
 # ---- 4. a repository that has no commit yet --------------------------------
 
 fresh="$tmp_dir/fresh"
@@ -462,10 +507,10 @@ git -C "$fresh" config user.name "firefly Test"
   "$RECORD" mandate --change c1 --id M-1 --objective o --effects e --terminal t > /dev/null
   "$RECORD" ready --change c1 --spec "$spec_version" --tasks "$tasks_version" --reviewer rev --verdict ACCEPT > /dev/null
   assert_eq "$tasks_version" "$("$SNAPSHOT" --tasks c1)"
-  before="$("$SNAPSHOT")"
+  before="$("$SNAPSHOT" worktree)"
   "$RECORD" observe --change c1 --scenario S-1 --check k --result fail --observer verifier:amy \
     --candidate "$before" --spec "$spec_version" --evidence openspec/changes/c1/evidence/e1.txt > /dev/null
-  assert_eq "$before" "$("$SNAPSHOT")"
+  assert_eq "$before" "$("$SNAPSHOT" worktree)"
   # The tree holds the implementation only: the change's specs, tasks and
   # proposal are out, like the observation record and the evidence.
   assert_eq "src/a.js" "$(git ls-tree -r --name-only "$before")"

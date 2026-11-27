@@ -48,7 +48,7 @@ Signals ship with the feature. What ships with it is what an operator needs to t
 
 - Under a proposal dispatch: the change id; the scenarios the dispatch names, with their stable IDs and the minutes they cite.
 - The signals the service already keeps — its metrics, logs and traces — and the records that answer the three questions: the minutes, the main specs, the runbook, the on-call arrangement.
-- Under a drill dispatch: the candidate snapshot and the spec version, printed by `"<skill-root>/scripts/firefly.sh" snapshot` and `"<skill-root>/scripts/firefly.sh" snapshot --spec <id>`; a test environment in which the two faults can be induced; someone who did not implement the candidate, to read the signals; the named responder and the runbook.
+- Under a drill dispatch: the candidate snapshot and the spec version, printed by `"<skill-root>/scripts/firefly.sh" snapshot worktree` and `"<skill-root>/scripts/firefly.sh" snapshot --spec <id>`; a test environment in which the two faults can be induced; someone who did not implement the candidate, to read the signals; the named responder and the runbook.
 - On resumption: the runtime signal requirements already written, with the spec package version, and the drill records already appended.
 
 ## Procedure
@@ -87,7 +87,7 @@ Signals ship with the feature. What ships with it is what an operator needs to t
 ### 6. Record the drill and hand it to the release owner
 
 1. Bind the drill record to the candidate snapshot, the spec version, the induced faults and the executor. Both values are printed by the runtime; nobody derives them:
-   - `"<skill-root>/scripts/firefly.sh" snapshot` prints the candidate snapshot.
+   - `"<skill-root>/scripts/firefly.sh" snapshot worktree` prints the candidate snapshot.
    - `"<skill-root>/scripts/firefly.sh" snapshot --spec <id>` prints the spec version.
 2. Append the record under `## Drill records` in `.superpowers/sdd/progress.md` — the one section of the progress record this skill appends, and only the record of a drill this skill ran. It is appended, never rewritten; a lapsed drill record is read as `historical` by rule and is never edited. The form of the record is in `references/drill-record.md`.
 3. The record carries the candidate snapshot, the spec version, the induced faults, the executor, what the executor could and could not distinguish, the observation method, the owner and the next step on an anomaly.

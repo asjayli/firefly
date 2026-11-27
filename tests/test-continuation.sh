@@ -120,7 +120,7 @@ git -C "$FIREFLY_TMP_DIR" init -q
   assert_contains "$ledger" '| implementer | worker-a | started | host handle: host-worker-1 |'
   assert_contains "$ledger" '| implementer | worker-a | returned |'
 
-  candidate="$("$root/firefly/scripts/firefly-snapshot.sh")"
+  candidate="$("$root/firefly/scripts/firefly-snapshot.sh" worktree)"
   pids=()
   for id in 1 2 3 4 5 6; do
     "$record" observe --change sample --scenario "S-$id" --check check --candidate "$candidate" \

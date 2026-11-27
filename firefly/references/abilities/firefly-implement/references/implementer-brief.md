@@ -69,7 +69,7 @@ and report it under deviations.
    step only when the dispatch routes the task to a test-first skill.] Follow
    [TEST-FIRST SKILL] for them.
 3. Fix the candidate. Once your last edit is in, run
-   "<skill-root>/scripts/firefly.sh" snapshot and note the SHA it prints. The
+   "<skill-root>/scripts/firefly.sh" snapshot worktree and note the SHA it prints. The
    implementation in the worktree, untracked files included, is now the candidate.
 4. Run the acceptance commands on the fixed candidate. Save each output to a new file
    and name the file in the report: under the evidence directory of "Observations you
@@ -93,7 +93,7 @@ and report it under deviations.
   openspec/think/ is part of it, and neither is the progress workspace: saving an
   output or writing a row never changes the snapshot. An edit to the implementation
   does change it. The worktree is then a new candidate: fix it again with
-  "<skill-root>/scripts/firefly.sh" snapshot and rerun the acceptance commands.
+  "<skill-root>/scripts/firefly.sh" snapshot worktree and rerun the acceptance commands.
 
 ## Observations you record
 
@@ -109,7 +109,7 @@ Record each with
 --observer implementer:[YOUR NAME] --implemented-by-observer [--evidence <path>]
 [--rule <text>] --note <conditions, the expected outcome of the row, and the check as it reads in the row>
 
-- Before the check, capture the inputs with `firefly snapshot` and
+- Before the check, capture the inputs with `firefly snapshot worktree` and
   `firefly snapshot --spec <id>`. Pass those exact values to the recorder.
 - `--note` is required. It carries three things: the conditions you observed under;
   the expected outcome the scenario map row names; and the check the row names, its
@@ -221,7 +221,7 @@ a new candidate: fix it again and rerun the acceptance commands.
 Write the full report to [REPORT_FILE]:
 
 - What you implemented, or what you attempted
-- The candidate snapshot: the SHA "<skill-root>/scripts/firefly.sh" snapshot
+- The candidate snapshot: the SHA "<skill-root>/scripts/firefly.sh" snapshot worktree
   printed after your last edit
 - Checks actually run: each command, its exit code and where its output is saved
 - Results and deviations: anything that departs from the brief, such as scope, a check

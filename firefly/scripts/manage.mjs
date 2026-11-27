@@ -12,7 +12,7 @@ const sourceRoot = process.argv[2];
 function usage() {
   console.log('Usage: manage.sh install --skills-dir DIR [--bin-dir DIR] [--references-dir DIR] [--scripts-dir DIR]');
   console.log('       manage.sh bootstrap [--bin-dir DIR]');
-  console.log('       manage.sh doctor|repair [--skills-dir DIR]');
+  console.log('       manage.sh doctor|repair [--skill-dir DIR | --skills-dir DIR]');
 }
 
 function parse(args, allowed) {
